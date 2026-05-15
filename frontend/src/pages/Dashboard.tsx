@@ -68,7 +68,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={350}>
               <BarChart data={analytics?.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
@@ -92,7 +92,7 @@ export default function Dashboard() {
             <p className="text-sm text-slate-500 font-medium mt-1">สัดส่วนการมาเรียนในเดือนนี้</p>
           </div>
           <div className="flex-1 min-h-[250px] relative mt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={analytics?.pieData}
