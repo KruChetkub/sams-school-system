@@ -59,12 +59,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <Link to="/attendance" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
             <ClipboardCheck size={20} /> เช็คชื่อรายวิชา
           </Link>
-          <Link to="/qrsession" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <QrCode size={20} /> เปิด QR Code เช็คชื่อ
-          </Link>
-          <Link to="/scan" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <ScanLine size={20} /> สแกนเช็คชื่อ (นักเรียน)
-          </Link>
+
           <Link to="/leaves" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
             <FileText size={20} /> ระบบการลา
           </Link>
@@ -131,8 +126,7 @@ function App() {
         <Route path="/schedules" element={user ? <DashboardLayout><Schedules /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/homeroom" element={user ? <DashboardLayout><Homeroom /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/attendance" element={user ? <DashboardLayout><Attendance /></DashboardLayout> : <Navigate to="/login" />} />
-        <Route path="/qrsession" element={user ? <DashboardLayout><QRSession /></DashboardLayout> : <Navigate to="/login" />} />
-        <Route path="/scan" element={user ? <DashboardLayout><StudentScan /></DashboardLayout> : <Navigate to="/login" />} />
+
         <Route path="/leaves" element={user ? <DashboardLayout><LeaveRequests /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/parent-dashboard" element={user ? <DashboardLayout><ParentDashboard /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/settings" element={user ? <DashboardLayout><AppSettings /></DashboardLayout> : <Navigate to="/login" />} />
