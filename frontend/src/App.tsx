@@ -63,9 +63,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <Link to="/leaves" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
             <FileText size={20} /> ระบบการลา
           </Link>
-          <Link to="/parent-dashboard" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition border-t mt-2 pt-4">
-            <LayoutDashboard size={20} /> แดชบอร์ดผู้ปกครอง
-          </Link>
+
           <Link to="/settings" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
             <Settings size={20} /> ตั้งค่าระบบ
           </Link>
@@ -128,7 +126,7 @@ function App() {
         <Route path="/attendance" element={user ? <DashboardLayout><Attendance /></DashboardLayout> : <Navigate to="/login" />} />
 
         <Route path="/leaves" element={user ? <DashboardLayout><LeaveRequests /></DashboardLayout> : <Navigate to="/login" />} />
-        <Route path="/parent-dashboard" element={user ? <DashboardLayout><ParentDashboard /></DashboardLayout> : <Navigate to="/login" />} />
+
         <Route path="/settings" element={user ? <DashboardLayout><AppSettings /></DashboardLayout> : <Navigate to="/login" />} />
         
         <Route path="/*" element={<Navigate to="/" />} />
