@@ -114,10 +114,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <>
               <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
               <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
-              {/* <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem> */}
-              <div className="pt-3 mt-3 border-t border-gray-100">
-                <NavItem to="/reports" icon={PieChart} onClick={closeSidebar}>รายงานสรุป</NavItem>
-              </div>
             </>
           )}
 
@@ -142,6 +138,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {role === 'ADMIN' && (
             <div className="pt-3 mt-3 border-t border-gray-100">
               <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
+            </div>
+          )}
+
+          {/* รายงานสรุป — แสดงทั้ง ADMIN และ TEACHER ที่ล่างสุด */}
+          {(role === 'ADMIN' || role === 'TEACHER') && (
+            <div className="pt-3 mt-3 border-t border-gray-100">
+              <NavItem to="/reports" icon={PieChart} onClick={closeSidebar}>รายงานสรุป</NavItem>
             </div>
           )}
         </nav>
