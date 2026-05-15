@@ -125,6 +125,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {(role === 'ADMIN' || role === 'TEACHER') && (
             <div className="pt-3 mt-3 border-t border-gray-100">
               <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการนักเรียน</NavItem>
+              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
             </div>
           )}
 
@@ -133,7 +134,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
               <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
               <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
-              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
               <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
             </>
           )}
