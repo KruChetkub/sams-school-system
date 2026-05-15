@@ -114,7 +114,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <>
               <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
               <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
-              <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem>
+              {/* <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem> */}
               <div className="pt-3 mt-3 border-t border-gray-100">
                 <NavItem to="/reports" icon={PieChart} onClick={closeSidebar}>รายงานสรุป</NavItem>
               </div>
