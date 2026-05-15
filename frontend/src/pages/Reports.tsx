@@ -18,10 +18,7 @@ export default function Reports() {
             </span>
           </div>
           
-          <h1 className="text-4xl font-black mb-2 tracking-tight">สรุปการเช็คชื่อเข้าเรียน</h1>
-          <p className="text-white/80 font-medium flex items-center gap-2">
-            รอการเชื่อมต่อข้อมูลจากฐานข้อมูล...
-          </p>
+          <h1 className="text-4xl font-black tracking-tight">สรุปการเช็คชื่อเข้าเรียน</h1>
         </div>
       </div>
 
@@ -76,42 +73,7 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* Action Bar & Sub-filters */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          {['3 วัน', '7 วัน', '14 วัน', '30 วัน', '90 วัน'].map(range => {
-            const id = range.replace(' วัน', 'days')
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveRange(id)}
-                className={`px-5 py-2 rounded-xl font-bold text-sm transition-all border ${
-                  activeRange === id
-                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                {range}
-              </button>
-            )
-          })}
-        </div>
 
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-all shadow-md">
-            <Share2 size={18} /> แชร์
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md">
-            <FileSpreadsheet size={18} /> CSV
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-pink-500 hover:bg-pink-600 transition-all shadow-md">
-            <FileText size={18} /> PDF
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-slate-600 hover:bg-slate-700 transition-all shadow-md">
-            <RefreshCw size={18} /> รีเฟรช
-          </button>
-        </div>
-      </div>
 
       {/* Placeholder for Data / Charts */}
       <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 flex flex-col items-center justify-center text-gray-400 border-dashed border-2">
