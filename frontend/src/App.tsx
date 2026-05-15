@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
@@ -17,65 +17,80 @@ import StudentScan from './pages/StudentScan'
 import LeaveRequests from './pages/LeaveRequests'
 import ParentDashboard from './pages/ParentDashboard'
 import AppSettings from './pages/Settings' // Renamed import to avoid conflict with lucide Settings icon
-import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard } from 'lucide-react'
+import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X } from 'lucide-react'
+
+// NavItem Component to handle active state and auto-close
+const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  return (
+    <Link 
+      to={to} 
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-50 text-blue-700 font-semibold shadow-sm border border-blue-100' : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600 font-medium'}`}
+    >
+      <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+      {children}
+    </Link>
+  )
+}
 
 // Layout Component
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user, role } = useAuthStore()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const closeSidebar = () => setIsSidebarOpen(false)
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={closeSidebar}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md flex flex-col">
-        <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold text-blue-600">SAMS</h2>
-          <p className="text-sm text-gray-500">Admin Portal</p>
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-72 bg-white shadow-2xl lg:shadow-sm border-r border-gray-100 flex flex-col
+        transform transition-transform duration-300 ease-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">SAMS</h2>
+            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Admin Portal</p>
+          </div>
+          <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-colors">
+            <X size={24} />
+          </button>
         </div>
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <Link to="/" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <Home size={20} /> หน้าหลัก
-          </Link>
-          <Link to="/teachers" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <Users size={20} /> จัดการบุคลากร
-          </Link>
-          <Link to="/classrooms" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <BookOpen size={20} /> จัดการห้องเรียน
-          </Link>
-          <Link to="/students" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <GraduationCap size={20} /> จัดการนักเรียน
-          </Link>
-          <Link to="/parents" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <HeartHandshake size={20} /> จัดการผู้ปกครอง
-          </Link>
-          <Link to="/subjects" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <Library size={20} /> จัดการวิชาเรียน
-          </Link>
-          <Link to="/schedules" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <Calendar size={20} /> จัดตารางเรียน
-          </Link>
-          <Link to="/homeroom" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <CheckSquare size={20} /> เช็คชื่อเข้าแถว
-          </Link>
-          <Link to="/attendance" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <ClipboardCheck size={20} /> เช็คชื่อรายวิชา
-          </Link>
-
-          <Link to="/leaves" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <FileText size={20} /> ระบบการลา
-          </Link>
-
-          <Link to="/settings" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition">
-            <Settings size={20} /> ตั้งค่าระบบ
-          </Link>
+        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+          <NavItem to="/" icon={Home} onClick={closeSidebar}>หน้าหลัก</NavItem>
+          <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
+          <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
+          <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการนักเรียน</NavItem>
+          <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
+          <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
+          <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
+          <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
+          <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
+          <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem>
+          <div className="pt-4 mt-4 border-t border-gray-100">
+            <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
+          </div>
         </nav>
-        <div className="p-4 border-t">
-          <div className="mb-4 px-2">
-            <p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p>
-            <p className="text-xs text-gray-500">Role: {role || 'Loading...'}</p>
+        <div className="p-5 border-t border-gray-100 bg-gray-50/50">
+          <div className="mb-5 px-2">
+            <p className="text-sm font-bold text-gray-800 truncate">{user?.email}</p>
+            <p className="text-xs text-blue-600 font-semibold mt-1 capitalize">{role?.toLowerCase() || 'Loading...'}</p>
           </div>
           <button 
             onClick={signOut} 
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all shadow-sm"
           >
             <LogOut size={18} /> ออกจากระบบ
           </button>
@@ -83,8 +98,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {children}
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white shadow-sm border-b border-gray-100 p-4 flex items-center justify-between z-30 shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(true)} 
+              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
+            >
+              <Menu size={26} />
+            </button>
+            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">SAMS</h2>
+          </div>
+        </header>
+        
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-auto bg-gray-50/30">
+          {children}
+        </div>
       </main>
     </div>
   )
