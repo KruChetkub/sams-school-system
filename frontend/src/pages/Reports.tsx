@@ -1,13 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getAnalyticsData } from '../services/dashboardService'
-import { BarChart3, Users, User, Download, Share2, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText } from 'lucide-react'
+import { BarChart3, Users, User, Download, Share2, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => {
+    return window.location.hash.replace('#', '') || 'overview'
+  })
   const [activeTimeFilter, setActiveTimeFilter] = useState('month')
   const [activeRange, setActiveRange] = useState('30days')
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash) setActiveTab(hash)
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   const { data: analytics, isLoading } = useQuery({ 
     queryKey: ['dashboard_analytics', activeTimeFilter], 
@@ -57,25 +68,31 @@ export default function Reports() {
       {/* Main Navigation Tabs */}
       <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex overflow-x-auto">
         <button 
-          onClick={() => setActiveTab('overview')}
+          onClick={() => { setActiveTab('overview'); window.location.hash = 'overview' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'overview' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <BarChart3 size={18} /> ภาพรวม
         </button>
         <button 
-          onClick={() => setActiveTab('classroom')}
+          onClick={() => { setActiveTab('classroom'); window.location.hash = 'classroom' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'classroom' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <Users size={18} /> รายห้องเรียน
         </button>
         <button 
-          onClick={() => setActiveTab('student')}
+          onClick={() => { setActiveTab('student'); window.location.hash = 'student' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'student' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <User size={18} /> รายบุคคล
         </button>
         <button 
-          onClick={() => setActiveTab('export')}
+          onClick={() => { setActiveTab('subject'); window.location.hash = 'subject' }}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'subject' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+        >
+          <Library size={18} /> รายวิชา
+        </button>
+        <button 
+          onClick={() => { setActiveTab('export'); window.location.hash = 'export' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'export' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <Download size={18} /> ออกรายงาน
@@ -188,6 +205,12 @@ export default function Reports() {
           <User size={64} className="mb-4 text-gray-300" />
           <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายบุคคล</h2>
           <p>ระบบกำลังรวบรวมข้อมูลสรุปสถิติของนักเรียนแต่ละคน (เร็วๆ นี้)</p>
+        </div>
+      ) : activeTab === 'subject' ? (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
+          <Library size={64} className="mb-4 text-gray-300" />
+          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายวิชา</h2>
+          <p>ระบบกำลังรวบรวมข้อมูลสถิติการเข้าเรียนแยกตามแต่ละรายวิชา (เร็วๆ นี้)</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
