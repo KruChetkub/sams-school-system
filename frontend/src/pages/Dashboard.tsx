@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { getDashboardStats, getAnalyticsData } from '../services/dashboardService'
 import { Users, GraduationCap, BookOpen, Library, Download, TrendingUp, Calendar as CalIcon } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import * as XLSX from 'xlsx'
 
 export default function Dashboard() {
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
@@ -17,29 +16,6 @@ export default function Dashboard() {
     { title: 'ห้องเรียนที่เปิดสอน', value: stats?.classrooms, icon: <BookOpen size={32} className="text-white" />, bg: 'bg-gradient-to-br from-purple-500 to-purple-600', shadow: 'shadow-purple-200' },
     { title: 'รายวิชาในระบบ', value: stats?.subjects, icon: <Library size={32} className="text-white" />, bg: 'bg-gradient-to-br from-orange-400 to-orange-600', shadow: 'shadow-orange-200' },
   ]
-
-  const exportToExcel = () => {
-    if (!analytics?.rawAttendance || analytics.rawAttendance.length === 0) {
-      alert('ไม่มีข้อมูลสำหรับส่งออก')
-      return
-    }
-
-    // Prepare data for Excel
-    const excelData = analytics.rawAttendance.map((row: any) => ({
-      'รหัสนักเรียน': row.students?.student_code || '-',
-      'ชื่อ-สกุล': `${row.students?.first_name} ${row.students?.last_name}`,
-      'ชั้นเรียน': `ม.${row.students?.classrooms?.level}/${row.students?.classrooms?.room}`,
-      'วิชา': row.attendance_sessions?.subjects?.subject_name || '-',
-      'วันที่': row.attendance_sessions?.session_date ? new Date(row.attendance_sessions.session_date).toLocaleDateString('th-TH') : '-',
-      'เวลาเช็คชื่อ': new Date(row.checkin_time).toLocaleTimeString('th-TH'),
-      'สถานะ': row.status === 'PRESENT' ? 'มาเรียน' : row.status === 'LATE' ? 'สาย' : 'ขาดเรียน'
-    }))
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance")
-    XLSX.writeFile(workbook, `SAMS_Attendance_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
-  }
 
   const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
   const presentCount = analytics?.pieData?.find((d: any) => d.name === 'มาเรียน')?.value || 0;
@@ -59,12 +35,6 @@ export default function Dashboard() {
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">Executive Dashboard</h1>
           <p className="text-slate-500 font-medium mt-1">ภาพรวมและสถิติระบบจัดการการเข้าเรียน (SAMS)</p>
         </div>
-        <button 
-          onClick={exportToExcel}
-          className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-bold shadow-lg shadow-slate-200 transition-all hover:-translate-y-0.5"
-        >
-          <Download size={20} /> Export to Excel
-        </button>
       </div>
 
       {/* Stats Cards */}
