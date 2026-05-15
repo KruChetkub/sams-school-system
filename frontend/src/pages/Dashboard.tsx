@@ -6,7 +6,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 export default function Dashboard() {
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
-  const { data: analytics, isLoading: loadingAnalytics } = useQuery({ queryKey: ['dashboard_analytics'], queryFn: getAnalyticsData })
+  const { data: analytics, isLoading: loadingAnalytics } = useQuery({ 
+    queryKey: ['dashboard_analytics', 'month'], 
+    queryFn: () => getAnalyticsData('month') 
+  })
 
   if (loadingStats || loadingAnalytics) return <div className="p-8 text-center text-gray-500 mt-20">กำลังโหลดข้อมูล Dashboard...</div>
 
