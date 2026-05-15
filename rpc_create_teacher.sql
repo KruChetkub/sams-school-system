@@ -25,11 +25,11 @@ BEGIN
   VALUES
     ('00000000-0000-0000-0000-000000000000', new_user_id, 'authenticated', 'authenticated', t_email, encrypted_pw, now(), '{"provider":"email","providers":["email"]}', '{"role":"teacher"}', now(), now());
     
-  INSERT INTO auth.identities (id, user_id, identity_data, provider, created_at, updated_at)
+  INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
   VALUES
-    (gen_random_uuid(), new_user_id, format('{"sub":"%s","email":"%s"}', new_user_id::text, t_email)::jsonb, 'email', now(), now());
+    (gen_random_uuid(), new_user_id::text, new_user_id, format('{"sub":"%s","email":"%s"}', new_user_id::text, t_email)::jsonb, 'email', now(), now());
 
-  -- บันทึกข้อมูลลงตาราง users (สำคัญมาก! เพื่อให้ fetchRole และ foreign key ทำงานได้)
+  -- บันทึกข้อมูลลงตาราง users
   INSERT INTO public.users (id, email, role)
   VALUES (new_user_id, t_email, 'TEACHER');
 

@@ -34,9 +34,10 @@ export const getStudentsForSchedule = async (scheduleId: string) => {
 export const saveClassroomAttendance = async (records: AttendanceRecord[]) => {
   if (records.length === 0) return
   
-  const { error } = await supabase
-    .from('attendance_records')
-    .upsert(records, { onConflict: 'schedule_id, student_id, attendance_date' })
+  // เรียกใช้งาน RPC เพื่อจัดการ Session และ Insert ลงตาราง Attendance
+  const { error } = await supabase.rpc('save_classroom_attendance', {
+    p_records: records
+  })
     
   if (error) throw error
 }
