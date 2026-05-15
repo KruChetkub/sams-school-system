@@ -10,8 +10,8 @@ export default function Reports() {
   const [activeRange, setActiveRange] = useState('30days')
 
   const { data: analytics, isLoading } = useQuery({ 
-    queryKey: ['dashboard_analytics'], 
-    queryFn: getAnalyticsData 
+    queryKey: ['dashboard_analytics', activeTimeFilter], 
+    queryFn: () => getAnalyticsData(activeTimeFilter) 
   })
 
   const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
@@ -107,13 +107,13 @@ export default function Reports() {
 
 
 
-      {/* Charts Section */}
+      {/* Views Based on activeTab */}
       {isLoading ? (
         <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 flex flex-col items-center justify-center text-gray-400">
           <RefreshCw size={48} className="mb-4 animate-spin opacity-50" />
           <p>กำลังโหลดข้อมูลการเข้าเรียน...</p>
         </div>
-      ) : (
+      ) : activeTab === 'overview' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Bar Chart */}
           <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -175,6 +175,31 @@ export default function Reports() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      ) : activeTab === 'classroom' ? (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
+          <Users size={64} className="mb-4 text-gray-300" />
+          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายห้องเรียน</h2>
+          <p>ระบบกำลังรวบรวมข้อมูลสรุปสถิติแยกตามห้องเรียน (เร็วๆ นี้)</p>
+        </div>
+      ) : activeTab === 'student' ? (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
+          <User size={64} className="mb-4 text-gray-300" />
+          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายบุคคล</h2>
+          <p>ระบบกำลังรวบรวมข้อมูลสรุปสถิติของนักเรียนแต่ละคน (เร็วๆ นี้)</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
+          <Download size={64} className="mb-4 text-gray-300" />
+          <h2 className="text-2xl font-bold text-gray-700 mb-6">ส่งออกรายงาน (Export)</h2>
+          <div className="flex gap-4">
+             <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md">
+              <FileSpreadsheet size={20} /> ส่งออกเป็น CSV
+            </button>
+            <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-pink-500 hover:bg-pink-600 transition-all shadow-md">
+              <FileText size={20} /> ส่งออกเป็น PDF
+            </button>
           </div>
         </div>
       )}

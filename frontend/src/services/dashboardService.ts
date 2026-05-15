@@ -21,8 +21,24 @@ export const getDashboardStats = async () => {
   }
 }
 
-export const getAnalyticsData = async () => {
-  // ดึงข้อมูลจริงทั้งหมด (จำกัด 1000 รายการล่าสุด)
+export const getAnalyticsData = async (timeFilter: string = 'month') => {
+  // คำนวณวันที่เริ่มต้นตาม timeFilter
+  const now = new Date()
+  let startDate = new Date()
+  
+  if (timeFilter === 'today') {
+    startDate.setHours(0, 0, 0, 0)
+  } else if (timeFilter === 'week') {
+    startDate.setDate(now.getDate() - 7)
+  } else if (timeFilter === 'month') {
+    startDate.setMonth(now.getMonth() - 1)
+  } else if (timeFilter === 'term') {
+    startDate.setMonth(now.getMonth() - 4) // สมมติว่าเทอมนึง 4 เดือน
+  } else if (timeFilter === 'year') {
+    startDate.setFullYear(now.getFullYear() - 1)
+  }
+
+  // ดึงข้อมูลจริงทั้งหมด (จำกัด 2000 รายการ)
   const { data: rawAttendance } = await supabase
     .from('attendance')
     .select(`
@@ -30,8 +46,9 @@ export const getAnalyticsData = async () => {
       students ( student_code, first_name, last_name, classrooms(level, room) ),
       attendance_sessions ( session_date, subjects(subject_name) )
     `)
+    .gte('checkin_time', startDate.toISOString())
     .order('checkin_time', { ascending: false })
-    .limit(1000)
+    .limit(2000)
 
   // ประมวลผลข้อมูลจริง
   let totalPresent = 0
