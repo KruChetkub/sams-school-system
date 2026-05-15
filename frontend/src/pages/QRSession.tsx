@@ -12,7 +12,7 @@ export default function QRSession() {
   const [activeSession, setActiveSession] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState(10)
 
-  const { data: schedules } = useQuery({ queryKey: ['schedules'], queryFn: getSchedules })
+  const { data: schedules } = useQuery({ queryKey: ['schedules'], queryFn: () => getSchedules() })
   
   const { data: attendanceList } = useQuery({
     queryKey: ['session_attendance', activeSession?.id],

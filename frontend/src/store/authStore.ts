@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       .from('users')
       .select('role')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
     
     if (data && !error) {
       set({ role: data.role })
