@@ -11,6 +11,7 @@ export default function Students() {
   const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
   
   const [showForm, setShowForm] = useState(false)
+  const [filterClassroomId, setFilterClassroomId] = useState('')
   const [formData, setFormData] = useState({
     student_code: '',
     first_name: '',
@@ -177,6 +178,24 @@ export default function Students() {
         <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+              <Users size={18} /> รายชื่อนักเรียนทั้งหมด
+            </h2>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">กรองตามห้องเรียน:</label>
+              <select 
+                className="border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+                value={filterClassroomId}
+                onChange={e => setFilterClassroomId(e.target.value)}
+              >
+                <option value="">-- แสดงทุกห้องเรียน --</option>
+                {classrooms?.map(c => (
+                  <option key={c.id} value={c.id}>{c.level}/{c.room}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -187,7 +206,7 @@ export default function Students() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {students?.map(student => (
+              {students?.filter(s => filterClassroomId === '' || s.classroom_id === filterClassroomId).map(student => (
                 <tr key={student.id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">{student.student_code}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{student.first_name} {student.last_name} {student.nickname && `(${student.nickname})`}</td>
@@ -205,8 +224,8 @@ export default function Students() {
                   </td>
                 </tr>
               ))}
-              {students?.length === 0 && (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลนักเรียนในระบบ</td></tr>
+              {students?.filter(s => filterClassroomId === '' || s.classroom_id === filterClassroomId).length === 0 && (
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
               )}
             </tbody>
           </table>
