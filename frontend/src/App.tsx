@@ -17,7 +17,8 @@ import StudentScan from './pages/StudentScan'
 import LeaveRequests from './pages/LeaveRequests'
 import ParentDashboard from './pages/ParentDashboard'
 import AppSettings from './pages/Settings' // Renamed import to avoid conflict with lucide Settings icon
-import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle } from 'lucide-react'
+import Reports from './pages/Reports'
+import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart } from 'lucide-react'
 
 // NavItem Component to handle active state and auto-close
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
@@ -114,6 +115,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
               <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
               <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem>
+              <div className="pt-3 mt-3 border-t border-gray-100">
+                <NavItem to="/reports" icon={PieChart} onClick={closeSidebar}>รายงานสรุป</NavItem>
+              </div>
             </>
           )}
 
@@ -213,6 +217,7 @@ function App() {
         <Route path="/schedules" element={user ? <DashboardLayout><Schedules /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/homeroom" element={user ? <DashboardLayout><Homeroom /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/attendance" element={user ? <DashboardLayout><Attendance /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/reports" element={user ? <DashboardLayout><Reports /></DashboardLayout> : <Navigate to="/login" />} />
 
         <Route path="/leaves" element={user ? <DashboardLayout><LeaveRequests /></DashboardLayout> : <Navigate to="/login" />} />
 
