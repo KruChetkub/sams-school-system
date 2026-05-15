@@ -70,18 +70,39 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <NavItem to="/" icon={Home} onClick={closeSidebar}>หน้าหลัก</NavItem>
-          <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
-          <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
-          <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการนักเรียน</NavItem>
-          <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
-          <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
-          <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
-          <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
-          <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
-          <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem>
-          <div className="pt-4 mt-4 border-t border-gray-100">
-            <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
-          </div>
+          
+          {role === 'ADMIN' && (
+            <>
+              <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
+              <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
+            </>
+          )}
+
+          {(role === 'ADMIN' || role === 'TEACHER') && (
+            <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการนักเรียน</NavItem>
+          )}
+
+          {role === 'ADMIN' && (
+            <>
+              <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
+              <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
+              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
+            </>
+          )}
+
+          {(role === 'ADMIN' || role === 'TEACHER') && (
+            <>
+              <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
+              <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
+              <NavItem to="/leaves" icon={FileText} onClick={closeSidebar}>ระบบการลา</NavItem>
+            </>
+          )}
+
+          {role === 'ADMIN' && (
+            <div className="pt-4 mt-4 border-t border-gray-100">
+              <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
+            </div>
+          )}
         </nav>
         <div className="p-5 border-t border-gray-100 bg-gray-50/50">
           <div className="mb-5 px-2">
