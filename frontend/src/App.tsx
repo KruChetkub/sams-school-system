@@ -17,7 +17,7 @@ import StudentScan from './pages/StudentScan'
 import LeaveRequests from './pages/LeaveRequests'
 import ParentDashboard from './pages/ParentDashboard'
 import AppSettings from './pages/Settings' // Renamed import to avoid conflict with lucide Settings icon
-import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X } from 'lucide-react'
+import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle } from 'lucide-react'
 
 // NavItem Component to handle active state and auto-close
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
@@ -39,11 +39,48 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user, role } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const closeSidebar = () => setIsSidebarOpen(false)
 
+  const handleLogout = () => {
+    setShowLogoutModal(false)
+    signOut()
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)}></div>
+          <div className="bg-[#fff9e6] rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden border-[6px] border-[#ffb700] animate-in fade-in zoom-in duration-200">
+            <div className="p-8 flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-[#ffb700] rounded-full flex items-center justify-center mb-6 shadow-lg border-4 border-white">
+                <AlertCircle size={40} className="text-white" strokeWidth={3} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">ออกจากระบบ</h3>
+              <p className="text-gray-600 font-medium mb-8">คุณต้องการออกจากระบบใช่หรือไม่?</p>
+              
+              <div className="flex w-full gap-3">
+                <button 
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 bg-white border-2 border-gray-100 text-gray-600 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  <X size={18} strokeWidth={3} /> ยกเลิก
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="flex-1 bg-[#ea3b3b] text-white font-bold py-3 px-4 rounded-xl hover:bg-[#d42d2d] transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <CheckSquare size={18} strokeWidth={3} /> ออกจากระบบ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
@@ -110,7 +147,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <p className="text-xs text-blue-600 font-semibold mt-1 capitalize">{role?.toLowerCase() || 'Loading...'}</p>
           </div>
           <button 
-            onClick={signOut} 
+            onClick={() => setShowLogoutModal(true)} 
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all shadow-sm"
           >
             <LogOut size={18} /> ออกจากระบบ
