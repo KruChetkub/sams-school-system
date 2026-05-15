@@ -45,7 +45,7 @@ export const getClassroomReport = async (timeFilter: string = 'month'): Promise<
     const classroom = att.students?.classrooms
     if (!classroom) return
     const id = classroom.id
-    const label = `ม.${classroom.level}/${classroom.room}`
+    const label = `${classroom.level}/${classroom.room}`
     if (!statsMap[id]) {
       statsMap[id] = { classroomId: id, label, present: 0, absent: 0, late: 0, total: 0, rate: 0 }
     }
@@ -92,7 +92,7 @@ export const getStudentReport = async (timeFilter: string = 'month', classroomId
     if (!s) return
     if (classroomId && s.classroom_id !== classroomId) return
     const id = s.id
-    const classroom = s.classrooms ? `ม.${s.classrooms.level}/${s.classrooms.room}` : '-'
+    const classroom = s.classrooms ? `${s.classrooms.level}/${s.classrooms.room}` : '-'
     if (!statsMap[id]) {
       statsMap[id] = {
         studentId: id,
