@@ -146,17 +146,21 @@ export default function Students() {
               ))}
             </select>
           </div>
-          <div className="md:col-span-2 bg-blue-50 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
-            <div>
-              <h3 className="font-semibold text-blue-800">นำเข้าจาก Excel (หลายคนพร้อมกัน)</h3>
-              <p className="text-sm text-blue-600">เลือกห้องเรียนด้านบนก่อน แล้วค่อยอัปโหลดไฟล์ Excel เพื่อนำเด็กเข้าห้องนั้น</p>
+          <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border border-blue-100 shadow-sm">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-blue-800 text-lg flex items-center gap-2">
+                นำเข้าข้อมูลนักเรียน (Excel)
+              </h3>
+              <p className="text-sm text-blue-600 mt-1 leading-relaxed">
+                เลือกระดับชั้นและห้องเรียนด้านบนให้เรียบร้อยก่อนทำการอัปโหลดไฟล์ Excel เพื่อเพิ่มรายชื่อนักเรียนทั้งหมดเข้าสู่ระบบในครั้งเดียว
+              </p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <button type="button" onClick={downloadTemplate} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-blue-700 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition shadow-sm text-sm">
-                <Download size={16} /> โหลดไฟล์ต้นแบบ
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+              <button type="button" onClick={downloadTemplate} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl hover:bg-blue-100 transition shadow-sm font-medium">
+                <Download size={18} /> ไฟล์ต้นแบบ
               </button>
-              <label className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer transition shadow-sm text-sm">
-                <Upload size={16} /> อัปโหลด Excel
+              <label className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 cursor-pointer transition shadow-sm font-medium">
+                <Upload size={18} /> อัปโหลดไฟล์ Excel
                 <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={bulkCreateMutation.isPending} />
               </label>
             </div>
