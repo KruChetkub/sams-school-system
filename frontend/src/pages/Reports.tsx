@@ -10,40 +10,18 @@ export default function Reports() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
+      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden min-h-[200px] flex items-center">
+        <div className="relative z-10 w-full">
+          <div className="flex items-center gap-3 mb-2">
             <span className="bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 backdrop-blur-sm">
               <BarChart3 size={16} /> รายงานภาพรวม
             </span>
-            <span className="bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-              30 วัน
-            </span>
           </div>
           
-          <h1 className="text-4xl font-black mb-2 tracking-tight">สรุปการเช็คประจำวัน</h1>
-          <p className="text-white/80 font-medium flex items-center gap-2 mb-6">
-            <CalendarIcon size={18} /> 15 เมษายน 2569 — 15 พฤษภาคม 2569
+          <h1 className="text-4xl font-black mb-2 tracking-tight">สรุปการเช็คชื่อเข้าเรียน</h1>
+          <p className="text-white/80 font-medium flex items-center gap-2">
+            รอการเชื่อมต่อข้อมูลจากฐานข้อมูล...
           </p>
-
-          <div className="flex flex-wrap gap-3">
-            <div className="bg-white/20 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 backdrop-blur-sm">
-              <FileText size={16} /> 2 รายการ
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 backdrop-blur-sm">
-              <Users size={16} /> 1 ห้องเรียน
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 backdrop-blur-sm">
-              <RefreshCw size={16} /> เมื่อสักครู่
-            </div>
-          </div>
-        </div>
-
-        {/* Circular Progress (Static for UI) */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 w-40 h-40 rounded-full border-8 border-white/20 flex flex-col items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-8 border-yellow-400 border-l-transparent border-b-transparent transform rotate-45"></div>
-          <span className="text-4xl font-black z-10">100<span className="text-xl">%</span></span>
-          <span className="text-xs font-medium text-white/80 z-10">อัตราเข้าแถว</span>
         </div>
       </div>
 
