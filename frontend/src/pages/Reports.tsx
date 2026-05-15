@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getAnalyticsData } from '../services/dashboardService'
-import { BarChart3, Users, User, Download, Share2, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library } from 'lucide-react'
+import { getAnalyticsData, getClassroomReport, getStudentReport, getSubjectReport } from '../services/dashboardService'
+import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, TrendingUp, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
@@ -20,9 +20,24 @@ export default function Reports() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  const { data: analytics, isLoading } = useQuery({ 
-    queryKey: ['dashboard_analytics', activeTimeFilter], 
-    queryFn: () => getAnalyticsData(activeTimeFilter) 
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ['dashboard_analytics', activeTimeFilter],
+    queryFn: () => getAnalyticsData(activeTimeFilter)
+  })
+  const { data: classroomRows = [], isLoading: loadingClassroom } = useQuery({
+    queryKey: ['report_classroom', activeTimeFilter],
+    queryFn: () => getClassroomReport(activeTimeFilter),
+    enabled: activeTab === 'classroom'
+  })
+  const { data: studentRows = [], isLoading: loadingStudent } = useQuery({
+    queryKey: ['report_student', activeTimeFilter],
+    queryFn: () => getStudentReport(activeTimeFilter),
+    enabled: activeTab === 'student'
+  })
+  const { data: subjectRows = [], isLoading: loadingSubject } = useQuery({
+    queryKey: ['report_subject', activeTimeFilter],
+    queryFn: () => getSubjectReport(activeTimeFilter),
+    enabled: activeTab === 'subject'
   })
 
   const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
@@ -195,29 +210,156 @@ export default function Reports() {
           </div>
         </div>
       ) : activeTab === 'classroom' ? (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
-          <Users size={64} className="mb-4 text-gray-300" />
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายห้องเรียน</h2>
-          <p>ระบบกำลังรวบรวมข้อมูลสรุปสถิติแยกตามห้องเรียน (เร็วๆ นี้)</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+            <Users className="text-indigo-500" size={22} />
+            <h2 className="text-lg font-bold text-gray-800">สรุปการเข้าเรียนรายห้องเรียน</h2>
+          </div>
+          {loadingClassroom ? (
+            <div className="p-16 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+          ) : classroomRows.length === 0 ? (
+            <div className="p-16 flex flex-col items-center text-gray-400">
+              <AlertCircle size={48} className="mb-3 opacity-40" />
+              <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-bold">ห้องเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">มาเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">ขาดเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">มาสาย</th>
+                    <th className="px-6 py-4 text-center font-bold">รวม</th>
+                    <th className="px-6 py-4 text-center font-bold">% มาเรียน</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {classroomRows.map(r => (
+                    <tr key={r.classroomId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-gray-800">{r.label}</td>
+                      <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
+                      <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
+                      <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
+                      <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                          r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                        }`}>{r.rate}%</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : activeTab === 'student' ? (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
-          <User size={64} className="mb-4 text-gray-300" />
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายบุคคล</h2>
-          <p>ระบบกำลังรวบรวมข้อมูลสรุปสถิติของนักเรียนแต่ละคน (เร็วๆ นี้)</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+            <User className="text-indigo-500" size={22} />
+            <h2 className="text-lg font-bold text-gray-800">สรุปการเข้าเรียนรายบุคคล</h2>
+          </div>
+          {loadingStudent ? (
+            <div className="p-16 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+          ) : studentRows.length === 0 ? (
+            <div className="p-16 flex flex-col items-center text-gray-400">
+              <AlertCircle size={48} className="mb-3 opacity-40" />
+              <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-bold">รหัส</th>
+                    <th className="px-6 py-4 text-left font-bold">ชื่อ-นามสกุล</th>
+                    <th className="px-6 py-4 text-left font-bold">ห้อง</th>
+                    <th className="px-6 py-4 text-center font-bold">มาเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">ขาด</th>
+                    <th className="px-6 py-4 text-center font-bold">สาย</th>
+                    <th className="px-6 py-4 text-center font-bold">% มา</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {studentRows.map(r => (
+                    <tr key={r.studentId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-gray-500 font-mono text-xs">{r.studentCode}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-800">{r.fullName}</td>
+                      <td className="px-6 py-4 text-gray-500">{r.classroom}</td>
+                      <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
+                      <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
+                      <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                          r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                        }`}>{r.rate}%</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : activeTab === 'subject' ? (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
-          <Library size={64} className="mb-4 text-gray-300" />
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">รายงานสรุปรายวิชา</h2>
-          <p>ระบบกำลังรวบรวมข้อมูลสถิติการเข้าเรียนแยกตามแต่ละรายวิชา (เร็วๆ นี้)</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+            <Library className="text-indigo-500" size={22} />
+            <h2 className="text-lg font-bold text-gray-800">สรุปการเข้าเรียนรายวิชา</h2>
+          </div>
+          {loadingSubject ? (
+            <div className="p-16 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+          ) : subjectRows.length === 0 ? (
+            <div className="p-16 flex flex-col items-center text-gray-400">
+              <AlertCircle size={48} className="mb-3 opacity-40" />
+              <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-bold">รหัสวิชา</th>
+                    <th className="px-6 py-4 text-left font-bold">ชื่อวิชา</th>
+                    <th className="px-6 py-4 text-center font-bold">มาเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">ขาด</th>
+                    <th className="px-6 py-4 text-center font-bold">สาย</th>
+                    <th className="px-6 py-4 text-center font-bold">รวม</th>
+                    <th className="px-6 py-4 text-center font-bold">% มา</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {subjectRows.map(r => (
+                    <tr key={r.subjectId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-gray-500 font-mono text-xs">{r.subjectCode}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-800">{r.subjectName}</td>
+                      <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
+                      <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
+                      <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
+                      <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                          r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                        }`}>{r.rate}%</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center text-gray-500 min-h-[400px] flex flex-col items-center justify-center">
           <Download size={64} className="mb-4 text-gray-300" />
           <h2 className="text-2xl font-bold text-gray-700 mb-6">ส่งออกรายงาน (Export)</h2>
           <div className="flex gap-4">
-             <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md">
+            <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md">
               <FileSpreadsheet size={20} /> ส่งออกเป็น CSV
             </button>
             <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-pink-500 hover:bg-pink-600 transition-all shadow-md">
