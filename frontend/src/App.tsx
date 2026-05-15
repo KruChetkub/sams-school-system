@@ -132,9 +132,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <>
               <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
               <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
-              <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
               <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
               <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
+              <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
             </>
           )}
 
