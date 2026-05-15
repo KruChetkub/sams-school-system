@@ -19,11 +19,11 @@ BEGIN
   new_user_id := gen_random_uuid();
   encrypted_pw := crypt(t_password, gen_salt('bf'));
   
-  -- สร้างบัญชี Auth
+  -- สร้างบัญชี Auth โดยใส่ค่าว่างเปล่า ('') ในฟิลด์ token เพื่อป้องกัน Error "Database error querying schema"
   INSERT INTO auth.users
-    (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+    (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
   VALUES
-    ('00000000-0000-0000-0000-000000000000', new_user_id, 'authenticated', 'authenticated', t_email, encrypted_pw, now(), '{"provider":"email","providers":["email"]}', '{"role":"teacher"}', now(), now());
+    ('00000000-0000-0000-0000-000000000000', new_user_id, 'authenticated', 'authenticated', t_email, encrypted_pw, now(), '{"provider":"email","providers":["email"]}', '{"role":"teacher"}', now(), now(), '', '', '', '');
     
   INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
   VALUES

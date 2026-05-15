@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Bell, Shield, Smartphone } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Save, Bell, Shield, Smartphone, Users, UserCog } from 'lucide-react'
+import { getUsers, updateUserRole } from '../services/userService'
 
 export default function Settings() {
   const [lineToken, setLineToken] = useState('')
@@ -22,7 +24,6 @@ export default function Settings() {
     e.preventDefault()
     setIsSaving(true)
     
-    // จำลองการบันทึกข้อมูลเข้าระบบ
     setTimeout(() => {
       localStorage.setItem('sams_line_token', lineToken)
       localStorage.setItem('sams_tg_token', telegramToken)
@@ -32,6 +33,23 @@ export default function Settings() {
       alert('บันทึกการตั้งค่าระบบแจ้งเตือนสำเร็จ!')
     }, 800)
   }
+
+  const queryClient = useQueryClient()
+  const { data: users, isLoading: isUsersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers
+  })
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string, role: string }) => updateUserRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      alert('อัปเดตสิทธิ์การใช้งานสำเร็จ')
+    },
+    onError: (err: any) => {
+      alert('เกิดข้อผิดพลาด: ' + err.message)
+    }
+  })
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -99,7 +117,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 mb-10">
           <button 
             type="submit" 
             disabled={isSaving}
@@ -110,6 +128,67 @@ export default function Settings() {
           </button>
         </div>
       </form>
+
+      {/* User Management Section */}
+      <div className="mt-10 bg-white p-8 rounded-2xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div className="bg-purple-100 p-2 rounded-lg"><UserCog className="text-purple-600" size={24} /></div>
+          <h2 className="text-xl font-bold text-gray-800">จัดการสิทธิ์ผู้ใช้งาน (User Management)</h2>
+        </div>
+        
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          ส่วนนี้สำหรับ Super Admin เพื่อกำหนดสิทธิ์ระดับระบบ เช่น อนุมัติครูให้เป็นแอดมินระบบ หรือเปลี่ยนสถานะผู้ใช้งาน
+        </p>
+
+        {isUsersLoading ? (
+          <div className="text-center py-8 text-gray-500">กำลังโหลดข้อมูลผู้ใช้...</div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full text-left text-sm text-gray-700">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs font-bold">
+                <tr>
+                  <th className="px-6 py-4">อีเมล (Email)</th>
+                  <th className="px-6 py-4">สิทธิ์ปัจจุบัน (Role)</th>
+                  <th className="px-6 py-4 text-center">จัดการสิทธิ์ (Change Role)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {users?.map(u => (
+                  <tr key={u.id} className="hover:bg-purple-50/30 transition-colors">
+                    <td className="px-6 py-4 font-medium">{u.email}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${
+                        u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
+                        u.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <select 
+                        className="border border-gray-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-purple-500 text-sm font-medium transition-all"
+                        value={u.role}
+                        onChange={(e) => {
+                          if(window.confirm(`ต้องการเปลี่ยนสิทธิ์ของ ${u.email} เป็น ${e.target.value} ใช่หรือไม่?`)) {
+                            updateRoleMutation.mutate({ userId: u.id, role: e.target.value })
+                          }
+                        }}
+                        disabled={updateRoleMutation.isPending}
+                      >
+                        <option value="ADMIN">ADMIN (ผู้ดูแลระบบ)</option>
+                        <option value="TEACHER">TEACHER (ครู)</option>
+                        <option value="STUDENT">STUDENT (นักเรียน)</option>
+                        <option value="PARENT">PARENT (ผู้ปกครอง)</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
