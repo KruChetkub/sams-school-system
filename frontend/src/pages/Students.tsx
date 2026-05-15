@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getStudents, createStudent, deleteStudent, bulkCreateStudents } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
-import { Plus, Trash2, Upload, Download } from 'lucide-react'
+import { Plus, Trash2, Upload, Download, Users } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Students() {
