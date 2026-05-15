@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, deleteStudent } from '../services/studentService'
+import { getStudents, createStudent, deleteStudent, bulkCreateStudents } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Upload, Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 export default function Students() {
   const queryClient = useQueryClient()
@@ -32,6 +33,76 @@ export default function Students() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['students'] })
   })
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: bulkCreateStudents,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      alert('นำเข้าข้อมูลนักเรียนเรียบร้อยแล้ว!')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      setShowForm(false)
+    },
+    onError: (err: any) => {
+      alert('เกิดข้อผิดพลาด: ' + err.message + '\n(โปรดตรวจสอบว่ารหัสนักเรียนซ้ำกับในระบบหรือไม่)')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  })
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!formData.classroom_id && !window.confirm('คุณยังไม่ได้เลือก "ห้องเรียน" ข้อมูลที่นำเข้าจะไม่มีห้องเรียน ยืนยันหรือไม่?')) {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsname = wb.SheetNames[0]
+        const ws = wb.Sheets[wsname]
+        const data = XLSX.utils.sheet_to_json(ws) as any[]
+        
+        const payload = data.map(row => ({
+          student_code: String(row['รหัสนักเรียน'] || row['student_code'] || ''),
+          first_name: row['ชื่อ'] || row['first_name'] || '',
+          last_name: row['นามสกุล'] || row['last_name'] || '',
+          nickname: row['ชื่อเล่น'] || row['nickname'] || '',
+          ...(formData.classroom_id ? { classroom_id: formData.classroom_id } : {})
+        })).filter(s => s.student_code && s.first_name)
+
+        if (payload.length === 0) {
+          alert('ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel (ต้องมีหัวคอลัมน์: รหัสนักเรียน, ชื่อ, นามสกุล)')
+          return
+        }
+
+        if (window.confirm(`พบข้อมูล ${payload.length} คน ต้องการนำเข้าสู่ระบบใช่หรือไม่?`)) {
+          bulkCreateMutation.mutate(payload)
+        } else {
+          if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+      } catch (err) {
+        console.error(err)
+        alert('อ่านไฟล์ล้มเหลว กรุณาตรวจสอบรูปแบบไฟล์')
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { 'รหัสนักเรียน': '65001', 'ชื่อ': 'สมชาย', 'นามสกุล': 'ใจดี', 'ชื่อเล่น': 'ชาย' },
+      { 'รหัสนักเรียน': '65002', 'ชื่อ': 'สมหญิง', 'นามสกุล': 'รักเรียน', 'ชื่อเล่น': 'หญิง' }
+    ])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Students")
+    XLSX.writeFile(wb, "student_template.xlsx")
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const payload = {
@@ -60,9 +131,9 @@ export default function Students() {
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-gray-700">รหัสนักเรียน</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.student_code} onChange={e => setFormData({...formData, student_code: e.target.value})} /></div>
           <div><label className="block text-sm font-medium text-gray-700">ชื่อเล่น</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อจริง</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
-          <div className="md:col-span-2">
+          <div><label className="block text-sm font-medium text-gray-700">ชื่อจริง</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
+          <div className="md:col-span-2 border-b pb-4 mb-2">
             <label className="block text-sm font-medium text-gray-700">ห้องเรียน (ระดับชั้น/ห้อง)</label>
             <select 
               className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
@@ -75,10 +146,25 @@ export default function Students() {
               ))}
             </select>
           </div>
+          <div className="md:col-span-2 bg-blue-50 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
+            <div>
+              <h3 className="font-semibold text-blue-800">นำเข้าจาก Excel (หลายคนพร้อมกัน)</h3>
+              <p className="text-sm text-blue-600">เลือกห้องเรียนด้านบนก่อน แล้วค่อยอัปโหลดไฟล์ Excel เพื่อนำเด็กเข้าห้องนั้น</p>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <button type="button" onClick={downloadTemplate} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-blue-700 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition shadow-sm text-sm">
+                <Download size={16} /> โหลดไฟล์ต้นแบบ
+              </button>
+              <label className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer transition shadow-sm text-sm">
+                <Upload size={16} /> อัปโหลด Excel
+                <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={bulkCreateMutation.isPending} />
+              </label>
+            </div>
+          </div>
           
           <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
             <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">บันทึก</button>
+            <button type="submit" disabled={createMutation.isPending || !formData.student_code || !formData.first_name} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">บันทึก 1 คน</button>
           </div>
         </form>
       )}

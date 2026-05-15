@@ -31,6 +31,12 @@ export const createStudent = async (student: Omit<Student, 'id' | 'classroom'>) 
   return data as Student
 }
 
+export const bulkCreateStudents = async (students: Omit<Student, 'id' | 'classroom'>[]) => {
+  const { data, error } = await supabase.from('students').insert(students)
+  if (error) throw error
+  return data
+}
+
 export const deleteStudent = async (id: string) => {
   const { error } = await supabase.from('students').delete().eq('id', id)
   if (error) throw error
