@@ -68,7 +68,7 @@ export default function Attendance() {
             <option value="">-- กรุณาเลือกคาบเรียน --</option>
             {schedules?.map(s => (
               <option key={s.id} value={s.id}>
-                คาบ {s.period} ({s.start_time.substring(0,5)}) - {s.subject?.subject_name} ม.{s.classroom?.level}/{s.classroom?.room}
+                คาบ {s.period} ({s.start_time.substring(0,5)}) - {s.subject?.subject_name} {s.classroom?.level}/{s.classroom?.room}
               </option>
             ))}
           </select>

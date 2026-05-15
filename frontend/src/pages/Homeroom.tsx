@@ -64,7 +64,7 @@ export default function Homeroom() {
             }}
           >
             <option value="">-- กรุณาเลือกห้องเรียน --</option>
-            {classrooms?.map(c => <option key={c.id} value={c.id}>ม.{c.level}/{c.room}</option>)}
+            {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
           </select>
         </div>
         <div>
