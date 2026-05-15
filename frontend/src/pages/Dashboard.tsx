@@ -41,6 +41,17 @@ export default function Dashboard() {
     XLSX.writeFile(workbook, `SAMS_Attendance_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
+  const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
+  const presentCount = analytics?.pieData?.find((d: any) => d.name === 'มาเรียน')?.value || 0;
+  const percentage = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
+  
+  let statusText = 'ไม่มีข้อมูล'
+  let statusColor = 'text-gray-500'
+  if (totalAttendance > 0) {
+    statusText = percentage >= 80 ? 'ยอดเยี่ยม' : percentage >= 60 ? 'ปานกลาง' : 'ควรปรับปรุง'
+    statusColor = percentage >= 80 ? 'text-emerald-500' : percentage >= 60 ? 'text-orange-500' : 'text-red-500'
+  }
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -132,8 +143,8 @@ export default function Dashboard() {
             </ResponsiveContainer>
             {/* Center Text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-4xl font-black text-slate-800">94%</span>
-              <span className="text-sm font-bold text-emerald-500 mt-1">ยอดเยี่ยม</span>
+              <span className="text-4xl font-black text-slate-800">{percentage}%</span>
+              <span className={`text-sm font-bold ${statusColor} mt-1`}>{statusText}</span>
             </div>
           </div>
           
