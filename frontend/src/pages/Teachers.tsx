@@ -14,7 +14,8 @@ export default function Teachers() {
     last_name: '',
     phone: '',
     email: '',
-    department: ''
+    department: '',
+    password: ''
   })
 
   const createMutation = useMutation({
@@ -22,7 +23,7 @@ export default function Teachers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
       setShowForm(false)
-      setFormData({ teacher_code: '', first_name: '', last_name: '', phone: '', email: '', department: '' })
+      setFormData({ teacher_code: '', first_name: '', last_name: '', phone: '', email: '', department: '', password: '' })
     }
   })
 
@@ -55,7 +56,8 @@ export default function Teachers() {
           <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
           <div><label className="block text-sm font-medium text-gray-700">แผนก/หมวดวิชา</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} /></div>
           <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">อีเมล</label><input type="email" className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium text-gray-700">อีเมล (ใช้สำหรับล็อกอิน)</label><input type="email" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium text-gray-700">ตั้งรหัสผ่านชั่วคราว</label><input type="password" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="กรุณาตั้งรหัสผ่าน (ขั้นต่ำ 6 ตัวอักษร)" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} /></div>
           <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
             <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
             <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">บันทึก</button>
