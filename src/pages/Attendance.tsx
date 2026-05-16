@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { getSchedules } from '../services/scheduleService'
 import { getStudentsForSchedule, saveClassroomAttendance } from '../services/attendanceService'
@@ -49,6 +49,23 @@ const dayLabels: Record<number, string> = {
 }
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
+
+const subjectCardPalettes = [
+  'from-rose-500 to-pink-500',
+  'from-blue-500 to-cyan-500',
+  'from-emerald-500 to-teal-500',
+  'from-amber-500 to-orange-500',
+  'from-violet-500 to-fuchsia-500',
+  'from-sky-500 to-indigo-500',
+] as const
+
+const getSubjectPalette = (subjectKey: string) => {
+  let hash = 0
+  for (let i = 0; i < subjectKey.length; i++) {
+    hash = (hash * 31 + subjectKey.charCodeAt(i)) >>> 0
+  }
+  return subjectCardPalettes[hash % subjectCardPalettes.length]
+}
 
 export default function Attendance() {
   const { user, role } = useAuthStore()
@@ -116,6 +133,13 @@ export default function Attendance() {
   })()
 
   const schedulesForSelectedDay = (schedules || []).filter((s) => s.day_of_week === selectedDayOfWeek)
+
+  useEffect(() => {
+    if (selectedSchedule && !schedulesForSelectedDay.some((s) => s.id === selectedSchedule)) {
+      setSelectedSchedule('')
+      setAttendanceState({})
+    }
+  }, [selectedSchedule, schedulesForSelectedDay])
   
   const { data: students, isLoading } = useQuery({
     queryKey: ['schedule_students', selectedSchedule],
@@ -209,23 +233,36 @@ export default function Attendance() {
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="schedule-select" className="block text-sm font-medium text-gray-700 mb-2">เลือกคาบเรียน / วิชา</label>
-          <select 
-            id="schedule-select"
-            className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-colors"
-            value={selectedSchedule}
-            onChange={e => {
-              setSelectedSchedule(e.target.value)
-              setAttendanceState({})
-            }}
-          >
-            <option value="">-- กรุณาเลือกคาบเรียน --</option>
-            {schedulesForSelectedDay.map(s => (
-              <option key={s.id} value={s.id}>
-                {dayLabels[s.day_of_week] || '-'} • คาบ {s.period} ({s.start_time.substring(0,5)}) - {s.subject?.subject_name} {s.classroom?.level}/{s.classroom?.room}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-2">เลือกคาบเรียน / วิชา</label>
+          <div className="space-y-2 max-h-72 overflow-auto pr-1">
+            {schedulesForSelectedDay.map((s) => {
+              const palette = getSubjectPalette(`${s.subject_id}-${s.subject?.subject_code || ''}`)
+              const isActive = selectedSchedule === s.id
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSchedule(s.id)
+                    setAttendanceState({})
+                  }}
+                  className={`w-full rounded-xl border text-left transition-all ${
+                    isActive ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className={`rounded-xl bg-gradient-to-r ${palette} px-4 py-3 text-white`}>
+                    <p className="text-xs font-semibold text-white/85">
+                      {dayLabels[s.day_of_week] || '-'} • คาบ {s.period} ({s.start_time.substring(0, 5)} - {s.end_time.substring(0, 5)})
+                    </p>
+                    <h3 className="mt-0.5 text-sm font-bold">{s.subject?.subject_name || 'ไม่ระบุวิชา'}</h3>
+                    <p className="text-xs text-white/90 mt-0.5">
+                      {s.subject?.subject_code || '-'} • ห้อง {s.classroom?.level}/{s.classroom?.room}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
           {schedulesForSelectedDay.length === 0 && (
             <p className="mt-2 text-xs text-amber-600">ไม่พบคาบเรียนในวันที่เลือก</p>
           )}

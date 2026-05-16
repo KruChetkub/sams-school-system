@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectReport, getSubjectDetailReport } from '../services/dashboardService'
-import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, TrendingUp, AlertCircle } from 'lucide-react'
+import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
+import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
@@ -9,7 +9,6 @@ export default function Reports() {
     return window.location.hash.replace('#', '') || 'overview'
   })
   const [activeTimeFilter, setActiveTimeFilter] = useState('month')
-  const [activeRange, setActiveRange] = useState('30days')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
@@ -107,6 +106,132 @@ export default function Reports() {
     if (status === 'LATE') return 'bg-amber-100 text-amber-700'
     if (status === 'LEAVE') return 'bg-sky-100 text-sky-700'
     return 'bg-slate-100 text-slate-700'
+  }
+
+  const subjectSessions = subjectDetail?.sessions || []
+  const subjectSessionColumns = subjectSessions.map((session) => ({
+    sessionId: session.sessionId,
+    sessionDate: session.sessionDate
+  }))
+  const subjectStudents = (() => {
+    const map = new Map<string, { studentId: string; studentCode: string; fullName: string; bySession: Record<string, string> }>()
+    subjectSessions.forEach((session) => {
+      session.students.forEach((student) => {
+        if (!student.studentId) return
+        if (!map.has(student.studentId)) {
+          map.set(student.studentId, {
+            studentId: student.studentId,
+            studentCode: student.studentCode || '-',
+            fullName: `${student.prefix ? `${student.prefix} ` : ''}${student.fullName}`.trim(),
+            bySession: {}
+          })
+        }
+        const current = map.get(student.studentId)
+        if (current) current.bySession[session.sessionId] = student.status
+      })
+    })
+    return Array.from(map.values()).sort((a, b) => a.studentCode.localeCompare(b.studentCode))
+  })()
+
+  const subjectCardPalettes = [
+    {
+      shell: 'border-rose-200 bg-rose-50',
+      header: 'bg-gradient-to-r from-rose-500 to-pink-500',
+      title: 'text-white',
+      code: 'text-rose-100',
+      room: 'text-rose-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-rose-700'
+    },
+    {
+      shell: 'border-blue-200 bg-blue-50',
+      header: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+      title: 'text-white',
+      code: 'text-blue-100',
+      room: 'text-blue-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-blue-700'
+    },
+    {
+      shell: 'border-emerald-200 bg-emerald-50',
+      header: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+      title: 'text-white',
+      code: 'text-emerald-100',
+      room: 'text-emerald-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-emerald-700'
+    },
+    {
+      shell: 'border-amber-200 bg-amber-50',
+      header: 'bg-gradient-to-r from-amber-500 to-orange-500',
+      title: 'text-white',
+      code: 'text-amber-100',
+      room: 'text-amber-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-amber-700'
+    },
+    {
+      shell: 'border-violet-200 bg-violet-50',
+      header: 'bg-gradient-to-r from-violet-500 to-fuchsia-500',
+      title: 'text-white',
+      code: 'text-violet-100',
+      room: 'text-violet-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-violet-700'
+    },
+    {
+      shell: 'border-sky-200 bg-sky-50',
+      header: 'bg-gradient-to-r from-sky-500 to-indigo-500',
+      title: 'text-white',
+      code: 'text-sky-100',
+      room: 'text-sky-50',
+      rate: 'bg-white/20 text-white border border-white/30',
+      stats: {
+        present: 'bg-white/20 text-white border border-white/30',
+        absent: 'bg-white/20 text-white border border-white/30',
+        late: 'bg-white/20 text-white border border-white/30',
+        total: 'bg-white/20 text-white border border-white/30',
+      },
+      hint: 'text-sky-700'
+    }
+  ] as const
+
+  const getSubjectPalette = (subjectKey: string) => {
+    let hash = 0
+    for (let i = 0; i < subjectKey.length; i++) {
+      hash = (hash * 31 + subjectKey.charCodeAt(i)) >>> 0
+    }
+    return subjectCardPalettes[hash % subjectCardPalettes.length]
   }
 
   return (
@@ -212,12 +337,12 @@ export default function Reports() {
       ) : activeTab === 'overview' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Bar Chart */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="lg:col-span-2 min-w-0 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
               <BarChart3 className="text-indigo-500" /> สถิติการมาเรียนตามวัน
             </h3>
-            <div className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[350px] w-full min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
                 <BarChart data={analytics?.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} dy={10} />
@@ -233,12 +358,12 @@ export default function Reports() {
           </div>
 
           {/* Pie Chart */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+          <div className="min-w-0 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
             <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
               <User className="text-indigo-500" /> สัดส่วนการเข้าเรียน
             </h3>
-            <div className="h-[280px] relative mt-4">
-              <ResponsiveContainer width="100%" height={280}>
+            <div className="h-[280px] min-h-[280px] w-full min-w-0 relative mt-4">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                 <PieChart>
                   <Pie
                     data={analytics?.pieData}
@@ -586,63 +711,52 @@ export default function Reports() {
               <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold">รหัสวิชา</th>
-                    <th className="px-6 py-4 text-left font-bold">ชื่อวิชา</th>
-                    <th className="px-6 py-4 text-left font-bold">ห้องเรียน</th>
-                    <th className="px-6 py-4 text-center font-bold">มาเรียน</th>
-                    <th className="px-6 py-4 text-center font-bold">ขาด</th>
-                    <th className="px-6 py-4 text-center font-bold">สาย</th>
-                    <th className="px-6 py-4 text-center font-bold">รวม</th>
-                    <th className="px-6 py-4 text-center font-bold">% มา</th>
-                    <th className="px-6 py-4 text-center font-bold">รายละเอียด</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {subjectRows.map(r => (
-                    <tr key={`${r.subjectId}-${r.classroomLabel}`} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-gray-500 font-mono text-xs">{r.subjectCode}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-800">{r.subjectName}</td>
-                      <td className="px-6 py-4 text-gray-600 font-medium">ห้อง {r.classroomLabel}</td>
-                      <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
-                      <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
-                      <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
-                      <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                          r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                        }`}>{r.rate}%</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedSubjectId(r.subjectId)}
-                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {subjectRows.map((r) => (
+                (() => {
+                  const palette = getSubjectPalette(`${r.subjectId}-${r.subjectCode}`)
+                  return (
+                <button
+                  key={`${r.subjectId}-${r.classroomLabel}`}
+                  onClick={() => setSelectedSubjectId(r.subjectId)}
+                  className={`rounded-2xl border overflow-hidden text-left transition-all hover:shadow-lg hover:-translate-y-0.5 ${palette.shell}`}
+                >
+                  <div className={`px-5 py-4 ${palette.header}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className={`text-xs font-mono ${palette.code}`}>{r.subjectCode}</p>
+                        <h3 className={`text-base font-bold ${palette.title}`}>{r.subjectName}</h3>
+                        <p className={`text-sm mt-1 ${palette.room}`}>ห้อง {r.classroomLabel}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${palette.rate}`}>{r.rate}% มาเรียน</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.present}`}>มา {r.present}</span>
+                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.absent}`}>ขาด {r.absent}</span>
+                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.late}`}>สาย {r.late}</span>
+                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.total}`}>รวม {r.total}</span>
+                    </div>
+                  </div>
+                  <div className={`p-4 text-xs font-semibold ${palette.hint}`}>
+                    กดการ์ดเพื่อดูตารางรายชื่อนักเรียนและสถานะเช็คชื่อ
+                  </div>
+                </button>
+                  )
+                })()
+              ))}
             </div>
           )}
 
-          {/* Subject Detail Modal */}
           {selectedSubjectId && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setSelectedSubjectId(null)} />
-              <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
+              <div className="relative z-10 w-full max-w-[95vw] max-h-[92vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                 <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">
                       {subjectDetail ? `${subjectDetail.subjectCode} — ${subjectDetail.subjectName}` : 'กำลังโหลด...'}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">รายละเอียดการเข้าเรียนรายคาบ</p>
+                    <p className="text-xs text-slate-500 mt-0.5">ตารางการเช็คชื่อรายครั้ง แยกตามนักเรียน</p>
                   </div>
                   <button
                     onClick={() => setSelectedSubjectId(null)}
@@ -651,60 +765,78 @@ export default function Reports() {
                     ปิด
                   </button>
                 </div>
-                <div className="p-6 space-y-4">
+
+                <div className="p-4 overflow-auto max-h-[80vh]">
                   {loadingSubjectDetail ? (
-                    <div className="py-10 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
-                  ) : !subjectDetail || subjectDetail.sessions.length === 0 ? (
-                    <div className="py-10 flex flex-col items-center text-gray-400">
+                    <div className="py-12 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+                  ) : !subjectDetail || subjectSessions.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center text-gray-400">
                       <AlertCircle size={48} className="mb-3 opacity-40" />
-                      <p className="font-medium">ไม่พบข้อมูลในช่วงเวลานี้</p>
+                      <p className="font-medium">ไม่พบข้อมูลการเช็คชื่อของวิชานี้ในช่วงเวลาที่เลือก</p>
                     </div>
                   ) : (
-                    subjectDetail.sessions.map(session => {
-                      const present = session.students.filter(s => s.status === 'PRESENT')
-                      const absent = session.students.filter(s => s.status === 'ABSENT')
-                      const late = session.students.filter(s => s.status === 'LATE')
-                      const leave = session.students.filter(s => s.status === 'LEAVE')
-                      return (
-                        <div key={session.sessionId} className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                          <div className="bg-indigo-50 border-b border-indigo-100 px-5 py-3 flex items-center gap-4">
-                            <span className="font-bold text-indigo-700 text-sm">{formatThaiDate(session.sessionDate)}</span>
-                            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full">ห้อง {session.classroomLabel}</span>
-                            <span className="text-xs text-slate-500">รวม {session.students.length} คน</span>
-                            <div className="flex gap-2 ml-auto">
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">มา {present.length}</span>
-                              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">ขาด {absent.length}</span>
-                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">สาย {late.length}</span>
-                              {leave.length > 0 && <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs font-semibold">ลา {leave.length}</span>}
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                            {[
-                              { label: 'มาเรียน', students: present, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-                              { label: 'ขาดเรียน', students: absent, color: 'text-red-700', bg: 'bg-red-50' },
-                              { label: 'มาสาย', students: late, color: 'text-amber-700', bg: 'bg-amber-50' },
-                              { label: 'ลา', students: leave, color: 'text-sky-700', bg: 'bg-sky-50' },
-                            ].map(group => (
-                              <div key={group.label} className="p-4">
-                                <div className={`text-xs font-bold mb-2 ${group.color}`}>{group.label} ({group.students.length})</div>
-                                {group.students.length === 0 ? (
-                                  <div className="text-xs text-slate-300">—</div>
-                                ) : (
-                                  <ul className="space-y-1">
-                                    {group.students.map(s => (
-                                      <li key={s.studentId} className="text-xs text-slate-700">
-                                        <span className="font-mono text-slate-400 mr-1.5">{s.studentCode}</span>
-                                        {`${s.prefix ? s.prefix + ' ' : ''}${s.fullName}`}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })
+                    <table className="w-full min-w-[980px] text-xs border border-slate-300">
+                      <thead className="bg-slate-100">
+                        <tr>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-bold">รหัสนักเรียน</th>
+                          <th className="border border-slate-300 px-3 py-2 text-left font-bold">ชื่อ-นามสกุล</th>
+                          {subjectSessionColumns.map((col) => (
+                            <th key={col.sessionId} className="border border-slate-300 px-2 py-2 text-center font-bold whitespace-nowrap">
+                              {formatThaiDate(col.sessionDate)}
+                            </th>
+                          ))}
+                          <th className="border border-slate-300 px-3 py-2 text-center font-bold">รวมเช็ค/ครั้ง</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center font-bold">คิดเป็น%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subjectStudents.length === 0 && (
+                          <tr>
+                            <td colSpan={subjectSessionColumns.length + 4} className="px-4 py-8 text-center text-slate-400">
+                              ไม่มีนักเรียนในข้อมูลวิชานี้
+                            </td>
+                          </tr>
+                        )}
+                        {subjectStudents.map((student) => {
+                          const checkedCount = subjectSessionColumns.filter((col) => {
+                            const status = student.bySession[col.sessionId]
+                            return status === 'PRESENT' || status === 'LATE' || status === 'LEAVE'
+                          }).length
+                          const totalSessions = subjectSessionColumns.length
+                          const percent = totalSessions > 0 ? Math.round((checkedCount / totalSessions) * 100) : 0
+                          return (
+                            <tr key={student.studentId} className="hover:bg-slate-50">
+                              <td className="border border-slate-300 px-3 py-2 font-mono">{student.studentCode}</td>
+                              <td className="border border-slate-300 px-3 py-2">{student.fullName}</td>
+                              {subjectSessionColumns.map((col) => {
+                                const status = student.bySession[col.sessionId]
+                                const statusCellClass =
+                                  status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
+                                  status === 'ABSENT' ? 'bg-red-100 text-red-700 border-red-300' :
+                                  status === 'LATE' ? 'bg-amber-100 text-amber-700 border-amber-300' :
+                                  status === 'LEAVE' ? 'bg-sky-100 text-sky-700 border-sky-300' :
+                                  'bg-slate-100 text-slate-400 border-slate-200'
+                                const statusLabel =
+                                  status === 'PRESENT' ? 'มา' :
+                                  status === 'ABSENT' ? 'ขาด' :
+                                  status === 'LATE' ? 'สาย' :
+                                  status === 'LEAVE' ? 'ลา' :
+                                  '-'
+                                return (
+                                  <td key={`${student.studentId}-${col.sessionId}`} className="border border-slate-300 px-2 py-2 text-center">
+                                    <span className={`inline-flex min-w-8 items-center justify-center rounded border px-1.5 py-0.5 text-[11px] font-bold ${statusCellClass}`}>
+                                      {statusLabel}
+                                    </span>
+                                  </td>
+                                )
+                              })}
+                              <td className="border border-slate-300 px-3 py-2 text-center font-semibold">{checkedCount}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-center font-bold text-emerald-700">{percent}%</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               </div>

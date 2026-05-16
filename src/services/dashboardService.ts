@@ -237,6 +237,12 @@ export interface SubjectReportRow {
   subjectCode: string
   subjectName: string
   classroomLabel: string // เพิ่มคอลัมน์ห้องเรียน
+  students: {
+    studentId: string
+    studentCode: string
+    prefix?: string
+    fullName: string
+  }[]
   present: number
   absent: number
   late: number
@@ -327,6 +333,7 @@ export const getSubjectReport = async (timeFilter: string = 'month'): Promise<Su
     .from('attendance')
     .select(`
       status,
+      students ( id, student_code, prefix, first_name, last_name ),
       attendance_sessions ( 
         subject_id, 
         subjects(id, subject_code, subject_name),
@@ -358,6 +365,7 @@ export const getSubjectReport = async (timeFilter: string = 'month'): Promise<Su
         subjectCode: subject.subject_code,
         subjectName: subject.subject_name,
         classroomLabel: classroomLabel,
+        students: [],
         present: 0, absent: 0, late: 0, total: 0, rate: 0
       }
     }
@@ -365,10 +373,24 @@ export const getSubjectReport = async (timeFilter: string = 'month'): Promise<Su
     if (att.status === 'PRESENT') statsMap[key].present++
     else if (att.status === 'ABSENT') statsMap[key].absent++
     else if (att.status === 'LATE') statsMap[key].late++
+
+    const student = att.students
+    if (student?.id && !statsMap[key].students.some((s) => s.studentId === student.id)) {
+      statsMap[key].students.push({
+        studentId: student.id,
+        studentCode: student.student_code || '-',
+        prefix: student.prefix || '',
+        fullName: `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+      })
+    }
   })
 
   return Object.values(statsMap)
-    .map(r => ({ ...r, rate: r.total > 0 ? Math.round((r.present / r.total) * 100) : 0 }))
+    .map(r => ({
+      ...r,
+      students: r.students.sort((a, b) => a.studentCode.localeCompare(b.studentCode)),
+      rate: r.total > 0 ? Math.round((r.present / r.total) * 100) : 0
+    }))
     .sort((a, b) => {
       // เรียงตามรหัสวิชา แล้วตามด้วยชื่อห้องเรียน
       const codeCompare = a.subjectCode.localeCompare(b.subjectCode)

@@ -118,7 +118,7 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Main Bar Chart */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+        <div className="lg:col-span-2 min-w-0 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -127,8 +127,8 @@ export default function Dashboard() {
               <p className="text-sm text-slate-500 font-medium mt-1">เปรียบเทียบจำนวนนักเรียนที่มา ขาด และสาย ในแต่ละวัน</p>
             </div>
           </div>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height={350}>
+          <div className="h-[350px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
               <BarChart data={analytics?.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
@@ -144,15 +144,15 @@ export default function Dashboard() {
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
+        <div className="min-w-0 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
           <div>
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <CalIcon className="text-blue-500" /> อัตราการเข้าเรียนเฉลี่ย
             </h2>
             <p className="text-sm text-slate-500 font-medium mt-1">สัดส่วนการมาเรียนในเดือนนี้</p>
           </div>
-          <div className="flex-1 min-h-[250px] relative mt-4">
-            <ResponsiveContainer width="100%" height={250}>
+          <div className="flex-1 min-h-[250px] w-full min-w-0 relative mt-4">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
               <PieChart>
                 <Pie
                   data={analytics?.pieData}
