@@ -592,6 +592,7 @@ export default function Reports() {
                   <tr>
                     <th className="px-6 py-4 text-left font-bold">รหัสวิชา</th>
                     <th className="px-6 py-4 text-left font-bold">ชื่อวิชา</th>
+                    <th className="px-6 py-4 text-left font-bold">ห้องเรียน</th>
                     <th className="px-6 py-4 text-center font-bold">มาเรียน</th>
                     <th className="px-6 py-4 text-center font-bold">ขาด</th>
                     <th className="px-6 py-4 text-center font-bold">สาย</th>
@@ -602,9 +603,10 @@ export default function Reports() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {subjectRows.map(r => (
-                    <tr key={r.subjectId} className="hover:bg-gray-50 transition-colors">
+                    <tr key={`${r.subjectId}-${r.classroomLabel}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-gray-500 font-mono text-xs">{r.subjectCode}</td>
                       <td className="px-6 py-4 font-semibold text-gray-800">{r.subjectName}</td>
+                      <td className="px-6 py-4 text-gray-600 font-medium">ห้อง {r.classroomLabel}</td>
                       <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
                       <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
                       <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>

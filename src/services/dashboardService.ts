@@ -236,6 +236,7 @@ export interface SubjectReportRow {
   subjectId: string
   subjectCode: string
   subjectName: string
+  classroomLabel: string // เพิ่มคอลัมน์ห้องเรียน
   present: number
   absent: number
   late: number
@@ -326,33 +327,54 @@ export const getSubjectReport = async (timeFilter: string = 'month'): Promise<Su
     .from('attendance')
     .select(`
       status,
-      attendance_sessions ( subject_id, subjects(id, subject_code, subject_name) )
+      attendance_sessions ( 
+        subject_id, 
+        subjects(id, subject_code, subject_name),
+        schedules(classroom_id, classrooms(level, room))
+      )
     `)
     .gte('checkin_time', startDate)
 
   const statsMap: Record<string, SubjectReportRow> = {}
 
   data?.forEach((att: any) => {
-    const subject = att.attendance_sessions?.subjects
+    const session = att.attendance_sessions
+    const subject = session?.subjects
+    const schedule = session?.schedules
+    const classroom = schedule?.classrooms
+    
     if (!subject) return
-    const id = subject.id
-    if (!statsMap[id]) {
-      statsMap[id] = {
-        subjectId: id,
+    
+    const subjectId = subject.id
+    const classroomId = schedule?.classroom_id || 'unknown'
+    const classroomLabel = classroom ? `${classroom.level}/${classroom.room}` : '-'
+    
+    // สร้าง key แยกตามวิชา + ห้องเรียน
+    const key = `${subjectId}-${classroomId}`
+
+    if (!statsMap[key]) {
+      statsMap[key] = {
+        subjectId: subjectId,
         subjectCode: subject.subject_code,
         subjectName: subject.subject_name,
+        classroomLabel: classroomLabel,
         present: 0, absent: 0, late: 0, total: 0, rate: 0
       }
     }
-    statsMap[id].total++
-    if (att.status === 'PRESENT') statsMap[id].present++
-    else if (att.status === 'ABSENT') statsMap[id].absent++
-    else if (att.status === 'LATE') statsMap[id].late++
+    statsMap[key].total++
+    if (att.status === 'PRESENT') statsMap[key].present++
+    else if (att.status === 'ABSENT') statsMap[key].absent++
+    else if (att.status === 'LATE') statsMap[key].late++
   })
 
   return Object.values(statsMap)
     .map(r => ({ ...r, rate: r.total > 0 ? Math.round((r.present / r.total) * 100) : 0 }))
-    .sort((a, b) => a.subjectCode.localeCompare(b.subjectCode))
+    .sort((a, b) => {
+      // เรียงตามรหัสวิชา แล้วตามด้วยชื่อห้องเรียน
+      const codeCompare = a.subjectCode.localeCompare(b.subjectCode)
+      if (codeCompare !== 0) return codeCompare
+      return a.classroomLabel.localeCompare(b.classroomLabel)
+    })
 }
 
 export const getDashboardStats = async () => {
