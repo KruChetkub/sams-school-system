@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getDashboardStats, getAnalyticsData } from '../services/dashboardService'
-import { Users, GraduationCap, BookOpen, Library, Download, TrendingUp, Calendar as CalIcon } from 'lucide-react'
+import { getDashboardStats, getAnalyticsData, getPendingClassroomChecksToday } from '../services/dashboardService'
+import { Users, GraduationCap, BookOpen, Library, Download, TrendingUp, Calendar as CalIcon, ClipboardCheck } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Dashboard() {
@@ -29,18 +29,24 @@ export default function Dashboard() {
   const formattedDateTime = dateTimeFormatter.format(now)
 
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
+  const { data: pendingChecks, isLoading: loadingPendingChecks } = useQuery({
+    queryKey: ['dashboard_pending_checks_today'],
+    queryFn: getPendingClassroomChecksToday,
+    refetchInterval: 30000,
+  })
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({ 
     queryKey: ['dashboard_analytics', 'month'], 
     queryFn: () => getAnalyticsData('month') 
   })
 
-  if (loadingStats || loadingAnalytics) return <div className="p-8 text-center text-gray-500 mt-20">กำลังโหลดข้อมูล Dashboard...</div>
+  if (loadingStats || loadingAnalytics || loadingPendingChecks) return <div className="p-8 text-center text-gray-500 mt-20">กำลังโหลดข้อมูล Dashboard...</div>
 
   const cards = [
     { title: 'จำนวนนักเรียนทั้งหมด', value: stats?.students, icon: <GraduationCap size={32} className="text-white" />, bg: 'bg-gradient-to-br from-blue-500 to-blue-600', shadow: 'shadow-blue-200' },
     { title: 'บุคลากรทางการศึกษา', value: stats?.teachers, icon: <Users size={32} className="text-white" />, bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600', shadow: 'shadow-emerald-200' },
     { title: 'ห้องเรียนที่เปิดสอน', value: stats?.classrooms, icon: <BookOpen size={32} className="text-white" />, bg: 'bg-gradient-to-br from-purple-500 to-purple-600', shadow: 'shadow-purple-200' },
     { title: 'รายวิชาในระบบ', value: stats?.subjects, icon: <Library size={32} className="text-white" />, bg: 'bg-gradient-to-br from-orange-400 to-orange-600', shadow: 'shadow-orange-200', onClick: () => navigate('/reports#subject') },
+    { title: 'ห้องที่ยังไม่เช็คชื่อวันนี้', value: pendingChecks?.pendingClassroomCount ?? 0, icon: <ClipboardCheck size={32} className="text-white" />, bg: 'bg-gradient-to-br from-rose-500 to-rose-700', shadow: 'shadow-rose-200', onClick: () => navigate('/attendance') },
   ]
 
   const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
@@ -81,7 +87,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {cards.map((card, index) => (
           <div 
             key={index} 
@@ -101,6 +107,13 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {pendingChecks && pendingChecks.pendingClassrooms.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-800">
+          <p className="font-semibold mb-2">ห้องที่ยังไม่เช็คชื่อรายวิชาวันนี้</p>
+          <p>{pendingChecks.pendingClassrooms.join(', ')}</p>
+        </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -165,13 +178,21 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {analytics?.pieData?.map((item: any, i: number) => (
-              <div key={i} className="text-center bg-slate-50 rounded-xl p-2">
-                <div className="text-xs font-bold text-slate-500 mb-1">{item.name}</div>
-                <div className={`text-lg font-black ${legendTextClass(item.name)}`}>{item.value}</div>
+          <div className="mt-4">
+            {analytics?.pieData && analytics.pieData.length === 1 && analytics.pieData[0].name === 'ยังไม่มีข้อมูล' ? (
+              <div className="text-center bg-slate-50 rounded-xl p-6">
+                <div className="text-lg font-black text-slate-600">ยังไม่มีข้อมูล</div>
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {analytics?.pieData?.map((item: any, i: number) => (
+                  <div key={i} className="text-center bg-slate-50 rounded-xl p-2">
+                    <div className="text-xs font-bold text-slate-500 mb-1">{item.name}</div>
+                    <div className={`text-lg font-black ${legendTextClass(item.name)}`}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
