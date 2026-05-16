@@ -29,6 +29,139 @@ export interface ClassroomReportRow {
   rate: number         // % มาเรียน
 }
 
+export interface HomeroomReportRow {
+  classroomId: string
+  label: string
+  present: number
+  absent: number
+  late: number
+  leave: number
+  total: number
+  rate: number
+}
+
+export interface HomeroomClassroomStudentRow {
+  studentId: string
+  studentCode: string
+  prefix?: string
+  fullName: string
+  present: number
+  absent: number
+  late: number
+  leave: number
+  total: number
+  rate: number
+  latestStatus?: 'PRESENT' | 'ABSENT' | 'LATE' | 'LEAVE'
+  latestDate?: string
+}
+
+export interface HomeroomClassroomDetailReport {
+  classroomId: string
+  classroomLabel: string
+  students: HomeroomClassroomStudentRow[]
+}
+
+export const getHomeroomReport = async (timeFilter: string = 'month'): Promise<HomeroomReportRow[]> => {
+  const startDate = getStartDate(timeFilter).split('T')[0]
+  const { data } = await supabase
+    .from('homeroom_attendance')
+    .select(`
+      status,
+      students ( classroom_id, classrooms(id, level, room) )
+    `)
+    .gte('attendance_date', startDate)
+
+  const statsMap: Record<string, HomeroomReportRow> = {}
+
+  data?.forEach((att: any) => {
+    const classroom = att.students?.classrooms
+    if (!classroom) return
+    const id = classroom.id
+    const label = `${classroom.level}/${classroom.room}`
+    if (!statsMap[id]) {
+      statsMap[id] = { classroomId: id, label, present: 0, absent: 0, late: 0, leave: 0, total: 0, rate: 0 }
+    }
+    statsMap[id].total++
+    if (att.status === 'PRESENT') statsMap[id].present++
+    else if (att.status === 'ABSENT') statsMap[id].absent++
+    else if (att.status === 'LATE') statsMap[id].late++
+    else if (att.status === 'LEAVE') statsMap[id].leave++
+  })
+
+  return Object.values(statsMap)
+    .map(r => ({ ...r, rate: r.total > 0 ? Math.round((r.present / r.total) * 100) : 0 }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+}
+
+export const getHomeroomClassroomDetailReport = async (
+  classroomId: string,
+  timeFilter: string = 'month'
+): Promise<HomeroomClassroomDetailReport | null> => {
+  const startDate = getStartDate(timeFilter).split('T')[0]
+
+  const { data: classroom } = await supabase
+    .from('classrooms')
+    .select('id, level, room')
+    .eq('id', classroomId)
+    .maybeSingle()
+
+  if (!classroom) return null
+
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, student_code, prefix, first_name, last_name')
+    .eq('classroom_id', classroomId)
+    .order('student_code')
+
+  const { data: homeroomRows } = await supabase
+    .from('homeroom_attendance')
+    .select('student_id, attendance_date, status')
+    .gte('attendance_date', startDate)
+    .in('student_id', (students || []).map((s: any) => s.id))
+    .order('attendance_date', { ascending: false })
+
+  const rowsByStudent: Record<string, HomeroomClassroomStudentRow> = {}
+
+  ;(students || []).forEach((s: any) => {
+    rowsByStudent[s.id] = {
+      studentId: s.id,
+      studentCode: s.student_code || '-',
+      prefix: s.prefix || '',
+      fullName: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+      present: 0,
+      absent: 0,
+      late: 0,
+      leave: 0,
+      total: 0,
+      rate: 0,
+    }
+  })
+
+  ;(homeroomRows || []).forEach((h: any) => {
+    const row = rowsByStudent[h.student_id]
+    if (!row) return
+    row.total++
+    if (h.status === 'PRESENT') row.present++
+    else if (h.status === 'ABSENT') row.absent++
+    else if (h.status === 'LATE') row.late++
+    else if (h.status === 'LEAVE') row.leave++
+    if (!row.latestDate) {
+      row.latestDate = h.attendance_date
+      row.latestStatus = h.status
+    }
+  })
+
+  const resultStudents = Object.values(rowsByStudent)
+    .map((r) => ({ ...r, rate: r.total > 0 ? Math.round((r.present / r.total) * 100) : 0 }))
+    .sort((a, b) => a.studentCode.localeCompare(b.studentCode))
+
+  return {
+    classroomId: classroom.id,
+    classroomLabel: `${classroom.level}/${classroom.room}`,
+    students: resultStudents,
+  }
+}
+
 export const getClassroomReport = async (timeFilter: string = 'month'): Promise<ClassroomReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   const { data } = await supabase
@@ -423,6 +556,229 @@ export const getDashboardStats = async () => {
 export interface PendingClassroomCheckResult {
   pendingClassroomCount: number
   pendingClassrooms: string[]
+}
+
+export interface CheckedHomeroomTodayResult {
+  checkedClassroomCount: number
+  checkedClassrooms: string[]
+}
+
+export interface AttendanceTrendTodayResult {
+  todayPresent: number
+  todayTotal: number
+  todayRate: number
+  yesterdayPresent: number
+  yesterdayTotal: number
+  yesterdayRate: number
+  deltaRate: number
+}
+
+export interface AttendanceDailyRatePoint {
+  date: string
+  label: string
+  present: number
+  total: number
+  rate: number
+}
+
+export interface MonthlyAttendanceCompareResult {
+  currentMonthRate: number
+  previousMonthRate: number
+  deltaRate: number
+}
+
+export const getMonthlyAttendanceCompare = async (): Promise<MonthlyAttendanceCompareResult> => {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select(`
+      status,
+      attendance_sessions ( session_date )
+    `)
+    .gte('checkin_time', prevMonthStart.toISOString())
+
+  if (error) {
+    console.error('[getMonthlyAttendanceCompare] error:', error)
+    return { currentMonthRate: 0, previousMonthRate: 0, deltaRate: 0 }
+  }
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const monthKey = `${monthStart.getFullYear()}-${pad(monthStart.getMonth() + 1)}`
+  const prevKey = `${prevMonthStart.getFullYear()}-${pad(prevMonthStart.getMonth() + 1)}`
+
+  let currentPresent = 0
+  let currentTotal = 0
+  let prevPresent = 0
+  let prevTotal = 0
+
+  ;(data || []).forEach((row: any) => {
+    const date = row.attendance_sessions?.session_date || ''
+    const key = typeof date === 'string' ? date.slice(0, 7) : ''
+    if (key === monthKey) {
+      currentTotal++
+      if (row.status === 'PRESENT') currentPresent++
+    } else if (key === prevKey) {
+      prevTotal++
+      if (row.status === 'PRESENT') prevPresent++
+    }
+  })
+
+  const currentMonthRate = currentTotal > 0 ? Math.round((currentPresent / currentTotal) * 100) : 0
+  const previousMonthRate = prevTotal > 0 ? Math.round((prevPresent / prevTotal) * 100) : 0
+
+  return {
+    currentMonthRate,
+    previousMonthRate,
+    deltaRate: currentMonthRate - previousMonthRate,
+  }
+}
+
+export const getAttendanceDailyRates = async (days: number = 7): Promise<AttendanceDailyRatePoint[]> => {
+  const now = new Date()
+  const startDate = new Date(now)
+  startDate.setDate(startDate.getDate() - (days - 1))
+  startDate.setHours(0, 0, 0, 0)
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select(`
+      status,
+      attendance_sessions ( session_date )
+    `)
+    .gte('checkin_time', startDate.toISOString())
+
+  if (error) {
+    console.error('[getAttendanceDailyRates] error:', error)
+    return []
+  }
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const keys: string[] = []
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate)
+    d.setDate(startDate.getDate() + i)
+    keys.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+  }
+
+  const map: Record<string, { present: number; total: number }> = {}
+  keys.forEach((k) => {
+    map[k] = { present: 0, total: 0 }
+  })
+
+  ;(data || []).forEach((row: any) => {
+    const k = row.attendance_sessions?.session_date
+    if (!k || !map[k]) return
+    map[k].total++
+    if (row.status === 'PRESENT') map[k].present++
+  })
+
+  return keys.map((k) => {
+    const date = new Date(`${k}T00:00:00`)
+    const label = date.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric' })
+    const total = map[k].total
+    const present = map[k].present
+    return {
+      date: k,
+      label,
+      present,
+      total,
+      rate: total > 0 ? Math.round((present / total) * 100) : 0
+    }
+  })
+}
+
+export const getAttendanceTrendToday = async (): Promise<AttendanceTrendTodayResult> => {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  const yesterdayDate = new Date(now)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterday = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`
+
+  const startDate = new Date(yesterdayDate)
+  startDate.setHours(0, 0, 0, 0)
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select(`
+      status,
+      attendance_sessions ( session_date )
+    `)
+    .gte('checkin_time', startDate.toISOString())
+
+  if (error) {
+    console.error('[getAttendanceTrendToday] error:', error)
+    return {
+      todayPresent: 0, todayTotal: 0, todayRate: 0,
+      yesterdayPresent: 0, yesterdayTotal: 0, yesterdayRate: 0,
+      deltaRate: 0
+    }
+  }
+
+  let todayPresent = 0
+  let todayTotal = 0
+  let yesterdayPresent = 0
+  let yesterdayTotal = 0
+
+  ;(data || []).forEach((row: any) => {
+    const sessionDate = row.attendance_sessions?.session_date || ''
+    if (sessionDate === today) {
+      todayTotal++
+      if (row.status === 'PRESENT') todayPresent++
+    } else if (sessionDate === yesterday) {
+      yesterdayTotal++
+      if (row.status === 'PRESENT') yesterdayPresent++
+    }
+  })
+
+  const todayRate = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : 0
+  const yesterdayRate = yesterdayTotal > 0 ? Math.round((yesterdayPresent / yesterdayTotal) * 100) : 0
+
+  return {
+    todayPresent,
+    todayTotal,
+    todayRate,
+    yesterdayPresent,
+    yesterdayTotal,
+    yesterdayRate,
+    deltaRate: todayRate - yesterdayRate,
+  }
+}
+
+export const getCheckedHomeroomClassroomsToday = async (): Promise<CheckedHomeroomTodayResult> => {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+
+  const { data, error } = await supabase
+    .from('homeroom_attendance')
+    .select(`
+      students (
+        classrooms ( level, room )
+      )
+    `)
+    .eq('attendance_date', today)
+
+  if (error) {
+    console.error('[getCheckedHomeroomClassroomsToday] error:', error)
+    return { checkedClassroomCount: 0, checkedClassrooms: [] }
+  }
+
+  const set = new Set<string>()
+  ;(data || []).forEach((row: any) => {
+    const classroom = row.students?.classrooms
+    if (!classroom) return
+    set.add(`${classroom.level}/${classroom.room}`)
+  })
+
+  const checkedClassrooms = Array.from(set).sort((a, b) => a.localeCompare(b))
+  return {
+    checkedClassroomCount: checkedClassrooms.length,
+    checkedClassrooms
+  }
 }
 
 export const getPendingClassroomChecksToday = async (): Promise<PendingClassroomCheckResult> => {

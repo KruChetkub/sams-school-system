@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
+import { getAnalyticsData, getClassroomReport, getHomeroomClassroomDetailReport, getHomeroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
@@ -11,6 +11,7 @@ export default function Reports() {
   const [activeTimeFilter, setActiveTimeFilter] = useState('month')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
+  const [selectedHomeroomClassroomId, setSelectedHomeroomClassroomId] = useState<string | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
   const [studentTablePage, setStudentTablePage] = useState(1)
   const [subjectHistoryPage, setSubjectHistoryPage] = useState(1)
@@ -35,6 +36,16 @@ export default function Reports() {
     queryKey: ['report_classroom', activeTimeFilter],
     queryFn: () => getClassroomReport(activeTimeFilter),
     enabled: activeTab === 'classroom'
+  })
+  const { data: homeroomRows = [], isLoading: loadingHomeroom } = useQuery({
+    queryKey: ['report_homeroom', activeTimeFilter],
+    queryFn: () => getHomeroomReport(activeTimeFilter),
+    enabled: activeTab === 'homeroom'
+  })
+  const { data: homeroomClassroomDetail, isLoading: loadingHomeroomClassroomDetail } = useQuery({
+    queryKey: ['report_homeroom_classroom_detail', selectedHomeroomClassroomId, activeTimeFilter],
+    queryFn: () => getHomeroomClassroomDetailReport(selectedHomeroomClassroomId as string, activeTimeFilter),
+    enabled: activeTab === 'homeroom' && !!selectedHomeroomClassroomId
   })
   const { data: studentRows = [], isLoading: loadingStudent } = useQuery({
     queryKey: ['report_student', activeTimeFilter],
@@ -284,6 +295,12 @@ export default function Reports() {
           <Users size={18} /> รายห้องเรียน
         </button>
         <button 
+          onClick={() => { setActiveTab('homeroom'); window.location.hash = 'homeroom' }}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'homeroom' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+        >
+          <CalendarIcon size={18} /> เช็คชื่อเข้าแถว
+        </button>
+        <button 
           onClick={() => { setActiveTab('student'); window.location.hash = 'student' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'student' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
@@ -342,7 +359,7 @@ export default function Reports() {
               <BarChart3 className="text-indigo-500" /> สถิติการมาเรียนตามวัน
             </h3>
             <div className="h-[350px] w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
+              <ResponsiveContainer width="99%" height={350} minWidth={0} minHeight={280}>
                 <BarChart data={analytics?.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }} dy={10} />
@@ -363,7 +380,7 @@ export default function Reports() {
               <User className="text-indigo-500" /> สัดส่วนการเข้าเรียน
             </h3>
             <div className="h-[280px] min-h-[280px] w-full min-w-0 relative mt-4">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
+              <ResponsiveContainer width="99%" height={280} minWidth={0} minHeight={240}>
                 <PieChart>
                   <Pie
                     data={analytics?.pieData}
@@ -442,6 +459,141 @@ export default function Reports() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'homeroom' ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+            <CalendarIcon className="text-indigo-500" size={22} />
+            <h2 className="text-lg font-bold text-gray-800">สรุปการเช็คชื่อเข้าแถวรายห้องเรียน</h2>
+          </div>
+          {loadingHomeroom ? (
+            <div className="p-16 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+          ) : homeroomRows.length === 0 ? (
+            <div className="p-16 flex flex-col items-center text-gray-400">
+              <AlertCircle size={48} className="mb-3 opacity-40" />
+              <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-bold">ห้องเรียน</th>
+                    <th className="px-6 py-4 text-center font-bold">มา</th>
+                    <th className="px-6 py-4 text-center font-bold">ขาด</th>
+                    <th className="px-6 py-4 text-center font-bold">สาย</th>
+                    <th className="px-6 py-4 text-center font-bold">ลา</th>
+                    <th className="px-6 py-4 text-center font-bold">รวม</th>
+                    <th className="px-6 py-4 text-center font-bold">% มา</th>
+                    <th className="px-6 py-4 text-center font-bold">รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {homeroomRows.map((r) => (
+                    <tr key={r.classroomId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-gray-800">{r.label}</td>
+                      <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
+                      <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
+                      <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
+                      <td className="px-6 py-4 text-center text-sky-500 font-semibold">{r.leave}</td>
+                      <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                          r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                        }`}>{r.rate}%</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => setSelectedHomeroomClassroomId(r.classroomId)}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                        >
+                          ดูรายชื่อ
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {selectedHomeroomClassroomId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setSelectedHomeroomClassroomId(null)} />
+              <div className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
+                <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {homeroomClassroomDetail ? `รายชื่อเช็คชื่อเข้าแถว ห้อง ${homeroomClassroomDetail.classroomLabel}` : 'กำลังโหลด...'}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">สรุปรายบุคคลในช่วงเวลาที่เลือก</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedHomeroomClassroomId(null)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    ปิด
+                  </button>
+                </div>
+                <div className="p-6">
+                  {loadingHomeroomClassroomDetail ? (
+                    <div className="py-10 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+                  ) : !homeroomClassroomDetail ? (
+                    <div className="py-10 flex flex-col items-center text-gray-400">
+                      <AlertCircle size={48} className="mb-3 opacity-40" />
+                      <p className="font-medium">ไม่พบข้อมูลห้องเรียน</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                          <tr>
+                            <th className="px-6 py-4 text-left font-bold">รหัส</th>
+                            <th className="px-6 py-4 text-left font-bold">ชื่อ-นามสกุล</th>
+                            <th className="px-6 py-4 text-center font-bold">มา</th>
+                            <th className="px-6 py-4 text-center font-bold">ขาด</th>
+                            <th className="px-6 py-4 text-center font-bold">สาย</th>
+                            <th className="px-6 py-4 text-center font-bold">ลา</th>
+                            <th className="px-6 py-4 text-center font-bold">รวม</th>
+                            <th className="px-6 py-4 text-center font-bold">% มา</th>
+                            <th className="px-6 py-4 text-center font-bold">ล่าสุด</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {homeroomClassroomDetail.students.map((s) => (
+                            <tr key={s.studentId} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 text-gray-500 font-mono text-xs">{s.studentCode}</td>
+                              <td className="px-6 py-4 font-semibold text-gray-800">{`${s.prefix ? `${s.prefix} ` : ''}${s.fullName}`}</td>
+                              <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{s.present}</td>
+                              <td className="px-6 py-4 text-center text-red-500 font-semibold">{s.absent}</td>
+                              <td className="px-6 py-4 text-center text-amber-500 font-semibold">{s.late}</td>
+                              <td className="px-6 py-4 text-center text-sky-500 font-semibold">{s.leave}</td>
+                              <td className="px-6 py-4 text-center text-gray-600 font-semibold">{s.total}</td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  s.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                                  s.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                                }`}>{s.rate}%</span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass(s.latestStatus || '-')}`}>
+                                  {s.latestStatus ? formatStatusThai(s.latestStatus) : '-'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          {homeroomClassroomDetail.students.length === 0 && (
+                            <tr><td colSpan={9} className="px-6 py-10 text-center text-gray-500">ไม่มีข้อมูลนักเรียนในห้องนี้</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

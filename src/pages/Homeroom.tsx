@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getClassrooms } from '../services/classroomService'
-import { getStudentsByClassroom, saveHomeroomAttendance } from '../services/homeroomService'
+import { getCheckedHomeroomClassroomsByDate, getStudentsByClassroom, saveHomeroomAttendance } from '../services/homeroomService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -40,6 +40,7 @@ const formatThaiBuddhistDate = (isoDate: string) => {
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
 
 export default function Homeroom() {
+  const queryClient = useQueryClient()
   const [selectedClassroom, setSelectedClassroom] = useState('')
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
   const [attendanceDateInput, setAttendanceDateInput] = useState(formatInputDate(new Date().toISOString().split('T')[0]))
@@ -55,6 +56,11 @@ export default function Homeroom() {
   const pageSize = 10
 
   const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
+  const { data: checkedClassrooms = [] } = useQuery({
+    queryKey: ['homeroom_checked_classrooms', attendanceDate],
+    queryFn: () => getCheckedHomeroomClassroomsByDate(attendanceDate),
+    enabled: !!attendanceDate
+  })
   
   const { data: students, isLoading } = useQuery({
     queryKey: ['students', selectedClassroom],
@@ -65,6 +71,7 @@ export default function Homeroom() {
   const totalPages = Math.max(1, Math.ceil((students?.length || 0) / pageSize))
   const startIndex = (currentPage - 1) * pageSize
   const paginatedStudents = students?.slice(startIndex, startIndex + pageSize) || []
+  const isSelectedClassroomAlreadyChecked = !!selectedClassroom && checkedClassrooms.some((c) => c.classroom_id === selectedClassroom)
 
   const openDatePicker = () => {
     const date = new Date(`${attendanceDate}T00:00:00`)
@@ -101,6 +108,7 @@ export default function Homeroom() {
       return saveHomeroomAttendance(attendanceDate, records)
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['homeroom_checked_classrooms', attendanceDate] })
       setResultModalType('success')
       setResultModalMessage('บันทึกข้อมูลเข้าแถวสำเร็จ')
       setShowResultModal(true)
@@ -284,6 +292,22 @@ export default function Homeroom() {
         </div>
       </div>
 
+      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-start gap-2">
+          <AlertCircle size={18} className="mt-0.5 text-amber-600" />
+          <div>
+            <p className="font-semibold text-amber-800">สถานะการเช็คชื่อเข้าแถววันที่ {formatThaiBuddhistDate(attendanceDate)}</p>
+            {checkedClassrooms.length === 0 ? (
+              <p className="text-sm text-amber-700 mt-1">ยังไม่มีห้องที่เช็คชื่อเข้าแถวในวันนี้</p>
+            ) : (
+              <p className="text-sm text-amber-700 mt-1">
+                เช็คแล้ว {checkedClassrooms.length} ห้อง: {checkedClassrooms.map((c) => c.classroom_label).join(', ')}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {selectedClassroom && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
@@ -353,11 +377,11 @@ export default function Homeroom() {
               <div className="p-6 bg-white border-t flex justify-end">
                 <button 
                   onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending || students?.length === 0}
+                  disabled={saveMutation.isPending || students?.length === 0 || isSelectedClassroomAlreadyChecked}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <CheckCircle size={20} />
-                  {saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูลเข้าแถว'}
+                  {saveMutation.isPending ? 'กำลังบันทึก...' : isSelectedClassroomAlreadyChecked ? 'ห้องนี้เช็คแล้วในวันนี้' : 'บันทึกข้อมูลเข้าแถว'}
                 </button>
               </div>
             </>

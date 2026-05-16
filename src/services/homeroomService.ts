@@ -8,6 +8,11 @@ export interface HomeroomAttendance {
   checkin_time?: string
 }
 
+export interface CheckedHomeroomClassroom {
+  classroom_id: string
+  classroom_label: string
+}
+
 // Fetch students for a specific classroom
 export const getStudentsByClassroom = async (classroomId: string) => {
   const { data, error } = await supabase
@@ -18,6 +23,35 @@ export const getStudentsByClassroom = async (classroomId: string) => {
   
   if (error) throw error
   return data
+}
+
+export const getCheckedHomeroomClassroomsByDate = async (date: string): Promise<CheckedHomeroomClassroom[]> => {
+  const { data, error } = await supabase
+    .from('homeroom_attendance')
+    .select(`
+      students (
+        classroom_id,
+        classrooms ( level, room )
+      )
+    `)
+    .eq('attendance_date', date)
+
+  if (error) throw error
+
+  const map = new Map<string, CheckedHomeroomClassroom>()
+  ;(data || []).forEach((row: any) => {
+    const classroomId = row.students?.classroom_id
+    const classroom = row.students?.classrooms
+    if (!classroomId || !classroom) return
+    if (!map.has(classroomId)) {
+      map.set(classroomId, {
+        classroom_id: classroomId,
+        classroom_label: `${classroom.level}/${classroom.room}`,
+      })
+    }
+  })
+
+  return Array.from(map.values()).sort((a, b) => a.classroom_label.localeCompare(b.classroom_label))
 }
 
 // Save Homeroom Attendance
