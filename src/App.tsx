@@ -120,18 +120,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {/* เมนูจัดการข้อมูล (แยกหมวดหมู่) */}
           {(role === 'ADMIN' || role === 'TEACHER') && (
             <div className="pt-3 mt-3 border-t border-gray-100">
-              <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการนักเรียน</NavItem>
-              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดตารางเรียน</NavItem>
+              {role === 'ADMIN' && (
+                <>
+                  <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
+                  <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
+                  <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
+                </>
+              )}
+              <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการข้อมูลนักเรียน</NavItem>
+              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดการตารางเรียน</NavItem>
+              {role === 'ADMIN' && (
+                <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการข้อมูลผู้ปกครอง</NavItem>
+              )}
             </div>
-          )}
-
-          {role === 'ADMIN' && (
-            <>
-              <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
-              <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
-              <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
-              <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการผู้ปกครอง</NavItem>
-            </>
           )}
 
           {/* ตั้งค่าระบบ */}

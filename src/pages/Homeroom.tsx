@@ -49,6 +49,9 @@ export default function Homeroom() {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [attendanceState, setAttendanceState] = useState<Record<string, string>>({})
   const [currentPage, setCurrentPage] = useState(1)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
+  const [resultModalMessage, setResultModalMessage] = useState('')
   const pageSize = 10
 
   const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
@@ -98,8 +101,15 @@ export default function Homeroom() {
       return saveHomeroomAttendance(attendanceDate, records)
     },
     onSuccess: () => {
-      alert('บันทึกข้อมูลเข้าแถวสำเร็จ')
-    }
+      setResultModalType('success')
+      setResultModalMessage('บันทึกข้อมูลเข้าแถวสำเร็จ')
+      setShowResultModal(true)
+    },
+    onError: (error: any) => {
+      setResultModalType('error')
+      setResultModalMessage(error?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+      setShowResultModal(true)
+    },
   })
 
   const markAll = (status: string) => {
@@ -115,8 +125,50 @@ export default function Homeroom() {
     setAttendanceState(prev => ({ ...prev, [id]: status }))
   }
 
+  const closeResultModal = () => {
+    setShowResultModal(false)
+    if (resultModalType === 'success') {
+      setSelectedClassroom('')
+      setAttendanceState({})
+      setCurrentPage(1)
+    }
+  }
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
+      {showResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={closeResultModal} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+            <div className={`h-1.5 w-full ${resultModalType === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+            <div className="p-7 text-center">
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${resultModalType === 'success' ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+                {resultModalType === 'success' ? (
+                  <CheckCircle size={28} className="text-emerald-600" />
+                ) : (
+                  <AlertCircle size={28} className="text-rose-600" />
+                )}
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-gray-800">
+                {resultModalType === 'success' ? 'บันทึกสำเร็จ' : 'บันทึกไม่สำเร็จ'}
+              </h3>
+              <p className="text-sm text-gray-600">{resultModalMessage}</p>
+              <button
+                type="button"
+                onClick={closeResultModal}
+                className={`mt-6 w-full rounded-xl px-4 py-2.5 font-semibold text-white transition ${
+                  resultModalType === 'success'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">เช็คชื่อเข้าแถว (Homeroom)</h1>
       </div>

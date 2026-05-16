@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getAnalyticsData, getClassroomReport, getStudentReport, getSubjectReport } from '../services/dashboardService'
+import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectReport } from '../services/dashboardService'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, TrendingUp, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
@@ -10,6 +10,13 @@ export default function Reports() {
   })
   const [activeTimeFilter, setActiveTimeFilter] = useState('month')
   const [activeRange, setActiveRange] = useState('30days')
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [studentSearch, setStudentSearch] = useState('')
+  const [studentTablePage, setStudentTablePage] = useState(1)
+  const [subjectHistoryPage, setSubjectHistoryPage] = useState(1)
+  const [homeroomHistoryPage, setHomeroomHistoryPage] = useState(1)
+  const historyPageSize = 10
+  const studentPageSize = 10
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -34,6 +41,11 @@ export default function Reports() {
     queryFn: () => getStudentReport(activeTimeFilter),
     enabled: activeTab === 'student'
   })
+  const { data: studentDetail, isLoading: loadingStudentDetail } = useQuery({
+    queryKey: ['report_student_detail', selectedStudentId, activeTimeFilter],
+    queryFn: () => getStudentDetailReport(selectedStudentId as string, activeTimeFilter),
+    enabled: activeTab === 'student' && !!selectedStudentId
+  })
   const { data: subjectRows = [], isLoading: loadingSubject } = useQuery({
     queryKey: ['report_subject', activeTimeFilter],
     queryFn: () => getSubjectReport(activeTimeFilter),
@@ -44,6 +56,52 @@ export default function Reports() {
   const presentCount = analytics?.pieData?.find((d: any) => d.name === 'มาเรียน')?.value || 0;
   const percentage = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
   const totalItems = analytics?.rawAttendance?.length || 0;
+
+  useEffect(() => {
+    setSubjectHistoryPage(1)
+    setHomeroomHistoryPage(1)
+  }, [selectedStudentId, activeTimeFilter])
+
+  useEffect(() => {
+    setStudentTablePage(1)
+  }, [studentSearch, activeTimeFilter, activeTab])
+
+  const filteredStudentRows = studentRows.filter((r) => {
+    const q = studentSearch.trim().toLowerCase()
+    if (!q) return true
+    const fullName = `${r.prefix ? `${r.prefix} ` : ''}${r.fullName}`.toLowerCase()
+    return (
+      r.studentCode.toLowerCase().includes(q) ||
+      fullName.includes(q) ||
+      (r.classroom || '').toLowerCase().includes(q)
+    )
+  })
+
+  const studentTotalPages = Math.max(1, Math.ceil(filteredStudentRows.length / studentPageSize))
+  const pagedStudentRows = filteredStudentRows.slice((studentTablePage - 1) * studentPageSize, studentTablePage * studentPageSize)
+
+  const formatThaiDate = (dateString: string) => {
+    if (!dateString || dateString === '-') return '-'
+    const date = new Date(`${dateString}T00:00:00`)
+    if (Number.isNaN(date.getTime())) return dateString
+    return date.toLocaleDateString('th-TH')
+  }
+
+  const formatStatusThai = (status: string) => {
+    if (status === 'PRESENT') return 'มา'
+    if (status === 'ABSENT') return 'ขาด'
+    if (status === 'LATE') return 'สาย'
+    if (status === 'LEAVE') return 'ลา'
+    return status
+  }
+
+  const statusClass = (status: string) => {
+    if (status === 'PRESENT') return 'bg-emerald-100 text-emerald-700'
+    if (status === 'ABSENT') return 'bg-red-100 text-red-700'
+    if (status === 'LATE') return 'bg-amber-100 text-amber-700'
+    if (status === 'LEAVE') return 'bg-sky-100 text-sky-700'
+    return 'bg-slate-100 text-slate-700'
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -262,9 +320,17 @@ export default function Reports() {
             <User className="text-indigo-500" size={22} />
             <h2 className="text-lg font-bold text-gray-800">สรุปการเข้าเรียนรายบุคคล</h2>
           </div>
+          <div className="p-4 border-b border-gray-100 bg-slate-50">
+            <input
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              placeholder="ค้นหาตามรหัส / ชื่อ / ห้อง"
+              className="w-full md:w-96 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
+            />
+          </div>
           {loadingStudent ? (
             <div className="p-16 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
-          ) : studentRows.length === 0 ? (
+          ) : filteredStudentRows.length === 0 ? (
             <div className="p-16 flex flex-col items-center text-gray-400">
               <AlertCircle size={48} className="mb-3 opacity-40" />
               <p className="font-medium">ยังไม่มีข้อมูลในช่วงเวลานี้</p>
@@ -281,13 +347,14 @@ export default function Reports() {
                     <th className="px-6 py-4 text-center font-bold">ขาด</th>
                     <th className="px-6 py-4 text-center font-bold">สาย</th>
                     <th className="px-6 py-4 text-center font-bold">% มา</th>
+                    <th className="px-6 py-4 text-center font-bold">รายละเอียด</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {studentRows.map(r => (
+                  {pagedStudentRows.map(r => (
                     <tr key={r.studentId} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-gray-500 font-mono text-xs">{r.studentCode}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-800">{r.fullName}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-800">{`${r.prefix ? `${r.prefix} ` : ''}${r.fullName}`}</td>
                       <td className="px-6 py-4 text-gray-500">{r.classroom}</td>
                       <td className="px-6 py-4 text-center text-emerald-600 font-semibold">{r.present}</td>
                       <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
@@ -298,10 +365,204 @@ export default function Reports() {
                           r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
                         }`}>{r.rate}%</span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => setSelectedStudentId(r.studentId)}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                        >
+                          ดูประวัติ
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!loadingStudent && filteredStudentRows.length > studentPageSize && (
+            <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4 text-sm">
+              <span className="text-slate-500">หน้า {studentTablePage} / {studentTotalPages}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStudentTablePage((p) => Math.max(1, p - 1))}
+                  disabled={studentTablePage === 1}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-700 disabled:opacity-50"
+                >
+                  ก่อนหน้า
+                </button>
+                <button
+                  onClick={() => setStudentTablePage((p) => Math.min(studentTotalPages, p + 1))}
+                  disabled={studentTablePage >= studentTotalPages}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-700 disabled:opacity-50"
+                >
+                  ถัดไป
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedStudentId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setSelectedStudentId(null)} />
+              <div className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
+                <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-slate-800">ประวัติรายบุคคล</h3>
+                  <button
+                    onClick={() => setSelectedStudentId(null)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    ปิด
+                  </button>
+                </div>
+                <div className="p-6">
+              {loadingStudentDetail ? (
+                <div className="py-10 text-center text-gray-500">กำลังโหลดประวัติรายบุคคล...</div>
+              ) : !studentDetail ? (
+                <div className="py-10 text-center text-gray-500">ไม่พบข้อมูลนักเรียน</div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600">
+                        {studentDetail.studentCode} • {`${studentDetail.prefix ? `${studentDetail.prefix} ` : ''}${studentDetail.fullName}`} • ห้อง {studentDetail.classroom}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อรายวิชา</h4>
+                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.classroomAttendanceSummary.present}</div>
+                        <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.classroomAttendanceSummary.absent}</div>
+                        <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.classroomAttendanceSummary.late}</div>
+                        <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.classroomAttendanceSummary.leave}</div>
+                        <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.classroomAttendanceSummary.total}</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อเข้าแถว</h4>
+                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.homeroomSummary.present}</div>
+                        <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.homeroomSummary.absent}</div>
+                        <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.homeroomSummary.late}</div>
+                        <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.homeroomSummary.leave}</div>
+                        <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.homeroomSummary.total}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                      <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อรายวิชา</div>
+                      <div className="max-h-80 overflow-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-slate-50 text-slate-500 uppercase">
+                            <tr>
+                              <th className="px-4 py-2 text-left">วันที่</th>
+                              <th className="px-4 py-2 text-left">วิชา</th>
+                              <th className="px-4 py-2 text-center">สถานะ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {studentDetail.classroomAttendanceHistory.length === 0 && (
+                              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
+                            )}
+                            {studentDetail.classroomAttendanceHistory
+                              .slice((subjectHistoryPage - 1) * historyPageSize, subjectHistoryPage * historyPageSize)
+                              .map((h) => (
+                              <tr key={h.id}>
+                                <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
+                                <td className="px-4 py-2 text-slate-700">{h.subjectName}</td>
+                                <td className="px-4 py-2 text-center">
+                                  <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {studentDetail.classroomAttendanceHistory.length > historyPageSize && (
+                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
+                          <span className="text-slate-500">
+                            หน้า {subjectHistoryPage} / {Math.max(1, Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize))}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSubjectHistoryPage((p) => Math.max(1, p - 1))}
+                              disabled={subjectHistoryPage === 1}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                            >
+                              ก่อนหน้า
+                            </button>
+                            <button
+                              onClick={() => setSubjectHistoryPage((p) => Math.min(Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize), p + 1))}
+                              disabled={subjectHistoryPage >= Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize)}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                            >
+                              ถัดไป
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                      <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อเข้าแถว</div>
+                      <div className="max-h-80 overflow-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-slate-50 text-slate-500 uppercase">
+                            <tr>
+                              <th className="px-4 py-2 text-left">วันที่</th>
+                              <th className="px-4 py-2 text-center">สถานะ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {studentDetail.homeroomHistory.length === 0 && (
+                              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
+                            )}
+                            {studentDetail.homeroomHistory
+                              .slice((homeroomHistoryPage - 1) * historyPageSize, homeroomHistoryPage * historyPageSize)
+                              .map((h) => (
+                              <tr key={h.id}>
+                                <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
+                                <td className="px-4 py-2 text-center">
+                                  <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {studentDetail.homeroomHistory.length > historyPageSize && (
+                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
+                          <span className="text-slate-500">
+                            หน้า {homeroomHistoryPage} / {Math.max(1, Math.ceil(studentDetail.homeroomHistory.length / historyPageSize))}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setHomeroomHistoryPage((p) => Math.max(1, p - 1))}
+                              disabled={homeroomHistoryPage === 1}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                            >
+                              ก่อนหน้า
+                            </button>
+                            <button
+                              onClick={() => setHomeroomHistoryPage((p) => Math.min(Math.ceil(studentDetail.homeroomHistory.length / historyPageSize), p + 1))}
+                              disabled={homeroomHistoryPage >= Math.ceil(studentDetail.homeroomHistory.length / historyPageSize)}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                            >
+                              ถัดไป
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+              </div>
             </div>
           )}
         </div>

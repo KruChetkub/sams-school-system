@@ -3,6 +3,8 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { getSchedules } from '../services/scheduleService'
 import { getStudentsForSchedule, saveClassroomAttendance } from '../services/attendanceService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
+import { supabase } from '../lib/supabase'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -36,10 +38,20 @@ const formatThaiBuddhistDate = (isoDate: string) => {
 
 const thaiWeekdays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+const dayLabels: Record<number, string> = {
+  1: 'จันทร์',
+  2: 'อังคาร',
+  3: 'พุธ',
+  4: 'พฤหัสบดี',
+  5: 'ศุกร์',
+  6: 'เสาร์',
+  7: 'อาทิตย์',
+}
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
 
 export default function Attendance() {
+  const { user, role } = useAuthStore()
   const [selectedSchedule, setSelectedSchedule] = useState('')
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
   const [attendanceDateInput, setAttendanceDateInput] = useState(formatInputDate(new Date().toISOString().split('T')[0]))
@@ -48,6 +60,9 @@ export default function Attendance() {
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [attendanceState, setAttendanceState] = useState<Record<string, string>>({})
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
+  const [resultModalMessage, setResultModalMessage] = useState('')
 
   const openDatePicker = () => {
     const date = new Date(`${attendanceDate}T00:00:00`)
@@ -72,8 +87,35 @@ export default function Attendance() {
   const calendarCells = Array(firstWeekday).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
   const calendarHeader = `${thaiMonths[calendarMonth]} ${calendarYear + 543}`
 
-  // Fetch all schedules (could be filtered by teacher in a real app)
-  const { data: schedules } = useQuery({ queryKey: ['schedules'], queryFn: () => getSchedules() })
+  const { data: teacherProfile } = useQuery({
+    queryKey: ['teacher_profile_by_user', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!user?.id && role === 'TEACHER'
+  })
+
+  // ครูเห็นเฉพาะคาบของตัวเอง, แอดมินเห็นทั้งหมด
+  const { data: schedules } = useQuery({
+    queryKey: ['schedules', role, teacherProfile?.id || 'all'],
+    queryFn: () => getSchedules(undefined, role === 'TEACHER' ? teacherProfile?.id : undefined),
+    enabled: role !== 'TEACHER' || !!teacherProfile?.id
+  })
+
+  const selectedDate = new Date(`${attendanceDate}T00:00:00`)
+  const selectedDayOfWeek = (() => {
+    const jsDay = selectedDate.getDay()
+    return jsDay === 0 ? 7 : jsDay
+  })()
+
+  const schedulesForSelectedDay = (schedules || []).filter((s) => s.day_of_week === selectedDayOfWeek)
   
   const { data: students, isLoading } = useQuery({
     queryKey: ['schedule_students', selectedSchedule],
@@ -94,8 +136,15 @@ export default function Attendance() {
       return saveClassroomAttendance(records)
     },
     onSuccess: () => {
-      alert('บันทึกการเข้าเรียนสำเร็จ')
-    }
+      setResultModalType('success')
+      setResultModalMessage('บันทึกการเข้าเรียนสำเร็จ')
+      setShowResultModal(true)
+    },
+    onError: (error: any) => {
+      setResultModalType('error')
+      setResultModalMessage(error?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+      setShowResultModal(true)
+    },
   })
 
   const markAll = (status: string) => {
@@ -111,8 +160,49 @@ export default function Attendance() {
     setAttendanceState(prev => ({ ...prev, [id]: status }))
   }
 
+  const closeResultModal = () => {
+    setShowResultModal(false)
+    if (resultModalType === 'success') {
+      setSelectedSchedule('')
+      setAttendanceState({})
+    }
+  }
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
+      {showResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={closeResultModal} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+            <div className={`h-1.5 w-full ${resultModalType === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+            <div className="p-7 text-center">
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${resultModalType === 'success' ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+                {resultModalType === 'success' ? (
+                  <CheckCircle size={28} className="text-emerald-600" />
+                ) : (
+                  <AlertCircle size={28} className="text-rose-600" />
+                )}
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-gray-800">
+                {resultModalType === 'success' ? 'บันทึกสำเร็จ' : 'บันทึกไม่สำเร็จ'}
+              </h3>
+              <p className="text-sm text-gray-600">{resultModalMessage}</p>
+              <button
+                type="button"
+                onClick={closeResultModal}
+                className={`mt-6 w-full rounded-xl px-4 py-2.5 font-semibold text-white transition ${
+                  resultModalType === 'success'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">เช็คชื่อรายวิชา (Classroom Attendance)</h1>
       </div>
@@ -130,12 +220,15 @@ export default function Attendance() {
             }}
           >
             <option value="">-- กรุณาเลือกคาบเรียน --</option>
-            {schedules?.map(s => (
+            {schedulesForSelectedDay.map(s => (
               <option key={s.id} value={s.id}>
-                คาบ {s.period} ({s.start_time.substring(0,5)}) - {s.subject?.subject_name} {s.classroom?.level}/{s.classroom?.room}
+                {dayLabels[s.day_of_week] || '-'} • คาบ {s.period} ({s.start_time.substring(0,5)}) - {s.subject?.subject_name} {s.classroom?.level}/{s.classroom?.room}
               </option>
             ))}
           </select>
+          {schedulesForSelectedDay.length === 0 && (
+            <p className="mt-2 text-xs text-amber-600">ไม่พบคาบเรียนในวันที่เลือก</p>
+          )}
         </div>
         <div className="relative">
           <div className="flex items-end justify-between gap-3 mb-2">
@@ -250,6 +343,7 @@ export default function Attendance() {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">รหัส</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">คำนำหน้า</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ชื่อ-สกุล</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">สถานะการเข้าเรียน</th>
                     </tr>
@@ -260,6 +354,7 @@ export default function Attendance() {
                       return (
                         <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{student.student_code}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{student.prefix || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{student.first_name} {student.last_name}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex justify-center gap-2">
@@ -272,7 +367,7 @@ export default function Attendance() {
                         </tr>
                       )
                     })}
-                    {students?.length === 0 && <tr><td colSpan={3} className="p-12 text-center text-gray-500 bg-gray-50/50">ไม่พบนักเรียนในคาบเรียนนี้</td></tr>}
+                    {students?.length === 0 && <tr><td colSpan={4} className="p-12 text-center text-gray-500 bg-gray-50/50">ไม่พบนักเรียนในคาบเรียนนี้</td></tr>}
                   </tbody>
                 </table>
               </div>

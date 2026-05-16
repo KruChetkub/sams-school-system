@@ -322,22 +322,21 @@ export const getPendingClassroomChecksToday = async (): Promise<PendingClassroom
   }
 
   const scheduleIds = todaySchedules.map((s: any) => s.id)
-  let todayAttendance: any = []
+  // ตรวจสอบผ่าน attendance_sessions (มี schedule_id และ session_date จริง)
+  let checkedSessionScheduleIds: string[] = []
   try {
-    // Log for debugging why requests sometimes fail ( bad request 400 )
     console.debug('[getPendingClassroomChecksToday] today=', today, 'scheduleIds=', scheduleIds)
     const res = await supabase
-      .from('attendance')
+      .from('attendance_sessions')
       .select('schedule_id')
       .in('schedule_id', scheduleIds)
-      .eq('attendance_date', today)
+      .eq('session_date', today)
     if (res.error) {
       console.error('[getPendingClassroomChecksToday] supabase error:', res.error)
     }
-    todayAttendance = res.data || []
+    checkedSessionScheduleIds = (res.data || []).map((r: any) => r.schedule_id)
   } catch (err) {
     console.error('[getPendingClassroomChecksToday] unexpected error:', err)
-    todayAttendance = []
   }
 
   // นับในระดับ "ห้อง" (ถ้าเช็คแล้วอย่างน้อย 1 คาบในห้องนั้น ถือว่าเช็คแล้ว)
@@ -350,8 +349,8 @@ export const getPendingClassroomChecksToday = async (): Promise<PendingClassroom
   })
 
   const checkedClassroomsSet = new Set<string>()
-  ;(todayAttendance || []).forEach((row: any) => {
-    const classroomLabel = scheduleToClassroom.get(row.schedule_id)
+  checkedSessionScheduleIds.forEach((scheduleId) => {
+    const classroomLabel = scheduleToClassroom.get(scheduleId)
     if (classroomLabel) checkedClassroomsSet.add(classroomLabel)
   })
 

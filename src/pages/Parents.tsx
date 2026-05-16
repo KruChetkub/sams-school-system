@@ -11,6 +11,9 @@ export default function Parents() {
   
   const [showForm, setShowForm] = useState(false)
   const [showAssignForm, setShowAssignForm] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [studentSearch, setStudentSearch] = useState('')
+  const [parentSearch, setParentSearch] = useState('')
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -60,8 +63,57 @@ export default function Parents() {
     assignMutation.mutate()
   }
 
+  const filteredStudents = (students || []).filter((s: any) => {
+    const q = studentSearch.trim().toLowerCase()
+    if (!q) return true
+    const fullName = `${s.first_name} ${s.last_name}`.toLowerCase()
+    return s.student_code?.toLowerCase().includes(q) || fullName.includes(q)
+  })
+
+  const filteredParents = (parents || []).filter((p: any) => {
+    const q = parentSearch.trim().toLowerCase()
+    if (!q) return true
+    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase()
+    return fullName.includes(q)
+  })
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setDeleteTargetId(null)} />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+            <div className="h-1.5 w-full bg-rose-500" />
+            <div className="p-7 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100">
+                <Trash2 size={26} className="text-rose-600" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-gray-800">ยืนยันการลบ</h3>
+              <p className="text-sm text-gray-600">คุณต้องการลบข้อมูลผู้ปกครองนี้ใช่หรือไม่?</p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTargetId(null)}
+                  className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteMutation.mutate(deleteTargetId)
+                    setDeleteTargetId(null)
+                  }}
+                  className="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 font-semibold text-white hover:bg-rose-700 transition"
+                >
+                  ลบข้อมูล
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลผู้ปกครอง (Parents)</h1>
         <div className="flex gap-3">
@@ -84,16 +136,30 @@ export default function Parents() {
         <form onSubmit={handleAssignSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">เลือกนักเรียน</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.student_id} onChange={e => setAssignData({...assignData, student_id: e.target.value})}>
+            <input
+              type="text"
+              placeholder="พิมพ์ค้นหา รหัส/ชื่อนักเรียน"
+              className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+            />
+            <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.student_id} onChange={e => setAssignData({...assignData, student_id: e.target.value})}>
               <option value="">-- เลือกนักเรียน --</option>
-              {students?.map(s => <option key={s.id} value={s.id}>{s.student_code} {s.first_name} {s.last_name}</option>)}
+              {filteredStudents.map((s: any) => <option key={s.id} value={s.id}>{s.student_code} {s.first_name} {s.last_name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">เลือกผู้ปกครอง</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.parent_id} onChange={e => setAssignData({...assignData, parent_id: e.target.value})}>
+            <input
+              type="text"
+              placeholder="พิมพ์ค้นหาชื่อผู้ปกครอง"
+              className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
+              value={parentSearch}
+              onChange={(e) => setParentSearch(e.target.value)}
+            />
+            <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.parent_id} onChange={e => setAssignData({...assignData, parent_id: e.target.value})}>
               <option value="">-- เลือกผู้ปกครอง --</option>
-              {parents?.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+              {filteredParents.map((p: any) => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
             </select>
           </div>
           <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
@@ -162,7 +228,7 @@ export default function Parents() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button 
-                      onClick={() => {if(window.confirm('ยืนยันการลบข้อมูลผู้ปกครอง?')) deleteMutation.mutate(parent.id)}} 
+                      onClick={() => setDeleteTargetId(parent.id)} 
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
                       title="ลบข้อมูล"
                     >
