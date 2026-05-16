@@ -66,15 +66,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="flex w-full gap-3">
                 <button 
                   onClick={() => setShowLogoutModal(false)}
-                  className="flex-1 bg-white border-2 border-gray-100 text-gray-600 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-white border-2 border-gray-100 text-gray-600 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap min-w-fit"
                 >
-                  <X size={18} strokeWidth={3} /> ยกเลิก
+                  <X size={18} strokeWidth={3} className="flex-shrink-0" /> ยกเลิก
                 </button>
                 <button 
                   onClick={handleLogout}
-                  className="flex-1 bg-[#ea3b3b] text-white font-bold py-3 px-4 rounded-xl hover:bg-[#d42d2d] transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="flex-1 bg-[#ea3b3b] text-white font-bold py-3 px-4 rounded-xl hover:bg-[#d42d2d] transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap min-w-fit"
                 >
-                  <CheckSquare size={18} strokeWidth={3} /> ออกจากระบบ
+                  <CheckSquare size={18} strokeWidth={3} className="flex-shrink-0" /> ออกจากระบบ
                 </button>
               </div>
             </div>
