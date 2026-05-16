@@ -231,8 +231,8 @@ export default function Reports() {
             <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
               <User className="text-indigo-500" /> สัดส่วนการเข้าเรียน
             </h3>
-            <div className="flex-1 min-h-[250px] relative mt-4">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[280px] relative mt-4">
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
                     data={analytics?.pieData}
