@@ -41,6 +41,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user, role } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [teacherDisplayName, setTeacherDisplayName] = useState('')
+  const userDisplayName = teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน')
 
   const closeSidebar = () => setIsSidebarOpen(false)
 
@@ -49,8 +51,29 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     signOut()
   }
 
+  useEffect(() => {
+    const loadTeacherName = async () => {
+      if (!user?.id || role === 'ADMIN') {
+        setTeacherDisplayName('')
+        return
+      }
+      const { data } = await supabase
+        .from('teachers')
+        .select('first_name, last_name')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (data) {
+        const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim()
+        setTeacherDisplayName(fullName)
+      } else {
+        setTeacherDisplayName('')
+      }
+    }
+    loadTeacherName()
+  }, [user?.id, role])
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div className="flex h-screen overflow-hidden font-sans" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -100,7 +123,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">SAMS</h2>
-            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Admin Portal</p>
+            {role === 'ADMIN' ? (
+              <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Admin Portal</p>
+            ) : (
+              <p className="text-xs text-gray-600 font-semibold mt-1">ยินดีต้อนรับ {userDisplayName}</p>
+            )}
           </div>
           <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-colors">
             <X size={24} />
@@ -149,7 +176,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           )}
         </nav>
-        <div className="p-5 border-t border-gray-100 bg-gray-50/50">
+        <div className="p-5 border-t border-gray-100" style={{ backgroundColor: 'color-mix(in oklab, var(--app-bg, #f3f4f6) 70%, white)' }}>
           <div className="mb-5 px-2">
             <p className="text-sm font-bold text-gray-800 truncate">{user?.email}</p>
             <p className="text-xs text-blue-600 font-semibold mt-1 capitalize">{role?.toLowerCase() || 'Loading...'}</p>
@@ -179,7 +206,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto bg-gray-50/30">
+        <div className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
           {children}
         </div>
       </main>
