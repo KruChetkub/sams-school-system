@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectReport } from '../services/dashboardService'
+import { getAnalyticsData, getClassroomReport, getStudentDetailReport, getStudentReport, getSubjectReport, getSubjectDetailReport } from '../services/dashboardService'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, TrendingUp, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
@@ -11,6 +11,7 @@ export default function Reports() {
   const [activeTimeFilter, setActiveTimeFilter] = useState('month')
   const [activeRange, setActiveRange] = useState('30days')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
   const [studentTablePage, setStudentTablePage] = useState(1)
   const [subjectHistoryPage, setSubjectHistoryPage] = useState(1)
@@ -50,6 +51,11 @@ export default function Reports() {
     queryKey: ['report_subject', activeTimeFilter],
     queryFn: () => getSubjectReport(activeTimeFilter),
     enabled: activeTab === 'subject'
+  })
+  const { data: subjectDetail, isLoading: loadingSubjectDetail } = useQuery({
+    queryKey: ['report_subject_detail', selectedSubjectId, activeTimeFilter],
+    queryFn: () => getSubjectDetailReport(selectedSubjectId as string, activeTimeFilter),
+    enabled: activeTab === 'subject' && !!selectedSubjectId
   })
 
   const totalAttendance = analytics?.pieData?.reduce((acc: number, curr: any) => acc + (curr.name !== 'ยังไม่มีข้อมูล' ? curr.value : 0), 0) || 0;
@@ -591,6 +597,7 @@ export default function Reports() {
                     <th className="px-6 py-4 text-center font-bold">สาย</th>
                     <th className="px-6 py-4 text-center font-bold">รวม</th>
                     <th className="px-6 py-4 text-center font-bold">% มา</th>
+                    <th className="px-6 py-4 text-center font-bold">รายละเอียด</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -608,10 +615,97 @@ export default function Reports() {
                           r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
                         }`}>{r.rate}%</span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => setSelectedSubjectId(r.subjectId)}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                        >
+                          ดูรายละเอียด
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Subject Detail Modal */}
+          {selectedSubjectId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setSelectedSubjectId(null)} />
+              <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
+                <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {subjectDetail ? `${subjectDetail.subjectCode} — ${subjectDetail.subjectName}` : 'กำลังโหลด...'}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">รายละเอียดการเข้าเรียนรายคาบ</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedSubjectId(null)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    ปิด
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  {loadingSubjectDetail ? (
+                    <div className="py-10 flex justify-center"><RefreshCw size={32} className="animate-spin text-gray-300" /></div>
+                  ) : !subjectDetail || subjectDetail.sessions.length === 0 ? (
+                    <div className="py-10 flex flex-col items-center text-gray-400">
+                      <AlertCircle size={48} className="mb-3 opacity-40" />
+                      <p className="font-medium">ไม่พบข้อมูลในช่วงเวลานี้</p>
+                    </div>
+                  ) : (
+                    subjectDetail.sessions.map(session => {
+                      const present = session.students.filter(s => s.status === 'PRESENT')
+                      const absent = session.students.filter(s => s.status === 'ABSENT')
+                      const late = session.students.filter(s => s.status === 'LATE')
+                      const leave = session.students.filter(s => s.status === 'LEAVE')
+                      return (
+                        <div key={session.sessionId} className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                          <div className="bg-indigo-50 border-b border-indigo-100 px-5 py-3 flex items-center gap-4">
+                            <span className="font-bold text-indigo-700 text-sm">{formatThaiDate(session.sessionDate)}</span>
+                            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full">ห้อง {session.classroomLabel}</span>
+                            <span className="text-xs text-slate-500">รวม {session.students.length} คน</span>
+                            <div className="flex gap-2 ml-auto">
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">มา {present.length}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">ขาด {absent.length}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">สาย {late.length}</span>
+                              {leave.length > 0 && <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs font-semibold">ลา {leave.length}</span>}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                            {[
+                              { label: 'มาเรียน', students: present, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                              { label: 'ขาดเรียน', students: absent, color: 'text-red-700', bg: 'bg-red-50' },
+                              { label: 'มาสาย', students: late, color: 'text-amber-700', bg: 'bg-amber-50' },
+                              { label: 'ลา', students: leave, color: 'text-sky-700', bg: 'bg-sky-50' },
+                            ].map(group => (
+                              <div key={group.label} className="p-4">
+                                <div className={`text-xs font-bold mb-2 ${group.color}`}>{group.label} ({group.students.length})</div>
+                                {group.students.length === 0 ? (
+                                  <div className="text-xs text-slate-300">—</div>
+                                ) : (
+                                  <ul className="space-y-1">
+                                    {group.students.map(s => (
+                                      <li key={s.studentId} className="text-xs text-slate-700">
+                                        <span className="font-mono text-slate-400 mr-1.5">{s.studentCode}</span>
+                                        {`${s.prefix ? s.prefix + ' ' : ''}${s.fullName}`}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

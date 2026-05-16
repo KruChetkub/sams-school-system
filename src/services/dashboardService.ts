@@ -243,6 +243,83 @@ export interface SubjectReportRow {
   rate: number
 }
 
+// รายละเอียดรายคาบของวิชา (นักเรียนรายคน)
+export interface SubjectSessionStudent {
+  studentId: string
+  studentCode: string
+  prefix?: string
+  fullName: string
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'LEAVE'
+}
+
+export interface SubjectSessionDetail {
+  sessionId: string
+  sessionDate: string
+  classroomLabel: string   // เช่น "ม.1/1"
+  students: SubjectSessionStudent[]
+}
+
+export interface SubjectDetailReport {
+  subjectId: string
+  subjectCode: string
+  subjectName: string
+  sessions: SubjectSessionDetail[]
+}
+
+export const getSubjectDetailReport = async (subjectId: string, timeFilter: string = 'month'): Promise<SubjectDetailReport | null> => {
+  const startDate = getStartDate(timeFilter)
+
+  const { data: subjectData } = await supabase
+    .from('subjects')
+    .select('id, subject_code, subject_name')
+    .eq('id', subjectId)
+    .single()
+
+  if (!subjectData) return null
+
+  const { data: sessionsData, error } = await supabase
+    .from('attendance_sessions')
+    .select(`
+      id, session_date,
+      schedules ( classroom_id, classrooms(level, room) ),
+      attendance (
+        id, status,
+        students ( id, student_code, prefix, first_name, last_name )
+      )
+    `)
+    .eq('subject_id', subjectId)
+    .gte('session_date', startDate.split('T')[0])
+    .order('session_date', { ascending: false })
+
+  if (error) console.error('[getSubjectDetailReport] error:', error)
+
+  const sessions: SubjectSessionDetail[] = (sessionsData || []).map((session: any) => {
+    const cls = session.schedules?.classrooms
+    const classroomLabel = cls ? `${cls.level}/${cls.room}` : '-'
+    return {
+      sessionId: session.id,
+      sessionDate: session.session_date,
+      classroomLabel,
+      students: (session.attendance || [])
+        .map((att: any) => ({
+          studentId: att.students?.id || '',
+          studentCode: att.students?.student_code || '',
+          prefix: att.students?.prefix || '',
+          fullName: `${att.students?.first_name || ''} ${att.students?.last_name || ''}`.trim(),
+          status: att.status,
+        }))
+        .sort((a: SubjectSessionStudent, b: SubjectSessionStudent) => a.studentCode.localeCompare(b.studentCode))
+    }
+  })
+
+  return {
+    subjectId: subjectData.id,
+    subjectCode: subjectData.subject_code,
+    subjectName: subjectData.subject_name,
+    sessions,
+  }
+}
+
 export const getSubjectReport = async (timeFilter: string = 'month'): Promise<SubjectReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   const { data } = await supabase
