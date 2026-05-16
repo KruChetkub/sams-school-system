@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getDashboardStats, getAnalyticsData } from '../services/dashboardService'
@@ -7,6 +7,27 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 1000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  const dateTimeFormatter = new Intl.DateTimeFormat('th-TH', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Bangkok',
+  })
+
+  const formattedDateTime = dateTimeFormatter.format(now)
+
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({ 
     queryKey: ['dashboard_analytics', 'month'], 
@@ -29,8 +50,15 @@ export default function Dashboard() {
   let statusText = 'ไม่มีข้อมูล'
   let statusColor = 'text-gray-500'
   if (totalAttendance > 0) {
-    statusText = percentage >= 80 ? 'ยอดเยี่ยม' : percentage >= 60 ? 'ปานกลาง' : 'ควรปรับปรุง'
+    statusText = percentage >= 80 ? 'ยอดเยี่ยม' : percentage >= 60 ? 'ปานกลาง' : 'ควราปรับปรุง'
     statusColor = percentage >= 80 ? 'text-emerald-500' : percentage >= 60 ? 'text-orange-500' : 'text-red-500'
+  }
+
+  const legendTextClass = (name: string) => {
+    if (name === 'มาเรียน') return 'text-emerald-600'
+    if (name === 'ขาดเรียน') return 'text-red-600'
+    if (name === 'มาสาย') return 'text-amber-600'
+    return 'text-slate-600'
   }
 
   return (
@@ -39,6 +67,16 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">Executive Dashboard</h1>
           <p className="text-slate-500 font-medium mt-1">ภาพรวมและสถิติระบบจัดการการเข้าเรียน (SAMS)</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-4 py-2 text-emerald-700 font-semibold">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-400/50" />
+            ออนไลน์
+          </div>
+          <div className="rounded-3xl bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm border border-slate-200">
+            {formattedDateTime}
+          </div>
         </div>
       </div>
 
@@ -131,7 +169,7 @@ export default function Dashboard() {
             {analytics?.pieData?.map((item: any, i: number) => (
               <div key={i} className="text-center bg-slate-50 rounded-xl p-2">
                 <div className="text-xs font-bold text-slate-500 mb-1">{item.name}</div>
-                <div className="text-lg font-black" style={{ color: item.fill }}>{item.value}</div>
+                <div className={`text-lg font-black ${legendTextClass(item.name)}`}>{item.value}</div>
               </div>
             ))}
           </div>

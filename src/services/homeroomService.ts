@@ -12,7 +12,7 @@ export interface HomeroomAttendance {
 export const getStudentsByClassroom = async (classroomId: string) => {
   const { data, error } = await supabase
     .from('students')
-    .select('id, student_code, first_name, last_name, nickname')
+    .select('id, student_code, prefix, first_name, last_name, nickname')
     .eq('classroom_id', classroomId)
     .order('student_code')
   
