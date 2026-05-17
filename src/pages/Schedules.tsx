@@ -28,6 +28,7 @@ const DEFAULT_TIME_SLOTS = [
 ]
 
 const LUNCH_SLOT_KEY = '12:00:00-13:00:00'
+const MULTI_CLASSROOM_PREFIX = '[MULTI_CLASSROOM_IDS]'
 
 const CALENDAR_THEMES = [
   {
@@ -118,6 +119,7 @@ export default function Schedules() {
     end_time: '09:20',
     room_name: ''
   })
+  const [extraClassroomIds, setExtraClassroomIds] = useState<string[]>([])
 
   const updateTimePart = (field: 'start_time' | 'end_time', part: 'hour' | 'minute', rawValue: string) => {
     const { hour, minute } = splitTime(formData[field])
@@ -168,11 +170,13 @@ export default function Schedules() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const multiClassroomMeta = extraClassroomIds.length > 0 ? `${MULTI_CLASSROOM_PREFIX}${extraClassroomIds.join(',')}` : ''
+    const mergedRoomName = [formData.room_name.trim(), multiClassroomMeta].filter(Boolean).join(' | ')
     const payload = {
       ...formData,
       day_of_week: parseInt(formData.day_of_week),
       period: parseInt(formData.period),
-      room_name: formData.room_name.trim() || null,
+      room_name: mergedRoomName || null,
     }
     if (editingScheduleId) {
       updateMutation.mutate({ id: editingScheduleId, payload })
@@ -192,6 +196,7 @@ export default function Schedules() {
       end_time: '09:20',
       room_name: ''
     })
+    setExtraClassroomIds([])
     setEditingScheduleId(null)
     setShowForm(false)
   }
@@ -208,10 +213,22 @@ export default function Schedules() {
       end_time: '09:20',
       room_name: ''
     })
+    setExtraClassroomIds([])
     setShowForm(true)
   }
 
   const openEditForm = (schedule: any) => {
+    const roomName: string = schedule.room_name || ''
+    const parseMeta = () => {
+      const tag = roomName.split('|').map((x: string) => x.trim()).find((x: string) => x.startsWith(MULTI_CLASSROOM_PREFIX))
+      if (!tag) return []
+      return tag.replace(MULTI_CLASSROOM_PREFIX, '').split(',').map((x: string) => x.trim()).filter(Boolean)
+    }
+    const cleanRoomName = roomName
+      .split('|')
+      .map((x: string) => x.trim())
+      .filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX))
+      .join(' | ')
     setEditingScheduleId(schedule.id)
     setFormData({
       subject_id: schedule.subject_id,
@@ -221,8 +238,9 @@ export default function Schedules() {
       period: String(schedule.period),
       start_time: (schedule.start_time || '08:30').substring(0, 5),
       end_time: (schedule.end_time || '09:20').substring(0, 5),
-      room_name: schedule.room_name || ''
+      room_name: cleanRoomName
     })
+    setExtraClassroomIds(parseMeta().filter((id: string) => id !== schedule.classroom_id))
     setShowForm(true)
   }
 
@@ -468,11 +486,43 @@ export default function Schedules() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">ห้องเรียน</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => setFormData({...formData, classroom_id: e.target.value})}>
-              <option value="">-- เลือกห้องเรียน --</option>
+            <label className="block text-sm font-medium text-gray-700">ห้องเรียนหลักของคาบ</label>
+            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => {
+              const nextMain = e.target.value
+              setFormData({...formData, classroom_id: nextMain})
+              setExtraClassroomIds(prev => prev.filter(id => id !== nextMain))
+            }}>
+              <option value="">-- เลือกห้องเรียนหลัก --</option>
               {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">ห้องเรียนเพิ่มเติม (เรียนรวม)</label>
+            <div className="mt-1 max-h-[140px] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2.5 space-y-1.5">
+              {classrooms?.map(c => {
+                const disabled = c.id === formData.classroom_id
+                const checked = extraClassroomIds.includes(c.id)
+                return (
+                  <label key={c.id} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      disabled={disabled}
+                      checked={checked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setExtraClassroomIds(prev => Array.from(new Set([...prev, c.id])))
+                        } else {
+                          setExtraClassroomIds(prev => prev.filter(id => id !== c.id))
+                        }
+                      }}
+                    />
+                    <span className="text-sm text-slate-700">{c.level}/{c.room}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">ติ๊กเลือกได้หลายห้อง ระบบจะดึงนักเรียนจากทุกห้องที่เลือกใน Attendance</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">วัน</label>
@@ -651,7 +701,11 @@ export default function Schedules() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {schedule.classroom?.level}/{schedule.classroom?.room} <br/>
-                    {schedule.room_name && <span className="text-gray-500 text-xs">ห้อง: {schedule.room_name}</span>}
+                    {schedule.room_name && (
+                      <span className="text-gray-500 text-xs">
+                        ห้อง: {String(schedule.room_name).split('|').map((x: string) => x.trim()).filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX)).join(' | ')}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button
