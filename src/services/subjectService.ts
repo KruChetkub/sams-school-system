@@ -31,6 +31,20 @@ export const createSubject = async (subject: Omit<Subject, 'id' | 'teacher'>) =>
   return data as Subject
 }
 
+export const updateSubject = async (
+  id: string,
+  payload: Omit<Subject, 'id' | 'teacher'>
+) => {
+  const { data, error } = await supabase
+    .from('subjects')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as Subject
+}
+
 export const deleteSubject = async (id: string) => {
   const { error } = await supabase.from('subjects').delete().eq('id', id)
   if (error) throw error

@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSubjects, createSubject, deleteSubject } from '../services/subjectService'
+import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject } from '../services/subjectService'
 import { getTeachers } from '../services/teacherService'
-import { Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Pencil } from 'lucide-react'
 
 export default function Subjects() {
   const queryClient = useQueryClient()
@@ -10,7 +10,9 @@ export default function Subjects() {
   const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const [formData, setFormData] = useState({
     subject_code: '',
     subject_name: '',
@@ -24,6 +26,20 @@ export default function Subjects() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
       setShowForm(false)
+      setEditingSubjectId(null)
+      setErrorMessage('')
+      setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '' })
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: { subject_code: string, subject_name: string, department: string, credit: number, teacher_id?: string } }) =>
+      updateSubject(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      setShowForm(false)
+      setEditingSubjectId(null)
+      setErrorMessage('')
       setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '' })
     }
   })
@@ -33,6 +49,15 @@ export default function Subjects() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
       setConfirmDeleteId(null)
+      setErrorMessage('')
+    },
+    onError: (error: any) => {
+      const isConflict = error?.code === '23503' || error?.status === 409
+      setErrorMessage(
+        isConflict
+          ? 'ลบวิชานี้ไม่ได้ เนื่องจากมีข้อมูลที่อ้างอิงอยู่ (เช่น ตารางสอนหรือข้อมูลเช็คชื่อ) กรุณาลบ/ย้ายข้อมูลที่เกี่ยวข้องก่อน'
+          : `ลบวิชาไม่สำเร็จ: ${error?.message || 'เกิดข้อผิดพลาด'}`
+      )
     }
   })
 
@@ -45,7 +70,30 @@ export default function Subjects() {
       credit: parseFloat(formData.credit) || 0,
       ...(formData.teacher_id ? { teacher_id: formData.teacher_id } : {})
     }
+    if (editingSubjectId) {
+      updateMutation.mutate({ id: editingSubjectId, payload })
+      return
+    }
     createMutation.mutate(payload)
+  }
+
+  const startEdit = (subject: Subject) => {
+    setErrorMessage('')
+    setEditingSubjectId(subject.id)
+    setFormData({
+      subject_code: subject.subject_code || '',
+      subject_name: subject.subject_name || '',
+      department: subject.department || '',
+      credit: String(subject.credit ?? ''),
+      teacher_id: subject.teacher_id || ''
+    })
+    setShowForm(true)
+  }
+
+  const resetForm = () => {
+    setShowForm(false)
+    setEditingSubjectId(null)
+    setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '' })
   }
 
   // หาข้อมูลวิชาที่จะลบ
@@ -59,12 +107,25 @@ export default function Subjects() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการวิชาเรียน (Subjects)</h1>
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setErrorMessage('')
+            if (!showForm) {
+              setEditingSubjectId(null)
+              setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '' })
+            }
+            setShowForm(!showForm)
+          }}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm font-semibold"
         >
           <Plus size={20} /> เพิ่มรายวิชา
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -87,8 +148,8 @@ export default function Subjects() {
           </div>
           
           <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">บันทึกวิชา</button>
+            <button type="button" onClick={resetForm} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">{editingSubjectId ? 'บันทึกการแก้ไข' : 'บันทึกวิชา'}</button>
           </div>
         </form>
       )}
@@ -115,6 +176,13 @@ export default function Subjects() {
                     {subject.teacher ? `${subject.teacher.first_name} ${subject.teacher.last_name}` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => startEdit(subject)}
+                      className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors inline-flex justify-center mr-1"
+                      title="แก้ไขข้อมูล"
+                    >
+                      <Pencil size={18} />
+                    </button>
                     <button 
                       onClick={() => setConfirmDeleteId(subject.id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
@@ -173,4 +241,3 @@ export default function Subjects() {
     </div>
   )
 }
-

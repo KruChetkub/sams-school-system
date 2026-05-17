@@ -16,6 +16,58 @@ const DAYS = [
   { value: 7, label: 'อาทิตย์' },
 ]
 
+const DEFAULT_TIME_SLOTS = [
+  { start: '08:30', end: '09:20' },
+  { start: '09:20', end: '10:10' },
+  { start: '10:20', end: '11:10' },
+  { start: '11:10', end: '12:00' },
+  { start: '12:00', end: '13:00' },
+  { start: '13:00', end: '13:50' },
+  { start: '13:50', end: '14:40' },
+  { start: '14:50', end: '15:40' },
+]
+
+const LUNCH_SLOT_KEY = '12:00:00-13:00:00'
+
+const CALENDAR_THEMES = [
+  {
+    key: 'green-board',
+    label: 'กระดานเขียว',
+    wrapper: 'bg-gradient-to-br from-emerald-900 to-emerald-800 border-emerald-700/40',
+    head: 'bg-emerald-900/60',
+    text: 'text-emerald-50',
+    subtext: 'text-emerald-100/90',
+    tableWrap: 'border-emerald-700/50 bg-emerald-950/20',
+    border: 'border-emerald-700/50',
+    rowHead: 'bg-emerald-900/50 text-emerald-50',
+    empty: 'border-emerald-600/50 bg-emerald-900/20',
+  },
+  {
+    key: 'pastel-green',
+    label: 'เขียวพาสเทล',
+    wrapper: 'bg-gradient-to-br from-green-100 to-emerald-200 border-emerald-200',
+    head: 'bg-emerald-200/80',
+    text: 'text-emerald-900',
+    subtext: 'text-emerald-800/90',
+    tableWrap: 'border-emerald-200 bg-white/65',
+    border: 'border-emerald-200',
+    rowHead: 'bg-emerald-100 text-emerald-900',
+    empty: 'border-emerald-300 bg-emerald-50/70',
+  },
+  {
+    key: 'sky-soft',
+    label: 'ฟ้านุ่ม',
+    wrapper: 'bg-gradient-to-br from-sky-100 to-cyan-200 border-cyan-200',
+    head: 'bg-cyan-200/80',
+    text: 'text-cyan-900',
+    subtext: 'text-cyan-800/90',
+    tableWrap: 'border-cyan-200 bg-white/65',
+    border: 'border-cyan-200',
+    rowHead: 'bg-cyan-100 text-cyan-900',
+    empty: 'border-cyan-300 bg-cyan-50/70',
+  },
+]
+
 const formatThai24Hour = (time: string) => {
   if (!time) return '-'
   const normalized = time.length === 5 ? `${time}:00` : time
@@ -50,8 +102,12 @@ export default function Schedules() {
   const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
+  const [calendarTheme, setCalendarTheme] = useState(CALENDAR_THEMES[0].key)
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [moveSourceId, setMoveSourceId] = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState<{ day: number; slot: string } | null>(null)
   const [formData, setFormData] = useState({
     subject_id: '',
     teacher_id: '',
@@ -176,6 +232,115 @@ export default function Schedules() {
     }
   }, [showForm, editingScheduleId])
 
+  const sortedSchedules = [...(schedules || [])].sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
+    if ((a.start_time || '') !== (b.start_time || '')) return (a.start_time || '').localeCompare(b.start_time || '')
+    return a.period - b.period
+  })
+
+  const slotMap = new Map<string, typeof sortedSchedules[number][]>()
+  for (const item of sortedSchedules) {
+    const key = `${item.start_time}-${item.end_time}`
+    const list = slotMap.get(key) || []
+    list.push(item)
+    slotMap.set(key, list)
+  }
+  const dataTimeSlots = Array.from(slotMap.keys()).sort((a, b) => a.localeCompare(b))
+  const fallbackSlots = DEFAULT_TIME_SLOTS.map((slot) => `${slot.start}:00-${slot.end}:00`)
+  const timeSlots = Array.from(new Set([...fallbackSlots, ...dataTimeSlots])).sort((a, b) => a.localeCompare(b))
+
+  const findScheduleByDayAndSlot = (day: number, slot: string) => {
+    const items = slotMap.get(slot) || []
+    return items.find((s) => s.day_of_week === day) || null
+  }
+
+  const moveSourceSchedule = sortedSchedules.find((s) => s.id === moveSourceId) || null
+  const activeTheme = CALENDAR_THEMES.find((t) => t.key === calendarTheme) || CALENDAR_THEMES[0]
+  const moveTargetSchedule = moveTarget ? findScheduleByDayAndSlot(moveTarget.day, moveTarget.slot) : null
+
+  const handleCellClickForMove = (day: number, slot: string, scheduleInCell: typeof sortedSchedules[number] | null) => {
+    if (!moveSourceId) {
+      if (scheduleInCell) setMoveSourceId(scheduleInCell.id)
+      return
+    }
+
+    if (scheduleInCell?.id === moveSourceId) {
+      setMoveSourceId(null)
+      setMoveTarget(null)
+      return
+    }
+
+    setMoveTarget({ day, slot })
+  }
+
+  const confirmMoveMutation = useMutation({
+    mutationFn: async ({
+      source,
+      target,
+      destination,
+    }: {
+      source: any
+      target: any | null
+      destination: { day: number; slot: string }
+    }) => {
+      const [destStartTime, destEndTime] = destination.slot.split('-')
+      const destinationPeriod = timeSlots.indexOf(destination.slot) + 1
+
+      if (!target) {
+        const sourcePayload = {
+          day_of_week: destination.day,
+          start_time: destStartTime,
+          end_time: destEndTime,
+          period: destinationPeriod,
+        }
+        await updateSchedule(source.id, sourcePayload)
+        return
+      }
+
+      const sourceOriginal = {
+        day_of_week: source.day_of_week,
+        start_time: source.start_time,
+        end_time: source.end_time,
+        period: source.period,
+      }
+
+      const targetPayload = {
+        day_of_week: sourceOriginal.day_of_week,
+        start_time: sourceOriginal.start_time,
+        end_time: sourceOriginal.end_time,
+        period: sourceOriginal.period,
+      }
+
+      const sourcePayload = {
+        day_of_week: destination.day,
+        start_time: destStartTime,
+        end_time: destEndTime,
+        period: destinationPeriod,
+      }
+
+      await updateSchedule(target.id, targetPayload)
+      try {
+        await updateSchedule(source.id, sourcePayload)
+      } catch (error) {
+        await updateSchedule(target.id, {
+          day_of_week: target.day_of_week,
+          start_time: target.start_time,
+          end_time: target.end_time,
+          period: target.period,
+        })
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] })
+      setMoveSourceId(null)
+      setMoveTarget(null)
+    },
+    onError: (error: any) => {
+      window.alert(error?.message || 'ไม่สามารถย้ายคาบเรียนได้')
+    },
+  })
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {deleteTargetId && (
@@ -213,14 +378,74 @@ export default function Schedules() {
         </div>
       )}
 
+      {moveSourceSchedule && moveTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setMoveTarget(null)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+            <div className="h-1.5 w-full bg-blue-600" />
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">ยืนยันการย้ายคาบเรียน</h3>
+              <p className="text-sm text-gray-600 mb-4">ต้องการย้ายวิชานี้ไปตำแหน่งใหม่ใช่หรือไม่?</p>
+              <div className="space-y-2 text-sm bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <p><span className="font-semibold text-gray-700">วิชา:</span> {moveSourceSchedule.subject?.subject_code} {moveSourceSchedule.subject?.subject_name}</p>
+                <p><span className="font-semibold text-gray-700">จาก:</span> วัน{DAYS.find(d => d.value === moveSourceSchedule.day_of_week)?.label} ({formatThai24Hour(moveSourceSchedule.start_time)} - {formatThai24Hour(moveSourceSchedule.end_time)})</p>
+                <p><span className="font-semibold text-gray-700">ไป:</span> วัน{DAYS.find(d => d.value === moveTarget.day)?.label} ({formatThai24Hour(moveTarget.slot.split('-')[0])} - {formatThai24Hour(moveTarget.slot.split('-')[1])})</p>
+                {moveTargetSchedule && <p className="text-blue-700">ระบบจะสลับคาบอัตโนมัติ: วิชาปลายทางจะย้ายกลับมายังตำแหน่งเดิมของวิชาต้นทาง</p>}
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMoveTarget(null)}
+                  className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmMoveMutation.mutate({
+                      source: moveSourceSchedule,
+                      target: moveTargetSchedule,
+                      destination: moveTarget,
+                    })
+                  }}
+                  disabled={confirmMoveMutation.isPending}
+                  className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition"
+                >
+                  {confirmMoveMutation.isPending ? 'กำลังอัปเดต...' : moveTargetSchedule ? 'ยืนยันสลับคาบ' : 'ยืนยันย้าย'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการตารางเรียน (Schedules)</h1>
-        <button 
-          onClick={openCreateForm}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm"
-        >
-          <Plus size={20} /> จัดตารางเรียน
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              มุมมองตารางสอน
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              มุมมองรายการ
+            </button>
+          </div>
+          <button
+            onClick={openCreateForm}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm"
+          >
+            <Plus size={20} /> จัดตารางเรียน
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -323,6 +548,81 @@ export default function Schedules() {
 
       {isLoading ? (
         <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
+      ) : viewMode === 'calendar' ? (
+        <div className={`rounded-2xl shadow-lg border p-4 md:p-6 overflow-hidden ${activeTheme.wrapper}`}>
+          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+            <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>ตารางสอนรายสัปดาห์</h2>
+            <div className="flex items-center gap-2">
+              <p className={`text-xs md:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
+              {CALENDAR_THEMES.map((theme) => (
+                <button
+                  key={theme.key}
+                  type="button"
+                  onClick={() => setCalendarTheme(theme.key)}
+                  className={`h-6 w-6 rounded-full border-2 transition ${calendarTheme === theme.key ? 'border-slate-800 scale-110' : 'border-white/80'}`}
+                  title={theme.label}
+                >
+                  <span className={`block h-full w-full rounded-full ${theme.key === 'green-board' ? 'bg-emerald-700' : theme.key === 'pastel-green' ? 'bg-emerald-200' : 'bg-cyan-200'}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={`overflow-x-auto rounded-xl border ${activeTheme.tableWrap}`}>
+            <table className="min-w-[900px] w-full table-fixed border-collapse">
+              <colgroup>
+                <col className="w-[92px]" />
+                {timeSlots.map((slot) => (
+                  <col key={`col-${slot}`} className={slot === LUNCH_SLOT_KEY ? 'w-[92px]' : 'w-[132px]'} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr className={activeTheme.head}>
+                  <th className={`px-4 py-3 text-left text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>วัน / เวลา</th>
+                  {timeSlots.map((slot) => (
+                    <th key={slot} className={`px-3 py-3 text-center text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>
+                      {formatThai24Hour(slot.split('-')[0])} - {formatThai24Hour(slot.split('-')[1])}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {DAYS.filter((d) => d.value <= 5).map((day) => (
+                  <tr key={day.value} className="align-top">
+                    <td className={`px-4 py-4 text-sm font-bold border whitespace-nowrap ${activeTheme.rowHead} ${activeTheme.border}`}>
+                      วัน{day.label}
+                    </td>
+                    {timeSlots.map((slot) => {
+                      const schedule = findScheduleByDayAndSlot(day.value, slot)
+                      return (
+                        <td key={`${day.value}-${slot}`} className={`border p-2 md:p-3 h-[120px] ${activeTheme.border}`}>
+                          {schedule ? (
+                            <div
+                              onClick={() => handleCellClickForMove(day.value, slot, schedule)}
+                              className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white/95 hover:bg-blue-50'}`}
+                            >
+                              <p className="text-xs font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
+                              <p className="mt-0.5 text-xs text-gray-700 line-clamp-2">{schedule.subject?.subject_name || '-'}</p>
+                              <p className="mt-1 text-[11px] text-gray-500">คาบ {schedule.period}</p>
+                              <p className="text-[11px] text-gray-500">
+                                {schedule.classroom ? `${schedule.classroom.level}/${schedule.classroom.room}` : '-'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => handleCellClickForMove(day.value, slot, null)}
+                              className={`h-full rounded-lg border border-dashed cursor-pointer transition ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
+                            />
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full">
