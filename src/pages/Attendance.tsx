@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { getSchedules } from '../services/scheduleService'
 import { getStudentsForSchedule, saveClassroomAttendance } from '../services/attendanceService'
@@ -38,36 +38,20 @@ const formatThaiBuddhistDate = (isoDate: string) => {
 
 const thaiWeekdays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
-const dayLabels: Record<number, string> = {
-  1: 'จันทร์',
-  2: 'อังคาร',
-  3: 'พุธ',
-  4: 'พฤหัสบดี',
-  5: 'ศุกร์',
-  6: 'เสาร์',
-  7: 'อาทิตย์',
-}
+const DAYS = [
+  { value: 1, label: 'จันทร์' },
+  { value: 2, label: 'อังคาร' },
+  { value: 3, label: 'พุธ' },
+  { value: 4, label: 'พฤหัสบดี' },
+  { value: 5, label: 'ศุกร์' },
+]
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
 
-const subjectCardPalettes = [
-  'from-rose-500 to-pink-500',
-  'from-blue-500 to-cyan-500',
-  'from-emerald-500 to-teal-500',
-  'from-amber-500 to-orange-500',
-  'from-violet-500 to-fuchsia-500',
-  'from-sky-500 to-indigo-500',
-] as const
-
-const getSubjectPalette = (subjectKey: string) => {
-  let hash = 0
-  for (let i = 0; i < subjectKey.length; i++) {
-    hash = (hash * 31 + subjectKey.charCodeAt(i)) >>> 0
-  }
-  return subjectCardPalettes[hash % subjectCardPalettes.length]
-}
 
 export default function Attendance() {
+  const tableRef = useRef<HTMLDivElement | null>(null)
+  const studentSectionRef = useRef<HTMLDivElement | null>(null)
   const { user, role } = useAuthStore()
   const [selectedSchedule, setSelectedSchedule] = useState('')
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
@@ -127,19 +111,35 @@ export default function Attendance() {
   })
 
   const selectedDate = new Date(`${attendanceDate}T00:00:00`)
-  const selectedDayOfWeek = (() => {
-    const jsDay = selectedDate.getDay()
-    return jsDay === 0 ? 7 : jsDay
-  })()
-
-  const schedulesForSelectedDay = (schedules || []).filter((s) => s.day_of_week === selectedDayOfWeek)
+  const today = new Date()
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const selectedOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+  const daysDiff = Math.floor((todayOnly.getTime() - selectedOnly.getTime()) / (1000 * 60 * 60 * 24))
+  const canEditPastDate = role === 'ADMIN' || (role === 'TEACHER' && daysDiff >= 0 && daysDiff <= 30)
+  const sortedSchedules = [...(schedules || [])].sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
+    if ((a.start_time || '') !== (b.start_time || '')) return (a.start_time || '').localeCompare(b.start_time || '')
+    return a.period - b.period
+  })
+  const slotMap = new Map<string, typeof sortedSchedules[number][]>()
+  for (const item of sortedSchedules) {
+    const key = `${item.start_time}-${item.end_time}`
+    const list = slotMap.get(key) || []
+    list.push(item)
+    slotMap.set(key, list)
+  }
+  const timeSlots = Array.from(slotMap.keys()).sort((a, b) => a.localeCompare(b))
+  const findScheduleByDayAndSlot = (day: number, slot: string) => {
+    const list = slotMap.get(slot) || []
+    return list.find((s) => s.day_of_week === day) || null
+  }
 
   useEffect(() => {
-    if (selectedSchedule && !schedulesForSelectedDay.some((s) => s.id === selectedSchedule)) {
+    if (selectedSchedule && !(schedules || []).some((s) => s.id === selectedSchedule)) {
       setSelectedSchedule('')
       setAttendanceState({})
     }
-  }, [selectedSchedule, schedulesForSelectedDay])
+  }, [selectedSchedule, schedules])
   
   const { data: students, isLoading } = useQuery({
     queryKey: ['schedule_students', selectedSchedule],
@@ -231,43 +231,8 @@ export default function Attendance() {
         <h1 className="text-2xl font-bold text-gray-800">เช็คชื่อรายวิชา (Classroom Attendance)</h1>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">เลือกคาบเรียน / วิชา</label>
-          <div className="space-y-2 max-h-72 overflow-auto pr-1">
-            {schedulesForSelectedDay.map((s) => {
-              const palette = getSubjectPalette(`${s.subject_id}-${s.subject?.subject_code || ''}`)
-              const isActive = selectedSchedule === s.id
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedSchedule(s.id)
-                    setAttendanceState({})
-                  }}
-                  className={`w-full rounded-xl border text-left transition-all ${
-                    isActive ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
-                  }`}
-                >
-                  <div className={`rounded-xl bg-gradient-to-r ${palette} px-4 py-3 text-white`}>
-                    <p className="text-xs font-semibold text-white/85">
-                      {dayLabels[s.day_of_week] || '-'} • คาบ {s.period} ({s.start_time.substring(0, 5)} - {s.end_time.substring(0, 5)})
-                    </p>
-                    <h3 className="mt-0.5 text-sm font-bold">{s.subject?.subject_name || 'ไม่ระบุวิชา'}</h3>
-                    <p className="text-xs text-white/90 mt-0.5">
-                      {s.subject?.subject_code || '-'} • ห้อง {s.classroom?.level}/{s.classroom?.room}
-                    </p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-          {schedulesForSelectedDay.length === 0 && (
-            <p className="mt-2 text-xs text-amber-600">ไม่พบคาบเรียนในวันที่เลือก</p>
-          )}
-        </div>
-        <div className="relative">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <div className="relative max-w-md">
           <div className="flex items-end justify-between gap-3 mb-2">
             <label htmlFor="attendance-date" className="block text-sm font-medium text-gray-700">วันที่สอน</label>
             <span className={`text-sm ${attendanceDateError ? 'text-red-500' : 'text-slate-500'}`}>
@@ -360,9 +325,60 @@ export default function Attendance() {
           </div>
         </div>
       </div>
+      <div ref={tableRef} className="bg-gradient-to-br from-sky-900 to-indigo-900 rounded-2xl shadow-lg border border-sky-700/40 p-3 sm:p-4 md:p-6 overflow-hidden mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-sky-50 mb-3 sm:mb-4">ตารางคาบเรียนสำหรับเช็คชื่อ</h2>
+        <div className="rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-hidden">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col className="w-[80px] md:w-[90px]" />
+              {timeSlots.map((slot) => <col key={`att-col-${slot}`} className="w-[96px] md:w-[110px]" />)}
+            </colgroup>
+            <thead>
+              <tr className="bg-sky-900/60">
+                <th className="px-2 sm:px-3 py-2.5 sm:py-3 text-left text-[11px] sm:text-xs font-semibold text-sky-50 border border-sky-700/50">วัน / เวลา</th>
+                {timeSlots.map((slot) => (
+                  <th key={slot} className="px-1.5 sm:px-2 py-2.5 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-sky-50 border border-sky-700/50">
+                    {slot.split('-')[0].substring(0, 5)} - {slot.split('-')[1].substring(0, 5)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {DAYS.map((day) => (
+                <tr key={day.value} className="align-top">
+                  <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm font-bold text-sky-50 border border-sky-700/50 bg-sky-900/50">วัน{day.label}</td>
+                  {timeSlots.map((slot) => {
+                    const schedule = findScheduleByDayAndSlot(day.value, slot)
+                    const isActive = schedule && selectedSchedule === schedule.id
+                    return (
+                      <td key={`${day.value}-${slot}`} className="border border-sky-700/50 p-1.5 sm:p-2 h-[88px] sm:h-[110px]">
+                        {schedule ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSchedule(schedule.id)
+                              setAttendanceState({})
+                              setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+                            }}
+                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition ${isActive ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white/95 hover:bg-blue-50'}`}
+                          >
+                            <p className="text-[11px] sm:text-xs font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
+                            <p className="text-[11px] sm:text-xs text-gray-700 line-clamp-2">{schedule.subject?.subject_name || '-'}</p>
+                            <p className="text-[10px] sm:text-[11px] text-gray-500">คาบ {schedule.period} • {schedule.classroom?.level}/{schedule.classroom?.room}</p>
+                          </button>
+                        ) : <div className="h-full rounded-lg border border-dashed border-sky-500/50 bg-sky-900/20" />}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {selectedSchedule && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div ref={studentSectionRef} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
             <h2 className="font-semibold text-gray-700">รายชื่อนักเรียน ({students?.length || 0} คน)</h2>
             <div className="flex gap-2">
@@ -411,11 +427,11 @@ export default function Attendance() {
               <div className="p-6 bg-white border-t flex justify-end">
                 <button 
                   onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending || students?.length === 0}
+                  disabled={saveMutation.isPending || students?.length === 0 || !canEditPastDate}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <CheckCircle size={20} />
-                  {saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกการเข้าเรียน'}
+                  {saveMutation.isPending ? 'กำลังบันทึก...' : !canEditPastDate ? 'ไม่มีสิทธิ์แก้ย้อนหลังเกินกำหนด' : 'บันทึกการเข้าเรียน'}
                 </button>
               </div>
             </>

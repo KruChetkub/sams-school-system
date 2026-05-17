@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getClassrooms } from '../services/classroomService'
-import { getCheckedHomeroomClassroomsByDate, getStudentsByClassroom, saveHomeroomAttendance } from '../services/homeroomService'
+import { getCheckedHomeroomClassroomsByDate, getExistingHomeroomAttendance, getHomeroomClassroomSummaryByDate, getStudentsByClassroom, saveHomeroomAttendance } from '../services/homeroomService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -40,6 +41,9 @@ const formatThaiBuddhistDate = (isoDate: string) => {
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
 
 export default function Homeroom() {
+  const topRef = useRef<HTMLDivElement | null>(null)
+  const studentTableRef = useRef<HTMLDivElement | null>(null)
+  const { role } = useAuthStore()
   const queryClient = useQueryClient()
   const [selectedClassroom, setSelectedClassroom] = useState('')
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
@@ -61,6 +65,11 @@ export default function Homeroom() {
     queryFn: () => getCheckedHomeroomClassroomsByDate(attendanceDate),
     enabled: !!attendanceDate
   })
+  const { data: classroomSummary = [] } = useQuery({
+    queryKey: ['homeroom_classroom_summary', attendanceDate],
+    queryFn: () => getHomeroomClassroomSummaryByDate(attendanceDate),
+    enabled: !!attendanceDate,
+  })
   
   const { data: students, isLoading } = useQuery({
     queryKey: ['students', selectedClassroom],
@@ -72,6 +81,12 @@ export default function Homeroom() {
   const startIndex = (currentPage - 1) * pageSize
   const paginatedStudents = students?.slice(startIndex, startIndex + pageSize) || []
   const isSelectedClassroomAlreadyChecked = !!selectedClassroom && checkedClassrooms.some((c) => c.classroom_id === selectedClassroom)
+  const selectedDateObj = new Date(`${attendanceDate}T00:00:00`)
+  const today = new Date()
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const selectedOnly = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
+  const daysDiff = Math.floor((todayOnly.getTime() - selectedOnly.getTime()) / (1000 * 60 * 60 * 24))
+  const canEditPastDate = role === 'ADMIN' || (role === 'TEACHER' && daysDiff >= 0 && daysDiff <= 30)
 
   const openDatePicker = () => {
     const date = new Date(`${attendanceDate}T00:00:00`)
@@ -109,6 +124,7 @@ export default function Homeroom() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['homeroom_checked_classrooms', attendanceDate] })
+      queryClient.invalidateQueries({ queryKey: ['homeroom_classroom_summary', attendanceDate] })
       setResultModalType('success')
       setResultModalMessage('บันทึกข้อมูลเข้าแถวสำเร็จ')
       setShowResultModal(true)
@@ -136,14 +152,25 @@ export default function Homeroom() {
   const closeResultModal = () => {
     setShowResultModal(false)
     if (resultModalType === 'success') {
-      setSelectedClassroom('')
-      setAttendanceState({})
-      setCurrentPage(1)
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
+  React.useEffect(() => {
+    const loadExisting = async () => {
+      if (!selectedClassroom || !isSelectedClassroomAlreadyChecked) return
+      const rows = await getExistingHomeroomAttendance(attendanceDate, selectedClassroom)
+      const nextState: Record<string, string> = {}
+      rows.forEach((row: any) => {
+        nextState[row.student_id] = row.status
+      })
+      setAttendanceState(nextState)
+    }
+    loadExisting()
+  }, [attendanceDate, selectedClassroom, isSelectedClassroomAlreadyChecked])
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div ref={topRef} className="p-8 max-w-5xl mx-auto">
       {showResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={closeResultModal} />
@@ -292,6 +319,41 @@ export default function Homeroom() {
         </div>
       </div>
 
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-slate-700 mb-3">สถานะห้องเรียนวันที่ {formatThaiBuddhistDate(attendanceDate)}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {classroomSummary.map((c) => {
+            const isChecked = c.checked_students > 0
+            const isActive = selectedClassroom === c.classroom_id
+            return (
+              <button
+                key={c.classroom_id}
+                type="button"
+                onClick={() => {
+                  setSelectedClassroom(c.classroom_id)
+                  setCurrentPage(1)
+                  setTimeout(() => {
+                    studentTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 50)
+                }}
+                className={`text-left rounded-xl border p-4 transition ${isActive ? 'ring-2 ring-blue-300' : ''} ${isChecked ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100' : 'border-slate-300 bg-slate-100 hover:bg-slate-200'}`}
+              >
+                <p className="font-bold text-slate-800">{c.classroom_label}</p>
+                <p className={`text-xs mt-1 ${isChecked ? 'text-emerald-700' : 'text-slate-600'}`}>{isChecked ? 'เช็คแล้ว' : 'ยังไม่เช็ค'}</p>
+                <div className="mt-2 text-xs text-slate-700 grid grid-cols-2 gap-y-1">
+                  <span>มา: {c.present_count}</span>
+                  <span>สาย: {c.late_count}</span>
+                  <span>ขาด: {c.absent_count}</span>
+                  <span>ลา: {c.leave_count}</span>
+                  <span>เช็คแล้ว: {c.checked_students}</span>
+                  <span>คงเหลือ: {c.remaining_count}</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
         <div className="flex items-start gap-2">
           <AlertCircle size={18} className="mt-0.5 text-amber-600" />
@@ -309,7 +371,7 @@ export default function Homeroom() {
       </div>
 
       {selectedClassroom && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div ref={studentTableRef} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
             <h2 className="font-semibold text-gray-700">รายชื่อนักเรียน ({students?.length || 0} คน)</h2>
             <div className="flex gap-2">
@@ -377,11 +439,11 @@ export default function Homeroom() {
               <div className="p-6 bg-white border-t flex justify-end">
                 <button 
                   onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending || students?.length === 0 || isSelectedClassroomAlreadyChecked}
+                  disabled={saveMutation.isPending || students?.length === 0 || !canEditPastDate}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <CheckCircle size={20} />
-                  {saveMutation.isPending ? 'กำลังบันทึก...' : isSelectedClassroomAlreadyChecked ? 'ห้องนี้เช็คแล้วในวันนี้' : 'บันทึกข้อมูลเข้าแถว'}
+                  {saveMutation.isPending ? 'กำลังบันทึก...' : !canEditPastDate ? 'ไม่มีสิทธิ์แก้ย้อนหลังเกินกำหนด' : isSelectedClassroomAlreadyChecked ? 'อัปเดตข้อมูลเข้าแถว' : 'บันทึกข้อมูลเข้าแถว'}
                 </button>
               </div>
             </>
