@@ -41,6 +41,26 @@ export const bulkCreateStudents = async (students: Omit<Student, 'id' | 'classro
   return data
 }
 
+export const findStudentByCode = async (studentCode: string) => {
+  const { data, error } = await supabase
+    .from('students')
+    .select('id, student_code, prefix, first_name, last_name, deleted_at')
+    .eq('student_code', studentCode)
+    .maybeSingle()
+  if (error) throw error
+  return data as Pick<Student, 'id' | 'student_code' | 'prefix' | 'first_name' | 'last_name' | 'deleted_at'> | null
+}
+
+export const findStudentsByCodes = async (studentCodes: string[]) => {
+  if (studentCodes.length === 0) return []
+  const { data, error } = await supabase
+    .from('students')
+    .select('id, student_code, prefix, first_name, last_name, deleted_at')
+    .in('student_code', studentCodes)
+  if (error) throw error
+  return (data || []) as Pick<Student, 'id' | 'student_code' | 'prefix' | 'first_name' | 'last_name' | 'deleted_at'>[]
+}
+
 export const deleteStudent = async (id: string) => {
   const { data, error } = await supabase
     .from('students')

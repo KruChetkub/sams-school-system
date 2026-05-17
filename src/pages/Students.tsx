@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents } from '../services/studentService'
+import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
 import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -35,6 +35,20 @@ export default function Students() {
       setShowForm(false)
       setEditingStudentId(null)
       setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' })
+    },
+    onError: async (err: any) => {
+      const isDuplicate = err?.code === '23505' || String(err?.message || '').includes('students_student_code_key')
+      if (!isDuplicate) {
+        openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถบันทึกข้อมูลนักเรียนได้')
+        return
+      }
+      const duplicate = await findStudentByCode(formData.student_code)
+      if (duplicate) {
+        const fullName = `${duplicate.prefix ? `${duplicate.prefix} ` : ''}${duplicate.first_name} ${duplicate.last_name}`
+        openMessageModal('รหัสนักเรียนซ้ำ', `รหัส ${formData.student_code} ซ้ำกับนักเรียน:\n${fullName}\nโปรดใช้รหัสใหม่ที่ไม่ซ้ำ`)
+        return
+      }
+      openMessageModal('รหัสนักเรียนซ้ำ', `รหัส ${formData.student_code} ซ้ำกับข้อมูลในระบบ โปรดตรวจสอบอีกครั้ง`)
     }
   })
 
@@ -53,6 +67,20 @@ export default function Students() {
       setShowForm(false)
       setEditingStudentId(null)
       setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' })
+    },
+    onError: async (err: any) => {
+      const isDuplicate = err?.code === '23505' || String(err?.message || '').includes('students_student_code_key')
+      if (!isDuplicate) {
+        openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถอัปเดตข้อมูลนักเรียนได้')
+        return
+      }
+      const duplicate = await findStudentByCode(formData.student_code)
+      if (duplicate && duplicate.id !== editingStudentId) {
+        const fullName = `${duplicate.prefix ? `${duplicate.prefix} ` : ''}${duplicate.first_name} ${duplicate.last_name}`
+        openMessageModal('รหัสนักเรียนซ้ำ', `รหัส ${formData.student_code} ซ้ำกับนักเรียน:\n${fullName}\nโปรดใช้รหัสใหม่ที่ไม่ซ้ำ`)
+        return
+      }
+      openMessageModal('รหัสนักเรียนซ้ำ', `รหัส ${formData.student_code} ซ้ำกับข้อมูลในระบบ โปรดตรวจสอบอีกครั้ง`)
     }
   })
 
@@ -70,10 +98,39 @@ export default function Students() {
       setShowForm(false)
     },
     onError: (err: any) => {
-      setModalTitle('ข้อผิดพลาด')
-      setModalMessage('เกิดข้อผิดพลาด: ' + err.message + '\n(โปรดตรวจสอบว่ารหัสนักเรียนซ้ำกับในระบบหรือไม่)')
-      setModalType('message')
-      setShowModal(true)
+      const handleDuplicate = async () => {
+        const isDuplicate = err?.code === '23505' || String(err?.message || '').includes('students_student_code_key')
+        if (!isDuplicate) {
+          setModalTitle('ข้อผิดพลาด')
+          setModalMessage('เกิดข้อผิดพลาด: ' + err.message)
+          setModalType('message')
+          setShowModal(true)
+          return
+        }
+        const duplicateCodes = new Set<string>()
+        const rows = (students || [])
+        rows.forEach((s) => {
+          const inCurrentPage = rows.filter((x) => x.student_code === s.student_code).length > 1
+          if (inCurrentPage) duplicateCodes.add(s.student_code)
+        })
+        const firstCode = duplicateCodes.values().next().value
+        if (firstCode) {
+          const duplicate = await findStudentByCode(firstCode)
+          if (duplicate) {
+            const fullName = `${duplicate.prefix ? `${duplicate.prefix} ` : ''}${duplicate.first_name} ${duplicate.last_name}`
+            setModalTitle('รหัสนักเรียนซ้ำ')
+            setModalMessage(`พบรหัสซ้ำในไฟล์/ระบบ: ${firstCode}\nซ้ำกับนักเรียน: ${fullName}\nโปรดแก้รหัสในไฟล์แล้วนำเข้าใหม่`)
+            setModalType('message')
+            setShowModal(true)
+            return
+          }
+        }
+        setModalTitle('รหัสนักเรียนซ้ำ')
+        setModalMessage('พบรหัสนักเรียนซ้ำระหว่างการนำเข้า โปรดตรวจสอบรหัสในไฟล์ Excel ไม่ให้ซ้ำกัน และไม่ซ้ำกับในระบบ')
+        setModalType('message')
+        setShowModal(true)
+      }
+      handleDuplicate()
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   })
@@ -96,7 +153,7 @@ export default function Students() {
 
   const processUploadedFile = (file: File) => {
     const reader = new FileReader()
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result
         const wb = XLSX.read(bstr, { type: 'binary' })
@@ -115,6 +172,35 @@ export default function Students() {
 
         if (payload.length === 0) {
           openMessageModal('ไม่พบข้อมูล', 'ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel (ต้องมีหัวคอลัมน์: รหัสนักเรียน, ชื่อ, นามสกุล)')
+          return
+        }
+
+        const localCodeCount = new Map<string, number>()
+        payload.forEach((p) => {
+          const code = String(p.student_code).trim()
+          localCodeCount.set(code, (localCodeCount.get(code) || 0) + 1)
+        })
+        const duplicatedInFile = Array.from(localCodeCount.entries())
+          .filter(([, count]) => count > 1)
+          .map(([code]) => code)
+        if (duplicatedInFile.length > 0) {
+          openMessageModal(
+            'รหัสนักเรียนซ้ำในไฟล์',
+            `พบรหัสซ้ำในไฟล์ Excel:\n${duplicatedInFile.slice(0, 10).join(', ')}${duplicatedInFile.length > 10 ? '\n...และรายการอื่น' : ''}\nโปรดแก้ไฟล์ก่อนนำเข้า`
+          )
+          return
+        }
+
+        const existing = await findStudentsByCodes(payload.map((p) => String(p.student_code).trim()))
+        if (existing.length > 0) {
+          const preview = existing
+            .slice(0, 8)
+            .map((s) => `${s.student_code} - ${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`)
+            .join('\n')
+          openMessageModal(
+            'รหัสนักเรียนซ้ำในระบบ',
+            `ไม่สามารถนำเข้าได้ เพราะรหัสต่อไปนี้มีอยู่แล้ว:\n${preview}${existing.length > 8 ? '\n...และรายการอื่น' : ''}\nโปรดแก้รหัสในไฟล์แล้วลองใหม่`
+          )
           return
         }
 
@@ -380,4 +466,3 @@ export default function Students() {
     </div>
   )
 }
-
