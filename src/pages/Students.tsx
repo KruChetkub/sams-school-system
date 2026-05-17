@@ -36,7 +36,7 @@ export default function Students() {
 
   const filterOptions = React.useMemo(() => {
     return [
-      { value: '', label: '-- แสดงทุกห้องเรียน --', category: 'ทั่วไป' },
+      { value: '', label: '-- กรุณาเลือกห้องเรียน / กิจกรรม --', category: 'ทั่วไป' },
       ...(classrooms || []).filter(c => {
         const lvl = c.level || ''
         return !lvl.includes('กิจกรรม') && !lvl.includes('ประชุม') && !lvl.includes('รวม')
@@ -680,7 +680,7 @@ export default function Students() {
                     <input
                       type="text"
                       placeholder="ค้นหาห้องเรียน / กิจกรรม..."
-                      value={isFilterDropdownOpen ? filterSearchQuery : (filterOptions.find(o => o.value === filterClassroomId)?.label || '-- แสดงทุกห้องเรียน --')}
+                      value={isFilterDropdownOpen ? filterSearchQuery : (filterOptions.find(o => o.value === filterClassroomId)?.label || '-- กรุณาเลือกห้องเรียน / กิจกรรม --')}
                       onChange={e => {
                         setIsFilterDropdownOpen(true)
                         setFilterSearchQuery(e.target.value)
@@ -778,107 +778,123 @@ export default function Students() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {students?.filter(s => {
-                  // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                  let matchGroup = true
-                  if (filterClassroomId) {
-                    if (filterClassroomId.startsWith('CLASSROOM:')) {
-                      const cid = filterClassroomId.replace('CLASSROOM:', '')
-                      matchGroup = s.classroom_id === cid
-                    } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                      const sid = filterClassroomId.replace('SUBJECT:', '')
-                      matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                    }
-                  }
-
-                  // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                  let matchSearch = true
-                  if (bottomSearchKeyword.trim()) {
-                    const kw = bottomSearchKeyword.toLowerCase().trim()
-                    const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                    const code = (s.student_code || '').toLowerCase()
-                    const nick = (s.nickname || '').toLowerCase()
-                    matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                  }
-
-                  return matchGroup && matchSearch
-                }).map(student => {
-                  const subjectMembershipIds = allMemberships
-                    .filter((m) => m.student_id === student.id && m.group_type === 'SUBJECT')
-                    .map((m) => m.group_id)
-                  const subjectLabels = subjectMembershipIds
-                    .map((id) => subjects?.find((sub) => sub.id === id))
-                    .filter(Boolean)
-                    .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
-                  return (
-                  <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">{student.first_name} {student.last_name} {student.nickname && <span className="text-gray-400 font-normal">({student.nickname})</span>}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                      {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
-                      {subjectLabels.length > 0 && (
-                        <div className="mt-1 text-xs text-indigo-700">
-                          กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
+                {!filterClassroomId ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
+                          <Users size={24} />
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-1">
-                      <button 
-                        onClick={() => {
-                          setShowForm(true)
-                          setEditingStudentId(student.id)
-                          setFormData({
-                            student_code: student.student_code,
-                            prefix: student.prefix ?? '',
-                            first_name: student.first_name,
-                            last_name: student.last_name,
-                            nickname: student.nickname,
-                            classroom_id: student.classroom_id ?? ''
-                          })
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
-                        }}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
-                        title="แก้ไขข้อมูล"
-                      >
-                        <Edit3 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => deleteMutation.mutate(student.id))}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
-                        title="ลบข้อมูล"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        <div className="text-base text-gray-600 font-semibold">กรุณาเลือกห้องเรียนหรือกิจกรรมชุมนุมก่อน เพื่อแสดงรายชื่อนักเรียน</div>
+                        <div className="text-xs text-gray-400">ระบบจะกรองและแสดงรายชื่อนักเรียนเฉพาะห้องหรือกลุ่มที่เลือก เพื่อความรวดเร็วและเป็นระเบียบ</div>
+                      </div>
                     </td>
                   </tr>
-                )})}
-                {students?.filter(s => {
-                  // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                  let matchGroup = true
-                  if (filterClassroomId) {
-                    if (filterClassroomId.startsWith('CLASSROOM:')) {
-                      const cid = filterClassroomId.replace('CLASSROOM:', '')
-                      matchGroup = s.classroom_id === cid
-                    } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                      const sid = filterClassroomId.replace('SUBJECT:', '')
-                      matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                    }
-                  }
+                ) : (
+                  <>
+                    {students?.filter(s => {
+                      // 1. กรองตามห้องเรียน / กิจกรรมรวม
+                      let matchGroup = true
+                      if (filterClassroomId) {
+                        if (filterClassroomId.startsWith('CLASSROOM:')) {
+                          const cid = filterClassroomId.replace('CLASSROOM:', '')
+                          matchGroup = s.classroom_id === cid
+                        } else if (filterClassroomId.startsWith('SUBJECT:')) {
+                          const sid = filterClassroomId.replace('SUBJECT:', '')
+                          matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
+                        }
+                      }
 
-                  // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                  let matchSearch = true
-                  if (bottomSearchKeyword.trim()) {
-                    const kw = bottomSearchKeyword.toLowerCase().trim()
-                    const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                    const code = (s.student_code || '').toLowerCase()
-                    const nick = (s.nickname || '').toLowerCase()
-                    matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                  }
+                      // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
+                      let matchSearch = true
+                      if (bottomSearchKeyword.trim()) {
+                        const kw = bottomSearchKeyword.toLowerCase().trim()
+                        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
+                        const code = (s.student_code || '').toLowerCase()
+                        const nick = (s.nickname || '').toLowerCase()
+                        matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
+                      }
 
-                  return matchGroup && matchSearch
-                }).length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
+                      return matchGroup && matchSearch
+                    }).map(student => {
+                      const subjectMembershipIds = allMemberships
+                        .filter((m) => m.student_id === student.id && m.group_type === 'SUBJECT')
+                        .map((m) => m.group_id)
+                      const subjectLabels = subjectMembershipIds
+                        .map((id) => subjects?.find((sub) => sub.id === id))
+                        .filter(Boolean)
+                        .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
+                      return (
+                      <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">{student.first_name} {student.last_name} {student.nickname && <span className="text-gray-400 font-normal">({student.nickname})</span>}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                          {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
+                          {subjectLabels.length > 0 && (
+                            <div className="mt-1 text-xs text-indigo-700">
+                              กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-1">
+                          <button 
+                            onClick={() => {
+                              setShowForm(true)
+                              setEditingStudentId(student.id)
+                              setFormData({
+                                student_code: student.student_code,
+                                prefix: student.prefix ?? '',
+                                first_name: student.first_name,
+                                last_name: student.last_name,
+                                nickname: student.nickname,
+                                classroom_id: student.classroom_id ?? ''
+                              })
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
+                            title="แก้ไขข้อมูล"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => deleteMutation.mutate(student.id))}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
+                            title="ลบข้อมูล"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    )})}
+                    {students?.filter(s => {
+                      // 1. กรองตามห้องเรียน / กิจกรรมรวม
+                      let matchGroup = true
+                      if (filterClassroomId) {
+                        if (filterClassroomId.startsWith('CLASSROOM:')) {
+                          const cid = filterClassroomId.replace('CLASSROOM:', '')
+                          matchGroup = s.classroom_id === cid
+                        } else if (filterClassroomId.startsWith('SUBJECT:')) {
+                          const sid = filterClassroomId.replace('SUBJECT:', '')
+                          matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
+                        }
+                      }
+
+                      // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
+                      let matchSearch = true
+                      if (bottomSearchKeyword.trim()) {
+                        const kw = bottomSearchKeyword.toLowerCase().trim()
+                        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
+                        const code = (s.student_code || '').toLowerCase()
+                        const nick = (s.nickname || '').toLowerCase()
+                        matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
+                      }
+
+                      return matchGroup && matchSearch
+                    }).length === 0 && (
+                      <tr><td colSpan={5} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
+                    )}
+                  </>
                 )}
               </tbody>
             </table>
