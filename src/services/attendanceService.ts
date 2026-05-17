@@ -9,16 +9,42 @@ export interface AttendanceRecord {
 }
 
 export const getStudentsForSchedule = async (scheduleId: string) => {
-  // First get the classroom_id from the schedule
+  // First get the classroom_id, subject_id, and room_name from the schedule
   const { data: schedule, error: scheduleError } = await supabase
     .from('schedules')
-    .select('classroom_id, room_name')
+    .select('classroom_id, subject_id, room_name')
     .eq('id', scheduleId)
     .single()
     
   if (scheduleError) throw scheduleError
   
-  if (!schedule?.classroom_id) return []
+  if (!schedule) return []
+
+  // Step 1: Check if there are subject-based memberships for this subject
+  if (schedule.subject_id) {
+    const { data: memberships, error: membershipError } = await supabase
+      .from('student_group_memberships')
+      .select('student_id')
+      .eq('group_type', 'SUBJECT')
+      .eq('group_id', schedule.subject_id)
+      
+    if (membershipError) throw membershipError
+    
+    if (memberships && memberships.length > 0) {
+      const studentIds = memberships.map((m: any) => m.student_id)
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id, student_code, prefix, first_name, last_name, nickname')
+        .in('id', studentIds)
+        .order('student_code')
+        
+      if (studentsError) throw studentsError
+      return students || []
+    }
+  }
+
+  // Step 2: Fallback to standard classroom and extra classrooms
+  if (!schedule.classroom_id) return []
 
   const parseExtraClassroomIds = (roomName?: string | null) => {
     if (!roomName) return []
