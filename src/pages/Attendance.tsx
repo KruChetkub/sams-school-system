@@ -45,6 +45,22 @@ const DAYS = [
   { value: 4, label: 'พฤหัสบดี' },
   { value: 5, label: 'ศุกร์' },
 ]
+const subjectCardPalettes = [
+  'bg-rose-100 border-rose-300 hover:bg-rose-200',
+  'bg-blue-100 border-blue-300 hover:bg-blue-200',
+  'bg-emerald-100 border-emerald-300 hover:bg-emerald-200',
+  'bg-amber-100 border-amber-300 hover:bg-amber-200',
+  'bg-violet-100 border-violet-300 hover:bg-violet-200',
+  'bg-cyan-100 border-cyan-300 hover:bg-cyan-200',
+] as const
+
+const getSubjectPalette = (subjectKey: string) => {
+  let hash = 0
+  for (let i = 0; i < subjectKey.length; i++) {
+    hash = (hash * 31 + subjectKey.charCodeAt(i)) >>> 0
+  }
+  return subjectCardPalettes[hash % subjectCardPalettes.length]
+}
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
 
@@ -350,6 +366,7 @@ export default function Attendance() {
                   {timeSlots.map((slot) => {
                     const schedule = findScheduleByDayAndSlot(day.value, slot)
                     const isActive = schedule && selectedSchedule === schedule.id
+                    const palette = schedule ? getSubjectPalette(`${schedule.subject_id}-${schedule.subject?.subject_code || ''}`) : ''
                     return (
                       <td key={`${day.value}-${slot}`} className="border border-sky-700/50 p-1.5 sm:p-2 h-[88px] sm:h-[110px]">
                         {schedule ? (
@@ -360,7 +377,7 @@ export default function Attendance() {
                               setAttendanceState({})
                               setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
                             }}
-                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition ${isActive ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white/95 hover:bg-blue-50'}`}
+                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition border ${isActive ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-500' : palette}`}
                           >
                             <p className="text-[11px] sm:text-xs font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
                             <p className="text-[11px] sm:text-xs text-gray-700 line-clamp-2">{schedule.subject?.subject_name || '-'}</p>
