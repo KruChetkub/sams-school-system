@@ -343,8 +343,8 @@ export default function Attendance() {
       </div>
       <div ref={tableRef} className="bg-gradient-to-br from-sky-900 to-indigo-900 rounded-2xl shadow-lg border border-sky-700/40 p-3 sm:p-4 md:p-6 overflow-hidden mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-sky-50 mb-3 sm:mb-4">ตารางคาบเรียนสำหรับเช็คชื่อ</h2>
-        <div className="rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-hidden">
-          <table className="w-full table-fixed border-collapse">
+        <div className="rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-x-auto overflow-y-hidden">
+          <table className="min-w-[920px] lg:min-w-0 w-full table-fixed border-collapse">
             <colgroup>
               <col className="w-[80px] md:w-[90px]" />
               {timeSlots.map((slot) => <col key={`att-col-${slot}`} className="w-[96px] md:w-[110px]" />)}
