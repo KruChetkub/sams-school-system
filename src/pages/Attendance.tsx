@@ -45,13 +45,82 @@ const DAYS = [
   { value: 4, label: 'พฤหัสบดี' },
   { value: 5, label: 'ศุกร์' },
 ]
+const ATTENDANCE_THEME_STORAGE_KEY = 'sams_attendance_calendar_theme'
+const ATTENDANCE_CALENDAR_THEMES = [
+  {
+    key: 'green-board',
+    label: 'กระดานเขียว',
+    wrapper: 'bg-gradient-to-br from-emerald-900 to-emerald-800 border-emerald-700/40',
+    head: 'bg-emerald-900/60',
+    title: 'text-emerald-50',
+    subtext: 'text-emerald-100/90',
+    tableWrap: 'border-emerald-700/50 bg-emerald-950/20',
+    border: 'border-emerald-700/50',
+    rowHead: 'bg-emerald-900/50 text-emerald-50',
+    empty: 'border-emerald-600/50 bg-emerald-900/20',
+  },
+  {
+    key: 'pastel-green',
+    label: 'เขียวพาสเทล',
+    wrapper: 'bg-gradient-to-br from-green-100 to-emerald-200 border-emerald-200',
+    head: 'bg-emerald-200/80',
+    title: 'text-emerald-900',
+    subtext: 'text-emerald-800/90',
+    tableWrap: 'border-emerald-200 bg-white/65',
+    border: 'border-emerald-200',
+    rowHead: 'bg-emerald-100 text-emerald-900',
+    empty: 'border-emerald-300 bg-emerald-50/70',
+  },
+  {
+    key: 'sky-soft',
+    label: 'ฟ้านุ่ม',
+    wrapper: 'bg-gradient-to-br from-sky-900 to-indigo-900 border-sky-700/40',
+    head: 'bg-sky-900/60',
+    title: 'text-sky-50',
+    subtext: 'text-sky-100/90',
+    tableWrap: 'border-sky-700/50 bg-sky-950/20',
+    border: 'border-sky-700/50',
+    rowHead: 'bg-sky-900/50 text-sky-50',
+    empty: 'border-sky-500/50 bg-sky-900/20',
+  },
+]
 const subjectCardPalettes = [
-  'bg-rose-100 border-rose-300 hover:bg-rose-200',
-  'bg-blue-100 border-blue-300 hover:bg-blue-200',
-  'bg-emerald-100 border-emerald-300 hover:bg-emerald-200',
-  'bg-amber-100 border-amber-300 hover:bg-amber-200',
-  'bg-violet-100 border-violet-300 hover:bg-violet-200',
-  'bg-cyan-100 border-cyan-300 hover:bg-cyan-200',
+  {
+    card: 'bg-gradient-to-br from-rose-100 to-pink-200 border border-rose-300/70 hover:from-rose-200 hover:to-pink-300',
+    code: 'text-rose-800',
+    name: 'text-rose-900/90',
+    meta: 'text-rose-700',
+  },
+  {
+    card: 'bg-gradient-to-br from-orange-100 to-amber-200 border border-amber-300/70 hover:from-orange-200 hover:to-amber-300',
+    code: 'text-amber-900',
+    name: 'text-amber-900/90',
+    meta: 'text-amber-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-lime-100 to-green-200 border border-green-300/70 hover:from-lime-200 hover:to-green-300',
+    code: 'text-green-900',
+    name: 'text-green-900/90',
+    meta: 'text-green-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-cyan-100 to-sky-200 border border-sky-300/70 hover:from-cyan-200 hover:to-sky-300',
+    code: 'text-cyan-900',
+    name: 'text-cyan-900/90',
+    meta: 'text-cyan-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-indigo-100 to-blue-200 border border-indigo-300/70 hover:from-indigo-200 hover:to-blue-300',
+    code: 'text-indigo-900',
+    name: 'text-indigo-900/90',
+    meta: 'text-indigo-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-violet-100 to-purple-200 border border-violet-300/70 hover:from-violet-200 hover:to-purple-300',
+    code: 'text-violet-900',
+    name: 'text-violet-900/90',
+    meta: 'text-violet-800',
+  },
 ] as const
 
 const getSubjectPalette = (subjectKey: string) => {
@@ -80,6 +149,11 @@ export default function Attendance() {
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
+  const [calendarTheme, setCalendarTheme] = useState(() => {
+    const saved = localStorage.getItem(ATTENDANCE_THEME_STORAGE_KEY)
+    if (saved && ATTENDANCE_CALENDAR_THEMES.some((theme) => theme.key === saved)) return saved
+    return ATTENDANCE_CALENDAR_THEMES[2].key
+  })
 
   const openDatePicker = () => {
     const date = new Date(`${attendanceDate}T00:00:00`)
@@ -150,6 +224,11 @@ export default function Attendance() {
     return list.find((s) => s.day_of_week === day) || null
   }
   const mobileSchedules = sortedSchedules
+  const activeTheme = ATTENDANCE_CALENDAR_THEMES.find((theme) => theme.key === calendarTheme) || ATTENDANCE_CALENDAR_THEMES[2]
+
+  useEffect(() => {
+    localStorage.setItem(ATTENDANCE_THEME_STORAGE_KEY, calendarTheme)
+  }, [calendarTheme])
 
   useEffect(() => {
     if (selectedSchedule && !(schedules || []).some((s) => s.id === selectedSchedule)) {
@@ -342,11 +421,27 @@ export default function Attendance() {
           </div>
         </div>
       </div>
-      <div ref={tableRef} className="bg-gradient-to-br from-sky-900 to-indigo-900 rounded-2xl shadow-lg border border-sky-700/40 p-3 sm:p-4 md:p-6 overflow-hidden mb-6">
-        <h2 className="text-lg sm:text-xl font-bold text-sky-50 mb-3 sm:mb-4">ตารางคาบเรียนสำหรับเช็คชื่อ</h2>
+      <div ref={tableRef} className={`rounded-2xl shadow-lg border p-3 sm:p-4 md:p-6 overflow-hidden mb-6 ${activeTheme.wrapper}`}>
+        <div className="mb-3 sm:mb-4 flex items-center justify-between gap-3 flex-wrap">
+          <h2 className={`text-lg sm:text-xl font-bold ${activeTheme.title}`}>ตารางคาบเรียนสำหรับเช็คชื่อ</h2>
+          <div className="flex items-center gap-2">
+            <p className={`text-xs sm:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
+            {ATTENDANCE_CALENDAR_THEMES.map((theme) => (
+              <button
+                key={theme.key}
+                type="button"
+                onClick={() => setCalendarTheme(theme.key)}
+                className={`h-6 w-6 rounded-full border-2 transition ${calendarTheme === theme.key ? 'border-slate-800 scale-110' : 'border-white/80'}`}
+                title={theme.label}
+              >
+                <span className={`block h-full w-full rounded-full ${theme.key === 'green-board' ? 'bg-emerald-700' : theme.key === 'pastel-green' ? 'bg-emerald-200' : 'bg-cyan-200'}`} />
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="md:hidden space-y-2.5">
           {mobileSchedules.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-sky-500/50 bg-sky-900/20 p-4 text-center text-sm text-sky-100">
+            <div className={`rounded-xl border border-dashed p-4 text-center text-sm ${activeTheme.empty} ${activeTheme.subtext}`}>
               ไม่พบคาบเรียนสำหรับเช็คชื่อ
             </div>
           ) : (
@@ -363,12 +458,12 @@ export default function Attendance() {
                     setAttendanceState({})
                     setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
                   }}
-                  className={`w-full rounded-xl border p-3 text-left transition ${isActive ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-500' : palette}`}
+                  className={`w-full rounded-xl p-3 text-left transition ${isActive ? 'bg-blue-100 border border-blue-300 ring-2 ring-blue-500' : palette.card}`}
                 >
-                  <p className="text-xs font-semibold text-gray-600">วัน{dayLabel} • คาบ {schedule.period}</p>
-                  <p className="text-sm font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
-                  <p className="text-sm text-gray-700">{schedule.subject?.subject_name || '-'}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className={`text-xs font-semibold ${isActive ? 'text-gray-600' : palette.meta}`}>วัน{dayLabel} • คาบ {schedule.period}</p>
+                  <p className={`text-sm font-bold ${isActive ? 'text-blue-700' : palette.code}`}>{schedule.subject?.subject_code || '-'}</p>
+                  <p className={`text-sm ${isActive ? 'text-gray-700' : palette.name}`}>{schedule.subject?.subject_name || '-'}</p>
+                  <p className={`text-xs mt-1 ${isActive ? 'text-gray-500' : palette.meta}`}>
                     {schedule.start_time?.substring(0, 5)} - {schedule.end_time?.substring(0, 5)} • {schedule.classroom?.level}/{schedule.classroom?.room}
                   </p>
                 </button>
@@ -376,17 +471,17 @@ export default function Attendance() {
             })
           )}
         </div>
-        <div className="hidden md:block rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-x-auto overflow-y-hidden">
+        <div className={`hidden md:block rounded-xl border overflow-x-auto overflow-y-hidden ${activeTheme.tableWrap}`}>
           <table className="min-w-[920px] lg:min-w-0 w-full table-fixed border-collapse">
             <colgroup>
               <col className="w-[80px] md:w-[90px]" />
               {timeSlots.map((slot) => <col key={`att-col-${slot}`} className="w-[96px] md:w-[110px]" />)}
             </colgroup>
             <thead>
-              <tr className="bg-sky-900/60">
-                <th className="px-2 sm:px-3 py-2.5 sm:py-3 text-left text-[11px] sm:text-xs font-semibold text-sky-50 border border-sky-700/50">วัน / เวลา</th>
+              <tr className={activeTheme.head}>
+                <th className={`px-2 sm:px-3 py-2.5 sm:py-3 text-left text-[11px] sm:text-xs font-semibold border ${activeTheme.title} ${activeTheme.border}`}>วัน / เวลา</th>
                 {timeSlots.map((slot) => (
-                  <th key={slot} className="px-1.5 sm:px-2 py-2.5 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-sky-50 border border-sky-700/50">
+                  <th key={slot} className={`px-1.5 sm:px-2 py-2.5 sm:py-3 text-center text-[10px] sm:text-xs font-semibold border ${activeTheme.title} ${activeTheme.border}`}>
                     {slot.split('-')[0].substring(0, 5)} - {slot.split('-')[1].substring(0, 5)}
                   </th>
                 ))}
@@ -395,13 +490,13 @@ export default function Attendance() {
             <tbody>
               {DAYS.map((day) => (
                 <tr key={day.value} className="align-top">
-                  <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm font-bold text-sky-50 border border-sky-700/50 bg-sky-900/50">วัน{day.label}</td>
+                  <td className={`px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm font-bold border ${activeTheme.rowHead} ${activeTheme.border}`}>วัน{day.label}</td>
                   {timeSlots.map((slot) => {
                     const schedule = findScheduleByDayAndSlot(day.value, slot)
                     const isActive = schedule && selectedSchedule === schedule.id
-                    const palette = schedule ? getSubjectPalette(`${schedule.subject_id}-${schedule.subject?.subject_code || ''}`) : ''
+                    const palette = schedule ? getSubjectPalette(`${schedule.subject_id}-${schedule.subject?.subject_code || ''}`) : null
                     return (
-                      <td key={`${day.value}-${slot}`} className="border border-sky-700/50 p-1.5 sm:p-2 h-[88px] sm:h-[110px]">
+                      <td key={`${day.value}-${slot}`} className={`border p-1.5 sm:p-2 h-[88px] sm:h-[110px] ${activeTheme.border}`}>
                         {schedule ? (
                           <button
                             type="button"
@@ -410,13 +505,13 @@ export default function Attendance() {
                               setAttendanceState({})
                               setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
                             }}
-                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition border ${isActive ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-500' : palette}`}
+                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition ${isActive ? 'bg-blue-100 border border-blue-300 ring-2 ring-blue-500' : palette?.card}`}
                           >
-                            <p className="text-[11px] sm:text-xs font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
-                            <p className="text-[11px] sm:text-xs text-gray-700 line-clamp-2">{schedule.subject?.subject_name || '-'}</p>
-                            <p className="text-[10px] sm:text-[11px] text-gray-500">คาบ {schedule.period} • {schedule.classroom?.level}/{schedule.classroom?.room}</p>
+                            <p className={`text-[11px] sm:text-xs font-bold ${isActive ? 'text-blue-700' : palette?.code}`}>{schedule.subject?.subject_code || '-'}</p>
+                            <p className={`text-[11px] sm:text-xs line-clamp-2 ${isActive ? 'text-gray-700' : palette?.name}`}>{schedule.subject?.subject_name || '-'}</p>
+                            <p className={`text-[10px] sm:text-[11px] ${isActive ? 'text-gray-500' : palette?.meta}`}>คาบ {schedule.period} • {schedule.classroom?.level}/{schedule.classroom?.room}</p>
                           </button>
-                        ) : <div className="h-full rounded-lg border border-dashed border-sky-500/50 bg-sky-900/20" />}
+                        ) : <div className={`h-full rounded-lg border border-dashed ${activeTheme.empty}`} />}
                       </td>
                     )
                   })}
