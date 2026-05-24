@@ -149,6 +149,7 @@ export default function Attendance() {
     const list = slotMap.get(slot) || []
     return list.find((s) => s.day_of_week === day) || null
   }
+  const mobileSchedules = sortedSchedules
 
   useEffect(() => {
     if (selectedSchedule && !(schedules || []).some((s) => s.id === selectedSchedule)) {
@@ -343,7 +344,39 @@ export default function Attendance() {
       </div>
       <div ref={tableRef} className="bg-gradient-to-br from-sky-900 to-indigo-900 rounded-2xl shadow-lg border border-sky-700/40 p-3 sm:p-4 md:p-6 overflow-hidden mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-sky-50 mb-3 sm:mb-4">ตารางคาบเรียนสำหรับเช็คชื่อ</h2>
-        <div className="rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-x-auto overflow-y-hidden">
+        <div className="md:hidden space-y-2.5">
+          {mobileSchedules.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-sky-500/50 bg-sky-900/20 p-4 text-center text-sm text-sky-100">
+              ไม่พบคาบเรียนสำหรับเช็คชื่อ
+            </div>
+          ) : (
+            mobileSchedules.map((schedule) => {
+              const isActive = selectedSchedule === schedule.id
+              const palette = getSubjectPalette(`${schedule.subject_id}-${schedule.subject?.subject_code || ''}`)
+              const dayLabel = DAYS.find((d) => d.value === schedule.day_of_week)?.label || '-'
+              return (
+                <button
+                  key={`mobile-schedule-${schedule.id}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSchedule(schedule.id)
+                    setAttendanceState({})
+                    setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+                  }}
+                  className={`w-full rounded-xl border p-3 text-left transition ${isActive ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-500' : palette}`}
+                >
+                  <p className="text-xs font-semibold text-gray-600">วัน{dayLabel} • คาบ {schedule.period}</p>
+                  <p className="text-sm font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
+                  <p className="text-sm text-gray-700">{schedule.subject?.subject_name || '-'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {schedule.start_time?.substring(0, 5)} - {schedule.end_time?.substring(0, 5)} • {schedule.classroom?.level}/{schedule.classroom?.room}
+                  </p>
+                </button>
+              )
+            })
+          )}
+        </div>
+        <div className="hidden md:block rounded-xl border border-sky-700/50 bg-sky-950/20 overflow-x-auto overflow-y-hidden">
           <table className="min-w-[920px] lg:min-w-0 w-full table-fixed border-collapse">
             <colgroup>
               <col className="w-[80px] md:w-[90px]" />
