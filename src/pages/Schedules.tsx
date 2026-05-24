@@ -29,6 +29,7 @@ const DEFAULT_TIME_SLOTS = [
 
 const LUNCH_SLOT_KEY = '12:00:00-13:00:00'
 const MULTI_CLASSROOM_PREFIX = '[MULTI_CLASSROOM_IDS]'
+const SCHEDULE_THEME_STORAGE_KEY = 'sams_schedule_calendar_theme'
 
 const CALENDAR_THEMES = [
   {
@@ -69,6 +70,45 @@ const CALENDAR_THEMES = [
   },
 ]
 
+const SUBJECT_CARD_PALETTES = [
+  {
+    card: 'bg-gradient-to-br from-rose-100 to-pink-200 border border-rose-300/70 hover:from-rose-200 hover:to-pink-300',
+    code: 'text-rose-800',
+    name: 'text-rose-900/90',
+    meta: 'text-rose-700',
+  },
+  {
+    card: 'bg-gradient-to-br from-orange-100 to-amber-200 border border-amber-300/70 hover:from-orange-200 hover:to-amber-300',
+    code: 'text-amber-900',
+    name: 'text-amber-900/90',
+    meta: 'text-amber-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-lime-100 to-green-200 border border-green-300/70 hover:from-lime-200 hover:to-green-300',
+    code: 'text-green-900',
+    name: 'text-green-900/90',
+    meta: 'text-green-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-cyan-100 to-sky-200 border border-sky-300/70 hover:from-cyan-200 hover:to-sky-300',
+    code: 'text-cyan-900',
+    name: 'text-cyan-900/90',
+    meta: 'text-cyan-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-indigo-100 to-blue-200 border border-indigo-300/70 hover:from-indigo-200 hover:to-blue-300',
+    code: 'text-indigo-900',
+    name: 'text-indigo-900/90',
+    meta: 'text-indigo-800',
+  },
+  {
+    card: 'bg-gradient-to-br from-violet-100 to-purple-200 border border-violet-300/70 hover:from-violet-200 hover:to-purple-300',
+    code: 'text-violet-900',
+    name: 'text-violet-900/90',
+    meta: 'text-violet-800',
+  },
+]
+
 const formatThai24Hour = (time: string) => {
   if (!time) return '-'
   const normalized = time.length === 5 ? `${time}:00` : time
@@ -94,6 +134,14 @@ const normalizeTimePart = (value: string, max: number) => {
   return String(clamped).padStart(2, '0')
 }
 
+const getSubjectPalette = (subjectKey: string) => {
+  let hash = 0
+  for (let i = 0; i < subjectKey.length; i += 1) {
+    hash = (hash * 31 + subjectKey.charCodeAt(i)) >>> 0
+  }
+  return SUBJECT_CARD_PALETTES[hash % SUBJECT_CARD_PALETTES.length]
+}
+
 export default function Schedules() {
   const formRef = useRef<HTMLFormElement | null>(null)
   const queryClient = useQueryClient()
@@ -104,7 +152,11 @@ export default function Schedules() {
   
   const [showForm, setShowForm] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
-  const [calendarTheme, setCalendarTheme] = useState(CALENDAR_THEMES[0].key)
+  const [calendarTheme, setCalendarTheme] = useState(() => {
+    const saved = localStorage.getItem(SCHEDULE_THEME_STORAGE_KEY)
+    if (saved && CALENDAR_THEMES.some((theme) => theme.key === saved)) return saved
+    return CALENDAR_THEMES[0].key
+  })
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [moveSourceId, setMoveSourceId] = useState<string | null>(null)
@@ -249,6 +301,10 @@ export default function Schedules() {
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [showForm, editingScheduleId])
+
+  useEffect(() => {
+    localStorage.setItem(SCHEDULE_THEME_STORAGE_KEY, calendarTheme)
+  }, [calendarTheme])
 
   const sortedSchedules = [...(schedules || [])].sort((a, b) => {
     if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
@@ -644,17 +700,20 @@ export default function Schedules() {
                     </td>
                     {timeSlots.map((slot) => {
                       const schedule = findScheduleByDayAndSlot(day.value, slot)
+                      const palette = schedule
+                        ? getSubjectPalette(`${schedule.subject_id || ''}-${schedule.subject?.subject_code || ''}`)
+                        : null
                       return (
                         <td key={`${day.value}-${slot}`} className={`border p-2 md:p-3 h-[120px] ${activeTheme.border}`}>
                           {schedule ? (
                             <div
                               onClick={() => handleCellClickForMove(day.value, slot, schedule)}
-                              className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-white/95 hover:bg-blue-50'}`}
+                              className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'ring-2 ring-blue-500' : ''} ${palette?.card || 'bg-white/95 border border-gray-200 hover:bg-blue-50'}`}
                             >
-                              <p className="text-xs font-bold text-blue-700">{schedule.subject?.subject_code || '-'}</p>
-                              <p className="mt-0.5 text-xs text-gray-700 line-clamp-2">{schedule.subject?.subject_name || '-'}</p>
-                              <p className="mt-1 text-[11px] text-gray-500">คาบ {schedule.period}</p>
-                              <p className="text-[11px] text-gray-500">
+                              <p className={`text-xs font-bold ${palette?.code || 'text-blue-700'}`}>{schedule.subject?.subject_code || '-'}</p>
+                              <p className={`mt-0.5 text-xs line-clamp-2 ${palette?.name || 'text-gray-700'}`}>{schedule.subject?.subject_name || '-'}</p>
+                              <p className={`mt-1 text-[11px] ${palette?.meta || 'text-gray-500'}`}>คาบ {schedule.period}</p>
+                              <p className={`text-[11px] ${palette?.meta || 'text-gray-500'}`}>
                                 {schedule.classroom ? `${schedule.classroom.level}/${schedule.classroom.room}` : '-'}
                               </p>
                             </div>
