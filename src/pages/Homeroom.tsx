@@ -27,6 +27,44 @@ const parseInputDate = (input: string) => {
 
 const thaiWeekdays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+const classroomCardPalettes = [
+  {
+    card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70 hover:from-rose-200 hover:to-pink-300',
+    title: 'text-rose-900',
+    meta: 'text-rose-800',
+    stat: 'text-rose-900/90',
+  },
+  {
+    card: 'bg-gradient-to-br from-orange-100 to-amber-200 border-amber-300/70 hover:from-orange-200 hover:to-amber-300',
+    title: 'text-amber-900',
+    meta: 'text-amber-800',
+    stat: 'text-amber-900/90',
+  },
+  {
+    card: 'bg-gradient-to-br from-lime-100 to-green-200 border-green-300/70 hover:from-lime-200 hover:to-green-300',
+    title: 'text-green-900',
+    meta: 'text-green-800',
+    stat: 'text-green-900/90',
+  },
+  {
+    card: 'bg-gradient-to-br from-cyan-100 to-sky-200 border-sky-300/70 hover:from-cyan-200 hover:to-sky-300',
+    title: 'text-cyan-900',
+    meta: 'text-cyan-800',
+    stat: 'text-cyan-900/90',
+  },
+  {
+    card: 'bg-gradient-to-br from-indigo-100 to-blue-200 border-indigo-300/70 hover:from-indigo-200 hover:to-blue-300',
+    title: 'text-indigo-900',
+    meta: 'text-indigo-800',
+    stat: 'text-indigo-900/90',
+  },
+  {
+    card: 'bg-gradient-to-br from-violet-100 to-purple-200 border-violet-300/70 hover:from-violet-200 hover:to-purple-300',
+    title: 'text-violet-900',
+    meta: 'text-violet-800',
+    stat: 'text-violet-900/90',
+  },
+] as const
 
 const formatThaiBuddhistDate = (isoDate: string) => {
   const date = new Date(`${isoDate}T00:00:00`)
@@ -39,6 +77,14 @@ const formatThaiBuddhistDate = (isoDate: string) => {
 }
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
+
+const getClassroomPalette = (classroomKey: string) => {
+  let hash = 0
+  for (let i = 0; i < classroomKey.length; i += 1) {
+    hash = (hash * 31 + classroomKey.charCodeAt(i)) >>> 0
+  }
+  return classroomCardPalettes[hash % classroomCardPalettes.length]
+}
 
 export default function Homeroom() {
   const topRef = useRef<HTMLDivElement | null>(null)
@@ -325,6 +371,7 @@ export default function Homeroom() {
           {classroomSummary.map((c) => {
             const isChecked = c.checked_students > 0
             const isActive = selectedClassroom === c.classroom_id
+            const palette = getClassroomPalette(`${c.classroom_id}-${c.classroom_label}`)
             return (
               <button
                 key={c.classroom_id}
@@ -336,11 +383,11 @@ export default function Homeroom() {
                     studentTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }, 50)
                 }}
-                className={`text-left rounded-xl border p-4 transition ${isActive ? 'ring-2 ring-blue-300' : ''} ${isChecked ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100' : 'border-slate-300 bg-slate-100 hover:bg-slate-200'}`}
+                className={`text-left rounded-xl border p-4 transition ${isActive ? 'ring-2 ring-blue-400' : ''} ${palette.card} ${isChecked ? 'shadow-sm' : 'opacity-90'}`}
               >
-                <p className="font-bold text-slate-800">{c.classroom_label}</p>
-                <p className={`text-xs mt-1 ${isChecked ? 'text-emerald-700' : 'text-slate-600'}`}>{isChecked ? 'เช็คแล้ว' : 'ยังไม่เช็ค'}</p>
-                <div className="mt-2 text-xs text-slate-700 grid grid-cols-2 gap-y-1">
+                <p className={`font-bold ${palette.title}`}>{c.classroom_label}</p>
+                <p className={`text-xs mt-1 ${palette.meta}`}>{isChecked ? 'เช็คแล้ว' : 'ยังไม่เช็ค'}</p>
+                <div className={`mt-2 text-xs grid grid-cols-2 gap-y-1 ${palette.stat}`}>
                   <span>มา: {c.present_count}</span>
                   <span>สาย: {c.late_count}</span>
                   <span>ขาด: {c.absent_count}</span>
