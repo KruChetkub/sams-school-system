@@ -7,5 +7,9 @@
 
 body {
   background-color: var(--app-bg, #f3f4f6);
+  background-image: var(--app-bg-image, none);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
   color: #1f2937;
 }

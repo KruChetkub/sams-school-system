@@ -15,7 +15,35 @@ const themeOptions = [
   { key: '#f0fdf4', label: 'Mint Calm' },
   { key: '#fef2f2', label: 'Rose Blush' },
   { key: '#ecfeff', label: 'Aqua Breeze' },
+  { key: 'grad_dawn', label: 'Dawn Glow' },
+  { key: 'grad_ocean', label: 'Ocean Breeze' },
+  { key: 'grad_forest', label: 'Forest Mist' },
+  { key: 'grad_midnight', label: 'Midnight Ink' },
+  { key: 'grad_royal', label: 'Royal Velvet' },
+  { key: 'grad_ember', label: 'Ember Night' },
+  { key: 'grad_aurora', label: 'Aurora Deep' },
 ]
+
+const gradientThemes: Record<string, { image: string; fallback: string }> = {
+  grad_dawn: { image: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fee2e2 100%)', fallback: '#fff7ed' },
+  grad_ocean: { image: 'linear-gradient(135deg, #ecfeff 0%, #e0f2fe 50%, #e0e7ff 100%)', fallback: '#ecfeff' },
+  grad_forest: { image: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #ecfccb 100%)', fallback: '#f0fdf4' },
+  grad_midnight: { image: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #111827 100%)', fallback: '#111827' },
+  grad_royal: { image: 'linear-gradient(135deg, #3b0764 0%, #4c1d95 45%, #1e1b4b 100%)', fallback: '#312e81' },
+  grad_ember: { image: 'linear-gradient(135deg, #3f1d1d 0%, #7c2d12 50%, #1f2937 100%)', fallback: '#3f1d1d' },
+  grad_aurora: { image: 'linear-gradient(135deg, #052e16 0%, #164e63 48%, #1e293b 100%)', fallback: '#0f172a' },
+}
+
+const applyThemeVars = (themeValue: string) => {
+  const gradient = gradientThemes[themeValue]
+  if (gradient) {
+    document.documentElement.style.setProperty('--app-bg', gradient.fallback)
+    document.documentElement.style.setProperty('--app-bg-image', gradient.image)
+    return
+  }
+  document.documentElement.style.setProperty('--app-bg', themeValue)
+  document.documentElement.style.setProperty('--app-bg-image', 'none')
+}
 
 export default function Settings() {
   const { role, user } = useAuthStore()
@@ -61,7 +89,7 @@ export default function Settings() {
 
       setSelectedBgColor(resolvedBgColor)
       setCustomBgColor(resolvedBgColor)
-      document.documentElement.style.setProperty('--app-bg', resolvedBgColor)
+      applyThemeVars(resolvedBgColor)
     }
     loadSettings()
   }, [user?.id])
@@ -71,7 +99,7 @@ export default function Settings() {
     setIsSavingAppearance(true)
     try {
       localStorage.setItem('sams_theme_bg', selectedBgColor)
-      document.documentElement.style.setProperty('--app-bg', selectedBgColor)
+      applyThemeVars(selectedBgColor)
       if (user?.id && isThemeBgColumnSupported) {
         const { error } = await supabase
           .from('users')
@@ -197,11 +225,11 @@ export default function Settings() {
                 type="button"
                 onClick={() => {
                   setSelectedBgColor(theme.key)
-                  document.documentElement.style.setProperty('--app-bg', theme.key)
+                  applyThemeVars(theme.key)
                 }}
                 className={`rounded-xl border p-3 text-left transition ${selectedBgColor === theme.key ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}
               >
-                <div className="h-10 rounded-lg border border-white/70" style={{ backgroundColor: theme.key }} />
+                <div className="h-10 rounded-lg border border-white/70" style={gradientThemes[theme.key] ? { backgroundImage: gradientThemes[theme.key].image } : { backgroundColor: theme.key }} />
                 <p className="text-xs font-semibold mt-2 text-gray-700">{theme.label}</p>
               </button>
             ))}

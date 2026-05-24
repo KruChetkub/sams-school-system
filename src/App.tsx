@@ -233,6 +233,7 @@ function App() {
     const applyTheme = async () => {
       const localTheme = localStorage.getItem('sams_theme_bg') || '#f3f4f6'
       document.documentElement.style.setProperty('--app-bg', localTheme)
+      document.documentElement.style.setProperty('--app-bg-image', 'none')
 
       if (user?.id) {
         const { data } = await supabase
@@ -244,6 +245,23 @@ function App() {
         if (hasThemeBg && data?.theme_bg && /^#([0-9A-Fa-f]{6})$/.test(data.theme_bg)) {
           localStorage.setItem('sams_theme_bg', data.theme_bg)
           document.documentElement.style.setProperty('--app-bg', data.theme_bg)
+          document.documentElement.style.setProperty('--app-bg-image', 'none')
+        } else if (hasThemeBg && data?.theme_bg && String(data.theme_bg).startsWith('grad_')) {
+          const gradientMap: Record<string, { image: string; fallback: string }> = {
+            grad_dawn: { image: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fee2e2 100%)', fallback: '#fff7ed' },
+            grad_ocean: { image: 'linear-gradient(135deg, #ecfeff 0%, #e0f2fe 50%, #e0e7ff 100%)', fallback: '#ecfeff' },
+            grad_forest: { image: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #ecfccb 100%)', fallback: '#f0fdf4' },
+            grad_midnight: { image: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #111827 100%)', fallback: '#111827' },
+            grad_royal: { image: 'linear-gradient(135deg, #3b0764 0%, #4c1d95 45%, #1e1b4b 100%)', fallback: '#312e81' },
+            grad_ember: { image: 'linear-gradient(135deg, #3f1d1d 0%, #7c2d12 50%, #1f2937 100%)', fallback: '#3f1d1d' },
+            grad_aurora: { image: 'linear-gradient(135deg, #052e16 0%, #164e63 48%, #1e293b 100%)', fallback: '#0f172a' },
+          }
+          const gradient = gradientMap[data.theme_bg]
+          if (gradient) {
+            localStorage.setItem('sams_theme_bg', data.theme_bg)
+            document.documentElement.style.setProperty('--app-bg', gradient.fallback)
+            document.documentElement.style.setProperty('--app-bg-image', gradient.image)
+          }
         }
       }
     }
