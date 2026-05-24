@@ -12,7 +12,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'SAMS - School Attendance Management System',
+        name: 'SAMS',
         short_name: 'SAMS',
         description: 'ระบบจัดการการเข้าเรียนของโรงเรียน',
         theme_color: '#0b3b84',
