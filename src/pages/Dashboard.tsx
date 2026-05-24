@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getDashboardStats, getAnalyticsData, getPendingClassroomChecksToday, getCheckedHomeroomClassroomsToday, getAttendanceTrendToday, getAttendanceDailyRates, getClassroomReport, getMonthlyAttendanceCompare } from '../services/dashboardService'
+import { getDashboardStats, getAnalyticsData, getPendingClassroomChecksToday, getCheckedHomeroomClassroomsToday, getAttendanceTrendToday, getAttendanceDailyRates, getClassroomReport, getMonthlyAttendanceCompare, getAttendanceStatusSummaryByDate, getHomeroomStatusSummaryByDate } from '../services/dashboardService'
 import { Users, GraduationCap, BookOpen, Library, TrendingUp, Calendar as CalIcon, ClipboardCheck, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, ReferenceLine, Line } from 'recharts'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [now, setNow] = useState(new Date())
+  const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedSummaryDateInput, setSelectedSummaryDateInput] = useState('')
+  const [selectedSummaryDateError, setSelectedSummaryDateError] = useState('')
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
+  const thaiWeekdays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+  const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 1000)
@@ -28,16 +36,85 @@ export default function Dashboard() {
 
   const formattedDateTime = dateTimeFormatter.format(now)
 
+  const formatThaiInputDate = (isoDate: string) => {
+    const date = new Date(`${isoDate}T00:00:00`)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const yearBE = date.getFullYear() + 543
+    return `${day}/${month}/${yearBE}`
+  }
+
+  const parseThaiInputDate = (input: string) => {
+    const parts = input.split('/').map((p) => p.trim())
+    if (parts.length !== 3) return null
+    const [dayStr, monthStr, yearStr] = parts
+    if (!/^[0-9]{1,2}$/.test(dayStr) || !/^[0-9]{1,2}$/.test(monthStr) || !/^[0-9]{4}$/.test(yearStr)) return null
+    const day = Number(dayStr)
+    const month = Number(monthStr)
+    const yearCE = Number(yearStr) - 543
+    if (yearCE < 1900) return null
+    const date = new Date(yearCE, month - 1, day)
+    if (date.getFullYear() !== yearCE || date.getMonth() !== month - 1 || date.getDate() !== day) return null
+    const yyyy = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const dd = String(date.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  useEffect(() => {
+    setSelectedSummaryDateInput(formatThaiInputDate(selectedSummaryDate))
+    setSelectedSummaryDateError('')
+  }, [selectedSummaryDate])
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
+  const daysInMonth = getDaysInMonth(calendarYear, calendarMonth)
+  const firstWeekday = new Date(calendarYear, calendarMonth, 1).getDay()
+  const calendarCells = Array(firstWeekday).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
+  const calendarHeader = `${thaiMonths[calendarMonth]} ${calendarYear + 543}`
+
+  const openDatePicker = () => {
+    const date = new Date(`${selectedSummaryDate}T00:00:00`)
+    setCalendarMonth(date.getMonth())
+    setCalendarYear(date.getFullYear())
+    setShowDatePicker(true)
+  }
+
+  const closeDatePicker = () => setShowDatePicker(false)
+
+  const selectCalendarDate = (day: number) => {
+    const date = new Date(calendarYear, calendarMonth, day)
+    const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    setSelectedSummaryDate(isoDate)
+    setShowDatePicker(false)
+  }
+
+  const commitThaiDateInput = () => {
+    const parsed = parseThaiInputDate(selectedSummaryDateInput)
+    if (parsed) {
+      setSelectedSummaryDate(parsed)
+      setSelectedSummaryDateError('')
+      const parsedDate = new Date(`${parsed}T00:00:00`)
+      setCalendarMonth(parsedDate.getMonth())
+      setCalendarYear(parsedDate.getFullYear())
+      return
+    }
+    setSelectedSummaryDateError('รูปแบบวันที่ไม่ถูกต้อง โปรดใช้ วว/ดด/ปปปป')
+  }
+
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
   const { data: pendingChecks, isLoading: loadingPendingChecks } = useQuery({
     queryKey: ['dashboard_pending_checks_today'],
     queryFn: getPendingClassroomChecksToday,
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
   const { data: checkedHomeroomToday, isLoading: loadingHomeroomToday } = useQuery({
     queryKey: ['dashboard_homeroom_checked_today'],
     queryFn: getCheckedHomeroomClassroomsToday,
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({ 
     queryKey: ['dashboard_analytics', 'month'], 
@@ -47,24 +124,43 @@ export default function Dashboard() {
     queryKey: ['dashboard_attendance_trend_today'],
     queryFn: getAttendanceTrendToday,
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
   const { data: classroomWeekRows = [], isLoading: loadingClassroomWeekRows } = useQuery({
     queryKey: ['dashboard_classroom_report_week'],
     queryFn: () => getClassroomReport('week'),
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
   const { data: dailyRates = [], isLoading: loadingDailyRates } = useQuery({
     queryKey: ['dashboard_attendance_daily_rates_7d'],
     queryFn: () => getAttendanceDailyRates(7),
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
   const { data: monthlyCompare, isLoading: loadingMonthlyCompare } = useQuery({
     queryKey: ['dashboard_monthly_attendance_compare'],
     queryFn: getMonthlyAttendanceCompare,
     refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   })
-
-  if (loadingStats || loadingAnalytics || loadingPendingChecks || loadingHomeroomToday || loadingTrendToday || loadingClassroomWeekRows || loadingDailyRates || loadingMonthlyCompare) return <div className="p-8 text-center text-gray-500 mt-20">กำลังโหลดข้อมูล Dashboard...</div>
+  const { data: dailyStatusSummary, isLoading: loadingDailyStatusSummary } = useQuery({
+    queryKey: ['dashboard_attendance_status_summary', selectedSummaryDate],
+    queryFn: () => getAttendanceStatusSummaryByDate(selectedSummaryDate),
+    refetchOnWindowFocus: false,
+    staleTime: 15000,
+  })
+  const { data: homeroomStatusSummary, isLoading: loadingHomeroomStatusSummary } = useQuery({
+    queryKey: ['dashboard_homeroom_status_summary', selectedSummaryDate],
+    queryFn: () => getHomeroomStatusSummaryByDate(selectedSummaryDate),
+    refetchOnWindowFocus: false,
+    staleTime: 15000,
+  })
+  if (loadingStats || loadingAnalytics || loadingPendingChecks || loadingHomeroomToday || loadingDailyStatusSummary || loadingHomeroomStatusSummary) return <div className="p-8 text-center text-gray-500 mt-20">กำลังโหลดข้อมูล Dashboard...</div>
 
   const cards = [
     { title: 'จำนวนนักเรียนทั้งหมด', value: stats?.students, icon: <GraduationCap size={32} className="text-white" />, bg: 'bg-gradient-to-br from-blue-500 to-blue-600', shadow: 'shadow-blue-200' },
@@ -105,6 +201,27 @@ export default function Dashboard() {
     const presentRate = total > 0 ? Math.round(((d.present || 0) / total) * 100) : 0
     return { ...d, total, presentRate }
   })
+
+  const thaiSelectedDate = new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    calendar: 'buddhist',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(`${selectedSummaryDate}T00:00:00`))
+
+  const selectedDateStatusCards = [
+    { title: 'มา', value: dailyStatusSummary?.present ?? 0, bg: 'bg-gradient-to-br from-emerald-500 to-green-600' },
+    { title: 'สาย', value: dailyStatusSummary?.late ?? 0, bg: 'bg-gradient-to-br from-amber-500 to-orange-600' },
+    { title: 'ขาด', value: dailyStatusSummary?.absent ?? 0, bg: 'bg-gradient-to-br from-rose-500 to-red-600' },
+    { title: 'ลา', value: dailyStatusSummary?.leave ?? 0, bg: 'bg-gradient-to-br from-sky-500 to-cyan-700' },
+  ]
+  const selectedDateHomeroomCards = [
+    { title: 'มา', value: homeroomStatusSummary?.present ?? 0, bg: 'bg-gradient-to-br from-emerald-500 to-green-600' },
+    { title: 'สาย', value: homeroomStatusSummary?.late ?? 0, bg: 'bg-gradient-to-br from-amber-500 to-orange-600' },
+    { title: 'ขาด', value: homeroomStatusSummary?.absent ?? 0, bg: 'bg-gradient-to-br from-rose-500 to-red-600' },
+    { title: 'ลา', value: homeroomStatusSummary?.leave ?? 0, bg: 'bg-gradient-to-br from-sky-500 to-cyan-700' },
+  ]
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
@@ -154,211 +271,115 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">อัตราเข้าเรียนวันนี้ เทียบเมื่อวาน</p>
-          <div className="mt-3 grid grid-cols-[110px_1fr] gap-4 items-center">
-            <div className="relative h-[96px] w-[96px] mx-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'present', value: trendToday?.todayRate ?? 0, fill: '#10B981' },
-                      { name: 'rest', value: Math.max(0, 100 - (trendToday?.todayRate ?? 0)), fill: '#E2E8F0' },
-                    ]}
-                    dataKey="value"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30}
-                    outerRadius={45}
-                    startAngle={90}
-                    endAngle={-270}
-                    stroke="none"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex items-center justify-center text-lg font-black text-slate-800">
-                {trendToday?.todayRate ?? 0}%
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">วันนี้ {trendToday?.todayPresent ?? 0}/{trendToday?.todayTotal ?? 0} • เมื่อวาน {trendToday?.yesterdayRate ?? 0}%</p>
-                <div className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                  (trendToday?.deltaRate || 0) >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                }`}>
-                  {(trendToday?.deltaRate || 0) >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                  {trendToday?.deltaRate || 0}%
+      <div className="mb-8 rounded-2xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-rose-50 to-orange-100 p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">สรุปสถานะนักเรียนตามวันที่เลือก</h2>
+            <p className="text-sm text-slate-500">วันที่ {thaiSelectedDate} • รวมทั้งหมด {dailyStatusSummary?.total ?? 0} คน</p>
+          </div>
+          <div className="w-full md:w-[260px]">
+            <label htmlFor="dashboard-summary-date" className="block text-sm font-medium text-slate-700 mb-2"></label>
+            <input
+              id="dashboard-summary-date"
+              type="text"
+              inputMode="numeric"
+              placeholder="วว/ดด/ปปปป"
+              value={selectedSummaryDateInput}
+              onFocus={openDatePicker}
+              onClick={openDatePicker}
+              onChange={(e) => {
+                const value = e.target.value
+                setSelectedSummaryDateInput(value)
+              }}
+              onBlur={commitThaiDateInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  commitThaiDateInput()
+                }
+              }}
+              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+            {showDatePicker && (
+              <div className="absolute z-20 top-full mt-2 w-full rounded-3xl border border-slate-200 bg-white shadow-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <button type="button" onClick={() => {
+                    if (calendarMonth === 0) {
+                      setCalendarMonth(11)
+                      setCalendarYear((prev) => prev - 1)
+                    } else setCalendarMonth((prev) => prev - 1)
+                  }} className="rounded-full p-2 text-slate-500 hover:bg-slate-100">‹</button>
+                  <div className="text-sm font-semibold text-slate-700">{calendarHeader}</div>
+                  <button type="button" onClick={() => {
+                    if (calendarMonth === 11) {
+                      setCalendarMonth(0)
+                      setCalendarYear((prev) => prev + 1)
+                    } else setCalendarMonth((prev) => prev + 1)
+                  }} className="rounded-full p-2 text-slate-500 hover:bg-slate-100">›</button>
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-500 mb-2">
+                  {thaiWeekdays.map((day) => <div key={day}>{day}</div>)}
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {calendarCells.map((day, index) => (
+                    <button
+                      key={`${calendarYear}-${calendarMonth}-${index}`}
+                      type="button"
+                      onClick={() => day && selectCalendarDate(day)}
+                      className={`h-10 rounded-xl ${day ? 'hover:bg-blue-50 text-slate-700' : 'pointer-events-none text-transparent'} ${
+                        day === new Date(`${selectedSummaryDate}T00:00:00`).getDate() &&
+                        calendarMonth === new Date(`${selectedSummaryDate}T00:00:00`).getMonth() &&
+                        calendarYear === new Date(`${selectedSummaryDate}T00:00:00`).getFullYear()
+                          ? 'bg-blue-600 text-white'
+                          : ''
+                      }`}
+                    >
+                      {day || ''}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex justify-between text-xs text-slate-500">
+                  <button type="button" onClick={closeDatePicker} className="rounded-lg px-3 py-2 hover:bg-slate-100">ปิด</button>
+                  <div>เลือกวันที่ไทยแล้วเก็บเป็นระบบ</div>
                 </div>
               </div>
-              <div className="mt-2 h-14 w-full min-w-0">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <AreaChart data={dailyRates}>
-                    <defs>
-                      <linearGradient id="dailyRateFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0.03} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="label" hide />
-                    <YAxis hide domain={[0, 100]} />
-                    <Area type="monotone" dataKey="rate" stroke="#4F46E5" strokeWidth={2} fill="url(#dailyRateFill)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="mt-1 text-[11px] text-slate-500">แนวโน้ม 7 วันล่าสุด</p>
-            </div>
+            )}
+            <p className={`mt-1 text-xs ${selectedSummaryDateError ? 'text-red-500' : 'text-slate-500'}`}>
+              {selectedSummaryDateError || ''}
+            </p>
           </div>
         </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
-          <div className="mb-3 flex items-center gap-2">
-            <AlertTriangle size={16} className="text-amber-500" />
-            <p className="text-sm font-semibold text-slate-600">Top 5 ห้องเสี่ยง (% มาเรียนต่ำสุด 7 วันล่าสุด)</p>
-          </div>
-          {topRiskClassrooms.length === 0 ? (
-            <p className="text-sm text-slate-500">ยังไม่มีข้อมูลเพียงพอ</p>
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="h-[230px] w-full min-w-0">
-                <ResponsiveContainer width="99%" height={230} minWidth={0} minHeight={180}>
-                  <BarChart
-                    data={topRiskClassrooms}
-                    layout="vertical"
-                    margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                    <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748B', fontSize: 11 }} />
-                    <YAxis type="category" dataKey="roomLabel" width={85} tick={{ fill: '#334155', fontSize: 12, fontWeight: 600 }} />
-                    <RechartsTooltip
-                      formatter={(value: any, _name: any, props: any) => [`${value}%`, 'อัตรามาเรียน']}
-                      labelFormatter={(_label: any, payload: any) => {
-                        const row = payload?.[0]?.payload
-                        if (!row) return ''
-                        return `${row.roomLabel} • มา ${row.present} / รวม ${row.total}`
-                      }}
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 8px 20px rgba(15,23,42,0.08)' }}
-                    />
-                    <ReferenceLine x={80} stroke="#6366F1" strokeDasharray="5 5" ifOverflow="extendDomain" />
-                    <Bar dataKey="rate" radius={[0, 8, 8, 0]}>
-                      {topRiskClassrooms.map((entry) => (
-                        <Cell key={entry.classroomId} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                <span>สีแดง/ส้ม = เสี่ยงสูง</span>
-                <span>เส้นประ = เป้าหมาย 80%</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Main Bar Chart */}
-        <div className="lg:col-span-2 min-w-0 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <TrendingUp className="text-indigo-500" /> สถิติการมาเรียนรายสัปดาห์
-              </h2>
-              <p className="text-sm text-slate-500 font-medium mt-1">เปรียบเทียบจำนวนนักเรียนที่มา ขาด และสาย ในแต่ละวัน</p>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 p-4">
+            <p className="mb-3 text-sm font-bold text-slate-700">1. สรุปรายวิชา</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {selectedDateStatusCards.map((card) => (
+                <div key={`classroom-${card.title}`} className={`${card.bg} rounded-2xl p-4 text-white shadow-lg`}>
+                  <p className="text-sm font-semibold text-white/85">{card.title}</p>
+                  <p className="mt-1 text-3xl font-black">{card.value}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="h-[350px] w-full min-w-0">
-            <ResponsiveContainer width="99%" height={350} minWidth={0} minHeight={280}>
-              <BarChart data={weeklyTrendData} margin={{ top: 10, right: 30, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} />
-                <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} tick={{ fill: '#6366F1', fontWeight: 600 }} />
-                <RechartsTooltip
-                  cursor={{ fill: '#F1F5F9' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: any, name: any) => {
-                    if (name === 'อัตรามาเรียน') return [`${value}%`, name]
-                    return [value, name]
-                  }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
-                <Bar dataKey="present" name="มาเรียน" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="absent" name="ขาดเรียน" fill="#EF4444" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="late" name="มาสาย" fill="#F59E0B" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                <Line yAxisId="right" type="monotone" dataKey="presentRate" name="อัตรามาเรียน" stroke="#4F46E5" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Gauge Chart */}
-        <div className="min-w-0 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <CalIcon className="text-blue-500" /> อัตราการเข้าเรียนเฉลี่ย
-            </h2>
-            <p className="text-sm text-slate-500 font-medium mt-1">สัดส่วนการมาเรียนในเดือนนี้</p>
-          </div>
-          <div className="flex-1 min-h-[250px] w-full min-w-0 relative mt-4">
-            <ResponsiveContainer width="99%" height={250} minWidth={0} minHeight={220}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'rate', value: gaugeRate, fill: gaugeColor },
-                    { name: 'rest', value: Math.max(0, 100 - gaugeRate), fill: '#E2E8F0' }
-                  ]}
-                  cx="50%"
-                  cy="85%"
-                  startAngle={180}
-                  endAngle={0}
-                  innerRadius={70}
-                  outerRadius={96}
-                  dataKey="value"
-                  stroke="none"
-                />
-                <ReferenceLine
-                  segment={[
-                    {
-                      x: 50 + Math.cos((Math.PI * (180 - (gaugeTarget * 1.8))) / 180) * 84,
-                      y: 85 - Math.sin((Math.PI * (180 - (gaugeTarget * 1.8))) / 180) * 84
-                    },
-                    {
-                      x: 50 + Math.cos((Math.PI * (180 - (gaugeTarget * 1.8))) / 180) * 104,
-                      y: 85 - Math.sin((Math.PI * (180 - (gaugeTarget * 1.8))) / 180) * 104
-                    }
-                  ]}
-                  stroke="#6366F1"
-                  strokeWidth={3}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-4xl font-black text-slate-800">{gaugeRate}%</span>
-              <span className="text-xs font-semibold text-slate-500 mt-1">เป้าหมาย {gaugeTarget}%</span>
-              <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                gaugeDelta >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-              }`}>
-                {gaugeDelta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                {gaugeDelta}% เทียบเดือนก่อน
-              </span>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <div className="grid grid-cols-3 gap-2">
-              {analytics?.pieData?.map((item: any, i: number) => (
-                <div key={i} className="text-center bg-slate-50 rounded-xl p-2">
-                  <div className="text-xs font-bold text-slate-500 mb-1">{item.name}</div>
-                  <div className={`text-lg font-black ${legendTextClass(item.name)}`}>{item.value}</div>
+          <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-teal-50 to-lime-100 p-4">
+            <p className="mb-3 text-sm font-bold text-slate-700">2. สรุปเข้าแถว</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {selectedDateHomeroomCards.map((card) => (
+                <div key={`homeroom-${card.title}`} className={`${card.bg} rounded-2xl p-4 text-white shadow-lg`}>
+                  <p className="text-sm font-semibold text-white/85">{card.title}</p>
+                  <p className="mt-1 text-3xl font-black">{card.value}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      <div className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+        ฟีเจอร์วิเคราะห์ขั้นสูง (อัตราเข้าเรียนวันนี้เทียบเมื่อวาน, Top 5 ห้องเสี่ยง, อัตราการเข้าเรียนเฉลี่ย) ถูกซ่อนไว้ชั่วคราว
+      </div>
+
+      {/* Advanced analytics hidden temporarily */}
     </div>
   )
 }

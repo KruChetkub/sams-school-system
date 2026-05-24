@@ -85,6 +85,8 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    const start = Date.now()
+    const minOverlayMs = 250
     setLoading(true)
     setError(null)
     
@@ -96,11 +98,24 @@ export default function Login() {
     if (error) {
       setError(error.message)
     }
+    const elapsed = Date.now() - start
+    if (elapsed < minOverlayMs) {
+      await new Promise((resolve) => setTimeout(resolve, minOverlayMs - elapsed))
+    }
     setLoading(false)
   }
 
   return (
     <div ref={containerRef} className="relative min-h-screen overflow-hidden bg-[#2a1360] p-4 md:p-8">
+      {loading && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#140b2d]/55 backdrop-blur-md">
+          <div className="rounded-3xl border border-white/30 bg-white/15 px-8 py-7 text-center shadow-2xl">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+            <p className="text-lg font-bold text-white">กำลังเข้าสู่ระบบ...</p>
+            <p className="mt-1 text-sm text-white/80">โปรดรอสักครู่</p>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes orbitSlow {
           0% { transform: rotate(0deg) translateX(18px) rotate(0deg); opacity: 0.35; }

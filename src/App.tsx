@@ -41,14 +41,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user, role } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [teacherDisplayName, setTeacherDisplayName] = useState('')
   const userDisplayName = teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน')
 
   const closeSidebar = () => setIsSidebarOpen(false)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowLogoutModal(false)
-    signOut()
+    setIsSigningOut(true)
+    await signOut()
+    setIsSigningOut(false)
   }
 
   useEffect(() => {
@@ -75,6 +78,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen overflow-hidden font-sans" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
       {/* Logout Confirmation Modal */}
+      {isSigningOut && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4">
+          <div className="rounded-3xl border border-white/35 bg-white/20 px-8 py-7 text-center shadow-2xl">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/35 border-t-white" />
+            <p className="text-lg font-bold text-white">กำลังออกจากระบบ...</p>
+            <p className="mt-1 text-sm text-white/80">กำลังปิดเซสชันผู้ใช้งาน</p>
+          </div>
+        </div>
+      )}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)}></div>
@@ -216,6 +228,27 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   const { user, setUser, fetchRole, isLoading } = useAuthStore()
+
+  useEffect(() => {
+    const applyTheme = async () => {
+      const localTheme = localStorage.getItem('sams_theme_bg') || '#f3f4f6'
+      document.documentElement.style.setProperty('--app-bg', localTheme)
+
+      if (user?.id) {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
+        const hasThemeBg = !!(data && Object.prototype.hasOwnProperty.call(data, 'theme_bg'))
+        if (hasThemeBg && data?.theme_bg && /^#([0-9A-Fa-f]{6})$/.test(data.theme_bg)) {
+          localStorage.setItem('sams_theme_bg', data.theme_bg)
+          document.documentElement.style.setProperty('--app-bg', data.theme_bg)
+        }
+      }
+    }
+    applyTheme()
+  }, [user?.id])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

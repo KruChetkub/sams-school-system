@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, Bell, Shield, Smartphone, UserCog, Palette } from 'lucide-react'
 import { getUsers, updateUserRole } from '../services/userService'
 import { useAuthStore } from '../store/authStore'
+import { supabase } from '../lib/supabase'
 
 type SettingsTab = 'appearance' | 'notifications' | 'users'
 
@@ -17,7 +18,7 @@ const themeOptions = [
 ]
 
 export default function Settings() {
-  const { role } = useAuthStore()
+  const { role, user } = useAuthStore()
   const isAdmin = role === 'ADMIN'
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance')
@@ -31,31 +32,65 @@ export default function Settings() {
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
+  const [isThemeBgColumnSupported, setIsThemeBgColumnSupported] = useState(false)
 
   useEffect(() => {
-    const savedLine = localStorage.getItem('sams_line_token') || ''
-    const savedTgToken = localStorage.getItem('sams_tg_token') || ''
-    const savedTgChatId = localStorage.getItem('sams_tg_chat_id') || ''
-    const savedBgColor = localStorage.getItem('sams_theme_bg') || '#f3f4f6'
-    setLineToken(savedLine)
-    setTelegramToken(savedTgToken)
-    setTelegramChatId(savedTgChatId)
-    setSelectedBgColor(savedBgColor)
-    setCustomBgColor(savedBgColor)
-    document.documentElement.style.setProperty('--app-bg', savedBgColor)
-  }, [])
+    const loadSettings = async () => {
+      const savedLine = localStorage.getItem('sams_line_token') || ''
+      const savedTgToken = localStorage.getItem('sams_tg_token') || ''
+      const savedTgChatId = localStorage.getItem('sams_tg_chat_id') || ''
+      const localBgColor = localStorage.getItem('sams_theme_bg') || '#f3f4f6'
+      setLineToken(savedLine)
+      setTelegramToken(savedTgToken)
+      setTelegramChatId(savedTgChatId)
 
-  const handleSaveAppearance = (e: React.FormEvent) => {
+      let resolvedBgColor = localBgColor
+      if (user?.id) {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
+        const supportsThemeBg = !!(data && Object.prototype.hasOwnProperty.call(data, 'theme_bg'))
+        setIsThemeBgColumnSupported(supportsThemeBg)
+        if (supportsThemeBg && data?.theme_bg && /^#([0-9A-Fa-f]{6})$/.test(data.theme_bg)) {
+          resolvedBgColor = data.theme_bg
+          localStorage.setItem('sams_theme_bg', resolvedBgColor)
+        }
+      }
+
+      setSelectedBgColor(resolvedBgColor)
+      setCustomBgColor(resolvedBgColor)
+      document.documentElement.style.setProperty('--app-bg', resolvedBgColor)
+    }
+    loadSettings()
+  }, [user?.id])
+
+  const handleSaveAppearance = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSavingAppearance(true)
-    setTimeout(() => {
+    try {
       localStorage.setItem('sams_theme_bg', selectedBgColor)
       document.documentElement.style.setProperty('--app-bg', selectedBgColor)
+      if (user?.id && isThemeBgColumnSupported) {
+        const { error } = await supabase
+          .from('users')
+          .update({ theme_bg: selectedBgColor })
+          .eq('id', user.id)
+        if (error) {
+          console.warn('save theme_bg to users failed:', error.message)
+        }
+      }
       setIsSavingAppearance(false)
       setResultModalType('success')
       setResultModalMessage('บันทึกธีมเรียบร้อย')
       setShowResultModal(true)
-    }, 500)
+    } catch (error: any) {
+      setIsSavingAppearance(false)
+      setResultModalType('error')
+      setResultModalMessage(error?.message || 'ไม่สามารถบันทึกธีมได้')
+      setShowResultModal(true)
+    }
   }
 
   const handleSaveNotifications = (e: React.FormEvent) => {

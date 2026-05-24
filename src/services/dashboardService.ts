@@ -587,6 +587,96 @@ export interface MonthlyAttendanceCompareResult {
   deltaRate: number
 }
 
+export interface AttendanceStatusSummaryByDate {
+  date: string
+  present: number
+  late: number
+  absent: number
+  leave: number
+  total: number
+}
+
+export interface HomeroomStatusSummaryByDate {
+  date: string
+  present: number
+  late: number
+  absent: number
+  leave: number
+  total: number
+}
+
+export const getAttendanceStatusSummaryByDate = async (date: string): Promise<AttendanceStatusSummaryByDate> => {
+  const { data, error } = await supabase
+    .from('attendance_sessions')
+    .select(`
+      id,
+      session_date,
+      attendance ( status )
+    `)
+    .eq('session_date', date)
+
+  if (error) {
+    console.error('[getAttendanceStatusSummaryByDate] error:', error)
+    return { date, present: 0, late: 0, absent: 0, leave: 0, total: 0 }
+  }
+
+  let present = 0
+  let late = 0
+  let absent = 0
+  let leave = 0
+
+  ;(data || []).forEach((session: any) => {
+    ;(session.attendance || []).forEach((row: any) => {
+      if (row.status === 'PRESENT') present++
+      else if (row.status === 'LATE') late++
+      else if (row.status === 'ABSENT') absent++
+      else if (row.status === 'LEAVE') leave++
+    })
+  })
+
+  return {
+    date,
+    present,
+    late,
+    absent,
+    leave,
+    total: present + late + absent + leave,
+  }
+}
+
+export const getHomeroomStatusSummaryByDate = async (date: string): Promise<HomeroomStatusSummaryByDate> => {
+  const { data, error } = await supabase
+    .from('homeroom_attendance')
+    .select('status')
+    .eq('attendance_date', date)
+
+  if (error) {
+    console.error('[getHomeroomStatusSummaryByDate] error:', error)
+    return { date, present: 0, late: 0, absent: 0, leave: 0, total: 0 }
+  }
+
+  let present = 0
+  let late = 0
+  let absent = 0
+  let leave = 0
+
+  ;(data || []).forEach((row: any) => {
+    if (row.status === 'PRESENT') present++
+    else if (row.status === 'LATE') late++
+    else if (row.status === 'ABSENT') absent++
+    else if (row.status === 'LEAVE') leave++
+  })
+
+  return {
+    date,
+    present,
+    late,
+    absent,
+    leave,
+    total: present + late + absent + leave,
+  }
+}
+
 export const getMonthlyAttendanceCompare = async (): Promise<MonthlyAttendanceCompareResult> => {
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
