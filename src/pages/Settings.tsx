@@ -45,6 +45,13 @@ const applyThemeVars = (themeValue: string) => {
   document.documentElement.style.setProperty('--app-bg-image', 'none')
 }
 
+const resolveHexForColorInput = (themeValue: string) => {
+  const gradient = gradientThemes[themeValue]
+  if (gradient) return gradient.fallback
+  if (/^#([0-9A-Fa-f]{6})$/.test(themeValue)) return themeValue
+  return '#f3f4f6'
+}
+
 export default function Settings() {
   const { role, user } = useAuthStore()
   const isAdmin = role === 'ADMIN'
@@ -88,7 +95,7 @@ export default function Settings() {
       }
 
       setSelectedBgColor(resolvedBgColor)
-      setCustomBgColor(resolvedBgColor)
+      setCustomBgColor(resolveHexForColorInput(resolvedBgColor))
       applyThemeVars(resolvedBgColor)
     }
     loadSettings()
@@ -225,6 +232,7 @@ export default function Settings() {
                 type="button"
                 onClick={() => {
                   setSelectedBgColor(theme.key)
+                  setCustomBgColor(resolveHexForColorInput(theme.key))
                   applyThemeVars(theme.key)
                 }}
                 className={`rounded-xl border p-3 text-left transition ${selectedBgColor === theme.key ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}
