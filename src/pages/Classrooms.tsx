@@ -4,6 +4,23 @@ import { getClassrooms, createClassroom, deleteClassroom } from '../services/cla
 import { getTeachers } from '../services/teacherService'
 import { Plus, Trash2, AlertTriangle } from 'lucide-react'
 
+const classroomCardPalettes = [
+  { card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70', title: 'text-rose-900', meta: 'text-rose-800' },
+  { card: 'bg-gradient-to-br from-orange-100 to-amber-200 border-amber-300/70', title: 'text-amber-900', meta: 'text-amber-800' },
+  { card: 'bg-gradient-to-br from-lime-100 to-green-200 border-green-300/70', title: 'text-green-900', meta: 'text-green-800' },
+  { card: 'bg-gradient-to-br from-cyan-100 to-sky-200 border-sky-300/70', title: 'text-cyan-900', meta: 'text-cyan-800' },
+  { card: 'bg-gradient-to-br from-indigo-100 to-blue-200 border-indigo-300/70', title: 'text-indigo-900', meta: 'text-indigo-800' },
+  { card: 'bg-gradient-to-br from-violet-100 to-purple-200 border-violet-300/70', title: 'text-violet-900', meta: 'text-violet-800' },
+]
+
+const getClassroomPalette = (classroomKey: string) => {
+  let hash = 0
+  for (let i = 0; i < classroomKey.length; i += 1) {
+    hash = (hash * 31 + classroomKey.charCodeAt(i)) >>> 0
+  }
+  return classroomCardPalettes[hash % classroomCardPalettes.length]
+}
+
 export default function Classrooms() {
   const queryClient = useQueryClient()
   const { data: classrooms, isLoading } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
@@ -96,41 +113,71 @@ export default function Classrooms() {
       {isLoading ? (
         <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ระดับชั้น</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้อง</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษา</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {classrooms?.map(classroom => (
-                <tr key={classroom.id} className="hover:bg-indigo-50/40 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">{classroom.level}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{classroom.room}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button 
-                      onClick={() => setConfirmDeleteId(classroom.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
-                      title="ลบข้อมูล"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
+        <>
+          {/* Mobile Card View */}
+          <div className="block md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {classrooms?.map(classroom => {
+              const palette = getClassroomPalette(`${classroom.id}-${classroom.level}/${classroom.room}`)
+              return (
+                <div key={classroom.id} className={`p-5 rounded-2xl border shadow-sm flex justify-between items-start gap-4 ${palette.card}`}>
+                  <div className="flex flex-col gap-1">
+                    <div className={`font-bold text-xl ${palette.title}`}>{classroom.level}/{classroom.room}</div>
+                    <div className={`text-sm mt-1 font-medium ${palette.meta}`}>
+                      <span className="opacity-80">ที่ปรึกษา:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setConfirmDeleteId(classroom.id)}
+                    className="p-2.5 text-red-600 bg-white/60 hover:bg-white/90 rounded-xl transition-all shadow-sm flex-shrink-0"
+                    title="ลบข้อมูล"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              )
+            })}
+            {classrooms?.length === 0 && (
+              <div className="col-span-full px-6 py-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">ยังไม่มีข้อมูลห้องเรียนในระบบ</div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ระดับชั้น</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้อง</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษา</th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
                 </tr>
-              ))}
-              {classrooms?.length === 0 && (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {classrooms?.map(classroom => (
+                  <tr key={classroom.id} className="hover:bg-indigo-50/40 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">{classroom.level}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{classroom.room}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button 
+                        onClick={() => setConfirmDeleteId(classroom.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
+                        title="ลบข้อมูล"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {classrooms?.length === 0 && (
+                  <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Custom Confirm Delete Modal */}

@@ -431,7 +431,32 @@ export default function Homeroom() {
             <div className="p-10 text-center text-gray-500">กำลังโหลดรายชื่อ...</div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="block md:hidden divide-y divide-gray-100">
+                {paginatedStudents.map((student, index) => {
+                  const status = attendanceState[student.id] || 'PRESENT'
+                  const rowNumber = startIndex + index + 1
+                  const displayName = `${student.prefix ? `${student.prefix} ` : ''}${student.first_name} ${student.last_name}`
+                  return (
+                    <div key={student.id} className="p-4 bg-white hover:bg-gray-50 transition-colors">
+                      <div className="mb-3">
+                        <div className="font-semibold text-gray-800 text-lg">{rowNumber}. {displayName}</div>
+                        <div className="text-sm font-mono text-gray-500 mt-0.5">รหัส: {student.student_code}</div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={22} className="mb-1"/> มา</button>
+                        <button onClick={() => setStatus(student.id, 'LATE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={22} className="mb-1"/> สาย</button>
+                        <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={22} className="mb-1"/> ขาด</button>
+                        <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={22} className="mb-1"/> ลา</button>
+                      </div>
+                    </div>
+                  )
+                })}
+                {students?.length === 0 && <div className="p-12 text-center text-gray-500 bg-gray-50/50">ไม่พบนักเรียนในห้องนี้ โปรดตรวจสอบการจัดห้องเรียน</div>}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
@@ -453,10 +478,10 @@ export default function Homeroom() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{displayName}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex justify-center gap-2">
-                              <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'PRESENT' ? 'bg-green-500 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={16}/> มา</button>
-                              <button onClick={() => setStatus(student.id, 'LATE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LATE' ? 'bg-yellow-500 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={16}/> สาย</button>
-                              <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'ABSENT' ? 'bg-red-500 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={16}/> ขาด</button>
-                              <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LEAVE' ? 'bg-blue-500 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={16}/> ลา</button>
+                              <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={16}/> มา</button>
+                              <button onClick={() => setStatus(student.id, 'LATE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={16}/> สาย</button>
+                              <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={16}/> ขาด</button>
+                              <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={16}/> ลา</button>
                             </div>
                           </td>
                         </tr>

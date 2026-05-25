@@ -45,3 +45,9 @@ export const deleteTeacher = async (id: string) => {
   const { error } = await supabase.from('teachers').delete().eq('id', id)
   if (error) throw error
 }
+
+export const updateTeacher = async (id: string, updates: Partial<Omit<Teacher, 'id' | 'email'>>) => {
+  const { data, error } = await supabase.from('teachers').update(updates).eq('id', id).select().single()
+  if (error) throw error
+  return data as Teacher
+}
