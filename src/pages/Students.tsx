@@ -386,7 +386,7 @@ export default function Students() {
   const availableMembers = groupCandidates.filter((s) => !groupMemberIds.includes(s.id))
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div id="students-page-top" className="p-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลนักเรียน (Students)</h1>
         <button 
@@ -850,7 +850,9 @@ export default function Students() {
                                 nickname: student.nickname,
                                 classroom_id: student.classroom_id ?? ''
                               })
-                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                              setTimeout(() => {
+                                document.getElementById('students-page-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                              }, 50)
                             }}
                             className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
                             title="แก้ไขข้อมูล"

@@ -218,7 +218,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
+        <div id="main-scroll-container" className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
           {children}
         </div>
       </main>
