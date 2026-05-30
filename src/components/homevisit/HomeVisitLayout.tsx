@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
 import { Home, Users, LayoutDashboard, Menu, X, ArrowLeft, LogOut } from 'lucide-react'
 
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
@@ -22,7 +23,31 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
 export default function HomeVisitLayout({ children }: { children: React.ReactNode }) {
   const { user, role, signOut } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [teacherDisplayName, setTeacherDisplayName] = useState('')
+  const userDisplayName = role === 'ADMIN' ? 'แอดมิน' : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'))
+  
   const closeSidebar = () => setIsSidebarOpen(false)
+
+  useEffect(() => {
+    const loadTeacherName = async () => {
+      if (!user?.id || role === 'ADMIN') {
+        setTeacherDisplayName('')
+        return
+      }
+      const { data } = await supabase
+        .from('teachers')
+        .select('first_name, last_name')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (data) {
+        const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim()
+        setTeacherDisplayName(fullName)
+      } else {
+        setTeacherDisplayName('')
+      }
+    }
+    loadTeacherName()
+  }, [user?.id, role])
 
   return (
     <div className="flex h-screen overflow-hidden font-sans bg-gray-50">
@@ -36,7 +61,7 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
           <div>
             <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 tracking-tight">ระบบเยี่ยมบ้าน</h2>
-            <p className="text-xs text-gray-500 font-semibold mt-1 uppercase">Home Visit System</p>
+            <p className="text-xs text-gray-600 font-semibold mt-1">ยินดีต้อนรับ {userDisplayName}</p>
           </div>
           <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-colors">
             <X size={24} />

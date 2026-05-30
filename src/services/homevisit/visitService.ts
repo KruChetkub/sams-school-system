@@ -24,6 +24,7 @@ export interface HomeVisitAssessment {
   economic_status?: string;
   risk_level: 'NORMAL' | 'WATCH' | 'URGENT';
   notes?: string;
+  form_data?: any;
 }
 
 export interface HomeVisitPhoto {

@@ -133,7 +133,7 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
         const visit = visits.find(v => v.id === visitId);
         if (visit) {
           const currentDist = visit.distance_to_school ? visit.distance_to_school.toFixed(1) : null;
-          if (currentDist !== distanceKmStr) {
+          if (currentDist !== distanceKmStr && !visitId.startsWith('preview_')) {
             updateHomeVisit(visitId, { distance_to_school: parseFloat(distanceKmStr) })
               .then(() => {
                 if (onDistanceUpdated) onDistanceUpdated();
