@@ -40,6 +40,7 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        maximumFileSizeToCacheInBytes: 5242880, // Increase limit to 5MB
       },
     }),
   ],
