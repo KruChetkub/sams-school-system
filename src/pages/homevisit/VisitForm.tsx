@@ -1187,12 +1187,12 @@ export default function VisitForm() {
           
           <ReportPrintView
             visit={existingData?.visit || {
-              id: visitId || 'new_visit_preview',
+              id: existingVisitId || 'new_visit_preview',
               student_id: student?.id,
-              visit_date: visitDate,
+              visit_date: `${parseInt(bYear) - 543}-${bMonth.padStart(2, '0')}-${bDay.padStart(2, '0')}`,
               status: 'visited',
-              latitude: location?.lat,
-              longitude: location?.lng,
+              latitude: latitude || undefined,
+              longitude: longitude || undefined,
             } as any}
             student={student}
             assessment={existingData?.assessment || null}

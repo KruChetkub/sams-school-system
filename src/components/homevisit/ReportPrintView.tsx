@@ -98,6 +98,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           table td:first-child { text-align: left; font-weight: 500; }
           
           .section { margin-top: 8px; }
+          .sub-section { padding-left: 4.5mm; }
           .section-title { font-weight: bold; font-size: 14.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; pb: 2px; }
           .row { display: flex; flex-wrap: wrap; gap: 12px; margin: 4px 0; }
           .column-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 15px; }
@@ -124,12 +125,12 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           )}
         </div>
 
-        <div className="header" style={{ marginRight: '32mm' }}>
+        <div className="header" style={{ marginRight: '5mm' }}>
           <h1>บันทึกการเยี่ยมบ้าน</h1>
           <h2>โรงเรียนเชียงของวิทยาคม อำเภอเชียงของ จังหวัดเชียงราย</h2>
         </div>
 
-        <div className="section" style={{ marginTop: '25px' }}>
+        <div className="section" style={{ marginTop: '18px' }}>
           <b>คำชี้แจงการตอบแบบสอบถาม</b>
           <ul style={{ margin: '5px 0 15px', paddingLeft: '20px', fontSize: '13px', color: '#475569' }}>
             <li>หากเป็นตัวเลือก ○ หมายถึง ให้ตอบเพียงข้อเดียว</li>
@@ -176,7 +177,8 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
 
         <div className="section">
           <div className="section-title">3. ความสัมพันธ์ในครอบครัว</div>
-          <div className="line">
+          <div className="sub-section">
+            <div className="line">
             3.1 สมาชิกในครอบครัวมีเวลาอยู่ร่วมกันเฉลี่ยวันละ <span className="dotted short" style={{ textAlign: 'center' }}>{fd.time_together_hours || '...'}</span> ชั่วโมง / วัน
           </div>
 
@@ -207,9 +209,10 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
-        <div className="section" style={{ marginTop: '12px' }}>
+        <div className="section sub-section" style={{ marginTop: '12px' }}>
           <b>3.3 กรณีผู้ปกครองไม่อยู่บ้านฝากนักเรียนอาศัยอยู่กับใคร (ตอบเพียง 1 ข้อ)</b>
           <div className="row" style={{ marginTop: '4px' }}>
             <div><span className="rb">{fd.left_with === 'ญาติ' ? '✓' : ''}</span> ญาติ</div>
@@ -219,7 +222,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section" style={{ marginTop: '12px' }}>
+        <div className="section sub-section" style={{ marginTop: '12px' }}>
           <div className="line">
             <b>3.4 รายได้ครัวเรือนเฉลี่ยต่อคน(รวมรายได้ครัวเรือน หารด้วยจำนวนสมาชิกทั้งหมด)</b>
             <span className="dotted">{fd.household_income_per_person || '......................................................'}</span> บาท / เดือน
@@ -230,7 +233,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section" style={{ marginTop: '12px' }}>
+        <div className="section sub-section" style={{ marginTop: '12px' }}>
           <b>3.6 สิ่งที่ผู้ปกครองต้องการให้โรงเรียนช่วยเหลือนักเรียน (เลือกได้มากกว่า 1 ข้อ)</b>
           <div className="row" style={{ marginTop: '4px' }}>
             <div><span className="cb">{fd.school_help_needs?.includes('ด้านการเรียน') ? '✓' : ''}</span> ด้านการเรียน</div>
@@ -240,7 +243,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section" style={{ marginTop: '12px' }}>
+        <div className="section sub-section" style={{ marginTop: '12px' }}>
           <b>3.7 ความช่วยเหลือที่เคยได้รับจากหน่วยงานหรือต้องการได้รับการช่วยเหลือ (เลือกได้มากกว่า 1 ข้อ)</b>
           <div className="row" style={{ marginTop: '4px' }}>
             <div><span className="cb">{fd.help_received?.includes('เบี้ยผู้สูงอายุ') ? '✓' : ''}</span> เบี้ยผู้สูงอายุ</div>
@@ -249,7 +252,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>3.8 ข้อห่วงใยของผู้ปกครองที่มีต่อนักเรียน</b>
           <div style={{ marginTop: '5px' }}>
             <div className="multiline" style={{ paddingLeft: '8px', color: '#1e293b' }}>{fd.parent_concerns?.substring(0, 100) || ''}</div>
@@ -258,15 +261,17 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
 
         <div className="section">
           <div className="section-title">4. พฤติกรรมและความเสี่ยง</div>
-          <b>4.1 ด้านสุขภาพ</b>
-          <div className="row">
-            <div><span className="cb">{fd.health_issues?.includes('ร่างกายไม่แข็งแรง') ? '✓' : ''}</span> ร่างกายไม่แข็งแรง</div>
-            <div><span className="cb">{fd.health_issues?.includes('มีโรคประจำตัว') || fd.health_issues?.includes('มีโรคประจำตัวหรือเจ็บป่วยบ่อย') ? '✓' : ''}</span> มีโรคประจำตัว</div>
-            <div><span className="cb">{fd.health_issues?.includes('มีภาวะทุพโภชนาการ') ? '✓' : ''}</span> มีภาวะทุพโภชนาการ</div>
+          <div className="sub-section">
+            <b>4.1 ด้านสุขภาพ</b>
+            <div className="row">
+              <div><span className="cb">{fd.health_issues?.includes('ร่างกายไม่แข็งแรง') ? '✓' : ''}</span> ร่างกายไม่แข็งแรง</div>
+              <div><span className="cb">{fd.health_issues?.includes('มีโรคประจำตัว') || fd.health_issues?.includes('มีโรคประจำตัวหรือเจ็บป่วยบ่อย') ? '✓' : ''}</span> มีโรคประจำตัว</div>
+              <div><span className="cb">{fd.health_issues?.includes('มีภาวะทุพโภชนาการ') ? '✓' : ''}</span> มีภาวะทุพโภชนาการ</div>
+            </div>
           </div>
         </div>
 
-        <div className="section" style={{ marginTop: '8px' }}>
+        <div className="section sub-section" style={{ marginTop: '8px' }}>
           <b>4.2 สวัสดิการหรือความปลอดภัย</b>
           <div className="column-2" style={{ marginTop: '4px', fontSize: '12.5px' }}>
             <div><span className="cb">{fd.welfare_safety?.includes('พ่อแม่แยกทางกัน หรือแต่งงานใหม่') ? '✓' : ''}</span> พ่อแม่แยกทาง/แต่งงานใหม่</div>
@@ -291,7 +296,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           <hr style={{ margin: '8px 0 15px' }} />
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.3 ระยะทางระหว่างบ้านไปโรงเรียนและการเดินทาง</b>
           <div className="line" style={{ marginTop: '5px' }}>
             ระยะทางประมาณ <span className="dotted short" style={{ textAlign: 'center' }}>{fd.commute_distance_km || ''}</span> กิโลเมตร
@@ -309,7 +314,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.4 สภาพที่อยู่อาศัย</b>
           <div className="column-2" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.housing_condition?.includes('สภาพบ้านทรุดโทรมหรือทำจากวัสดุพื้นบ้าน') || fd.housing_condition?.includes('สภาพบ้านชำรุดทรุดโทรม') ? '✓' : ''}</span> สภาพบ้านทรุดโทรมชำรุด</div>
@@ -317,7 +322,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.5 ภาระงานความรับผิดชอบของนักเรียน</b>
           <div className="column-2" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.responsibilities?.includes('ช่วยงานบ้าน') ? '✓' : ''}</span> ช่วยงานบ้าน</div>
@@ -329,7 +334,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.6 กิจกรรมยามว่างหรืองานอดิเรก</b>
           <div className="column-3" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.hobbies?.includes('ดูทีวี/ฟังเพลง') || fd.hobbies?.includes('ดูทีวี / ฟังเพลง') ? '✓' : ''}</span> ดูทีวี/ฟังเพลง</div>
@@ -343,7 +348,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.7 พฤติกรรมการใช้สารเสพติด</b>
           <div className="column-2" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.substance_abuse?.includes('คบเพื่อนกลุ่มใช้สารเสพติด') || fd.substance_abuse?.includes('คบเพื่อนใช้สารเสพติด') ? '✓' : ''}</span> คบเพื่อนกลุ่มใช้สารเสพติด</div>
@@ -354,7 +359,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.8 พฤติกรรมการใช้ความรุนแรง</b>
           <div className="column-3" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.violence?.includes('มีการทะเลาะวิวาท') ? '✓' : ''}</span> ทะเลาะวิวาท</div>
@@ -365,7 +370,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.9 พฤติกรรมทางเพศ</b>
           <div className="column-3" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.sexual_behavior?.includes('อยู่ในกลุ่มขายบริการ') ? '✓' : ''}</span> กลุ่มขายบริการ</div>
@@ -377,7 +382,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.10 การติดเกมส์</b>
           <div className="column-3" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.gaming_addiction?.includes('เล่นเกมเกินวันละ 1 ชั่วโมง') ? '✓' : ''}</span> เล่นเกมเกิน 1 ชม/วัน</div>
@@ -389,7 +394,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.11 การเข้าถึงสื่อคอมพิวเตอร์และอินเทอร์เน็ตที่บ้าน</b>
           <div className="row" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.internet_access === 'สามารถเข้า Internet ได้จากที่บ้าน' || fd.internet_access === 'สามารถเข้าถึง Internet ได้จากที่บ้าน' || fd.internet_access === 'สามารถเข้าถึงได้' ? '✓' : ''}</span> สามารถเข้า Internet ได้จากที่บ้าน</div>
@@ -397,7 +402,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           </div>
         </div>
 
-        <div className="section">
+        <div className="section sub-section">
           <b>4.12 การใช้เครื่องมือสื่อสารอิเล็กทรอนิกส์</b>
           <div className="column-2" style={{ marginTop: '5px' }}>
             <div><span className="cb">{fd.device_usage?.includes('เคยใช้โทรศัพท์ในระหว่างเรียน') || fd.device_usage?.includes('เคยใช้โทรศัพท์มือถือระหว่างเรียน') ? '✓' : ''}</span> เคยใช้โทรศัพท์ในระหว่างเรียน</div>
