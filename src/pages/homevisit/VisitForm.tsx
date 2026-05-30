@@ -8,11 +8,11 @@ import { useQuery } from '@tanstack/react-query';
 import ReportPrintView from '../../components/homevisit/ReportPrintView';
 
 export default function VisitForm() {
-  const { id: studentId } = useParams<{ id: string }>();
+  const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const { user, role } = useAuthStore();
   
-  const { data: students } = useQuery({ queryKey: ['students'], queryFn: getStudents });
+  const { data: students, isLoading: isLoadingStudents, isError: isErrorStudents } = useQuery({ queryKey: ['students'], queryFn: getStudents });
   const student = students?.find(s => s.id === studentId);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -200,7 +200,9 @@ export default function VisitForm() {
     }
   };
 
-  if (!student || isLoadingExisting) return <div className="p-8 text-center text-gray-500">กำลังโหลดข้อมูล...</div>;
+  if (!students || isLoadingExisting) return <div className="p-8 text-center text-gray-500">กำลังโหลดข้อมูล...</div>;
+  if (isErrorStudents) return <div className="p-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูลรายชื่อนักเรียน</div>;
+  if (!student) return <div className="p-8 text-center text-gray-500">ไม่พบข้อมูลนักเรียน</div>;
 
   return (
     <div className="max-w-3xl mx-auto pb-12">
