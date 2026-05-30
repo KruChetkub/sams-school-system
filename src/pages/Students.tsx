@@ -828,7 +828,17 @@ export default function Students() {
                       <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">{student.first_name} {student.last_name} {student.nickname && <span className="text-gray-400 font-normal">({student.nickname})</span>}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">
+                          {student.first_name} {student.last_name} {student.nickname && <span className="text-gray-400 font-normal">({student.nickname})</span>}
+                          {(() => {
+                            const visit = student.home_visits?.[0];
+                            if (visit?.status !== 'COMPLETED') return null;
+                            const risk = visit.home_visit_assessments?.[0]?.risk_level;
+                            if (risk === 'WATCH') return <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" title="กลุ่มเฝ้าระวัง (เยี่ยมบ้าน)"><AlertTriangle size={12} className="mr-1" /> เฝ้าระวัง</span>;
+                            if (risk === 'URGENT') return <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800" title="กลุ่มช่วยเหลือเร่งด่วน (เยี่ยมบ้าน)"><AlertTriangle size={12} className="mr-1" /> เร่งด่วน</span>;
+                            return null;
+                          })()}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
                           {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
                           {subjectLabels.length > 0 && (

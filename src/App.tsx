@@ -18,7 +18,12 @@ import LeaveRequests from './pages/LeaveRequests'
 import ParentDashboard from './pages/ParentDashboard'
 import AppSettings from './pages/Settings' // Renamed import to avoid conflict with lucide Settings icon
 import Reports from './pages/Reports'
-import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart } from 'lucide-react'
+import Portal from './pages/portal/Portal'
+import HomeVisitDashboard from './pages/homevisit/Dashboard'
+import HomeVisitStudents from './pages/homevisit/StudentsList'
+import HomeVisitForm from './pages/homevisit/VisitForm'
+import HomeVisitLayout from './components/homevisit/HomeVisitLayout'
+import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart, AppWindow } from 'lucide-react'
 
 // NavItem Component to handle active state and auto-close
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
@@ -193,6 +198,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <p className="text-sm font-bold text-gray-800 truncate">{user?.email}</p>
             <p className="text-xs text-blue-600 font-semibold mt-1 capitalize">{role?.toLowerCase() || 'Loading...'}</p>
           </div>
+          <Link 
+            to="/portal"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 rounded-xl transition-all shadow-sm"
+          >
+            <AppWindow size={18} /> สลับแอปพลิเคชัน
+          </Link>
           <button 
             onClick={() => setShowLogoutModal(true)} 
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all shadow-sm"
@@ -287,7 +298,12 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to="/portal" />} />
+        
+        <Route path="/portal" element={user ? <Portal /> : <Navigate to="/login" />} />
+        <Route path="/homevisit/dashboard" element={user ? <HomeVisitLayout><HomeVisitDashboard /></HomeVisitLayout> : <Navigate to="/login" />} />
+        <Route path="/homevisit/students" element={user ? <HomeVisitLayout><HomeVisitStudents /></HomeVisitLayout> : <Navigate to="/login" />} />
+        <Route path="/homevisit/visit/:studentId" element={user ? <HomeVisitLayout><HomeVisitForm /></HomeVisitLayout> : <Navigate to="/login" />} />
         
         {/* Protected Routes */}
         <Route path="/" element={user ? <DashboardLayout><Dashboard /></DashboardLayout> : <Navigate to="/login" />} />

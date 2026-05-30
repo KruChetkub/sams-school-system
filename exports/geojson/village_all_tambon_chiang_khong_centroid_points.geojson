@@ -1,0 +1,1542 @@
+﻿{
+    "type":  "FeatureCollection",
+    "name":  "village_all_tambon_chiang_khong_centroid_points",
+    "features":  [
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "80",
+                                            "name_th":  "บ้านหาดบ้าย",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120080",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "82",
+                                            "name_th":  "บ้านดอนที่",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120082",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "92",
+                                            "name_th":  "บ้านสองพี่น้อง",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120092",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "101",
+                                            "name_th":  "บ้านเมืองกาญจน์",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120101",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "131",
+                                            "name_th":  "บ้านใหม่เจริญ",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120131",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "232",
+                                            "name_th":  "บ้านห้วยเม็ง",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120232",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "259",
+                                            "name_th":  "บ้านเชียงคาน",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120259",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "275",
+                                            "name_th":  "บ้านทุ่งนาน้อย",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120275",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "304",
+                                            "name_th":  "บ้านหัวเวียง",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120304",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "313",
+                                            "name_th":  "บ้านในเวียง",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120313",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "325",
+                                            "name_th":  "บ้านทุ่งทราย",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120325",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "339",
+                                            "name_th":  "บ้านสบสม",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120339",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "357",
+                                            "name_th":  "บ้านทุ่งดุก",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120357",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "358",
+                                            "name_th":  "บ้านหาดไคร้",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120358",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "360",
+                                            "name_th":  "บ้านโจ้โก้",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120360",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "384",
+                                            "name_th":  "บ้านห้วยเดื่อ (ห้วยข่อยหล่อย)",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120384",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36947435588276,
+                                                              20.265417477389995
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "419",
+                                            "name_th":  "บ้านดอนมหาวัน",
+                                            "type":  "v",
+                                            "adm_id":  "4120201",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "เวียง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120419",
+                                            "tambon_pcode":  "TH570301",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "430",
+                                            "name_th":  "บ้านแฟน",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120430",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "431",
+                                            "name_th":  "บ้านใหม่ทุ่งหมด",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120431",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "471",
+                                            "name_th":  "บ้านสถาน",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120471",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "482",
+                                            "name_th":  "บ้านปากอิงใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120482",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "483",
+                                            "name_th":  "บ้านน้ำม้า",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120483",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "487",
+                                            "name_th":  "บ้านน้ำม้าใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120487",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "496",
+                                            "name_th":  "บ้านเต๋น",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120496",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "512",
+                                            "name_th":  "บ้านศรีดอนมูล",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120512",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.36243935183759,
+                                                              20.202957249954867
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "535",
+                                            "name_th":  "บ้านทุ่งอ่าง",
+                                            "type":  "v",
+                                            "adm_id":  "4120206",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "สถาน",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120535",
+                                            "tambon_pcode":  "TH570302",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "578",
+                                            "name_th":  "บ้านทุ่งงิ้ว",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120578",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "588",
+                                            "name_th":  "บ้านทุ่งซาง",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120588",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "614",
+                                            "name_th":  "บ้านศรีชัยมงคล",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120614",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "627",
+                                            "name_th":  "บ้านใหม่เจดีย์",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120627",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "635",
+                                            "name_th":  "บ้านเขียะ",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120635",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "644",
+                                            "name_th":  "บ้านศรีดอนชัย",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120644",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "645",
+                                            "name_th":  "บ้านดงหลวง",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120645",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "652",
+                                            "name_th":  "บ้านท่าเจริญ",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120652",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "653",
+                                            "name_th":  "บ้านลุง",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120653",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "664",
+                                            "name_th":  "บ้านม่วงเจ็ดต้น",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120664",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "670",
+                                            "name_th":  "บ้านเวียงทอง",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120670",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "681",
+                                            "name_th":  "บ้านหวาย",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120681",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.38076522441644,
+                                                              20.1421918671732
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "689",
+                                            "name_th":  "บ้านร่องห้า",
+                                            "type":  "v",
+                                            "adm_id":  "4120208",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ศรีดอนชัย",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120689",
+                                            "tambon_pcode":  "TH570308",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "705",
+                                            "name_th":  "บ้านตอง",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120705",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "713",
+                                            "name_th":  "บ้านศรีวิไล",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120713",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "735",
+                                            "name_th":  "บ้านเวียงหมอก",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120735",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "742",
+                                            "name_th":  "บ้านม่วงชุม",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120742",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "790",
+                                            "name_th":  "บ้านพร้าวกุด",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120790",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "795",
+                                            "name_th":  "บ้านเกี๋ยงเหนือ",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120795",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "797",
+                                            "name_th":  "บ้านเนินสมบูรณ์",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120797",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "804",
+                                            "name_th":  "บ้านเกี๋ยงใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120804",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "824",
+                                            "name_th":  "บ้านแก่นเหนือ",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120824",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "835",
+                                            "name_th":  "บ้านหลวง",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120835",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "840",
+                                            "name_th":  "บ้านหลวงใหม่พัฒนา",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120840",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "844",
+                                            "name_th":  "บ้านแก่นใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120844",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "847",
+                                            "name_th":  "บ้านครึ่งใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120847",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "856",
+                                            "name_th":  "บ้านครึ่งเหนือ",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120856",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.40217913694191,
+                                                              20.059571742798045
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "877",
+                                            "name_th":  "บ้านส้าน",
+                                            "type":  "v",
+                                            "adm_id":  "4120202",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ครึ่ง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120877",
+                                            "tambon_pcode":  "TH570303",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "889",
+                                            "name_th":  "บ้านซาววา",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120889",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "898",
+                                            "name_th":  "บ้านใหม่ดอนแก้ว",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120898",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "903",
+                                            "name_th":  "บ้านซ้อใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120903",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "909",
+                                            "name_th":  "บ้านต้นปล้องใต้",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120909",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "911",
+                                            "name_th":  "บ้านป่าเคาะ",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120911",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "913",
+                                            "name_th":  "บ้านหก",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120913",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "946",
+                                            "name_th":  "บ้านบุญเรืองเหนือ",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120946",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "969",
+                                            "name_th":  "บ้านต้นปล้อง",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4120969",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.34702597535578,
+                                                              19.989334055569195
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "1019",
+                                            "name_th":  "บ้านแตนเมือง",
+                                            "type":  "v",
+                                            "adm_id":  "4120203",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "บุญเรือง",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4121019",
+                                            "tambon_pcode":  "TH570304",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     },
+                     {
+                         "type":  "Feature",
+                         "geometry":  {
+                                          "type":  "Point",
+                                          "coordinates":  [
+                                                              100.28469139456406,
+                                                              20.061076768709956
+                                                          ]
+                                      },
+                         "properties":  {
+                                            "vill_id":  "1027",
+                                            "name_th":  "บ้านใหม่ทุ่งก่อ",
+                                            "type":  "v",
+                                            "adm_id":  "4120207",
+                                            "amp_id":  "41202",
+                                            "prv_id":  "412",
+                                            "tambon_th":  "ห้วยซ้อ",
+                                            "amphoe_th":  "เชียงของ",
+                                            "province_th":  "เชียงราย",
+                                            "main_id":  "4121027",
+                                            "tambon_pcode":  "TH570305",
+                                            "source":  "TH_VILLAGE2012 + tambon_centroid"
+                                        }
+                     }
+                 ]
+}

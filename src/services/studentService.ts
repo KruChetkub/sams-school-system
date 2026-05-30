@@ -14,6 +14,11 @@ export interface Student {
     level: string
     room: string
   }
+  home_visits?: {
+    id: string
+    status: string
+    home_visit_assessments?: { risk_level: string }[]
+  }[]
 }
 
 export const getStudents = async () => {
@@ -21,7 +26,11 @@ export const getStudents = async () => {
     .from('students')
     .select(`
       id, student_code, prefix, first_name, last_name, nickname, classroom_id,
-      classroom:classroom_id (level, room)
+      classroom:classroom_id (level, room),
+      home_visits (
+        id, status,
+        home_visit_assessments ( risk_level )
+      )
     `)
     .is('deleted_at', null)
     .order('student_code')

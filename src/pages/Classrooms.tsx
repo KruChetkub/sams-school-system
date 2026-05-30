@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getClassrooms, createClassroom, deleteClassroom } from '../services/classroomService'
+import { getClassrooms, createClassroom, updateClassroom, deleteClassroom } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
-import { Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react'
 
 const classroomCardPalettes = [
   { card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70', title: 'text-rose-900', meta: 'text-rose-800' },
@@ -27,12 +27,38 @@ export default function Classrooms() {
   const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)
+  const topRef = useRef<HTMLDivElement | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     level: '',
     room: '',
-    advisor_id: ''
+    advisor_id: '',
+    subject_teacher_id: ''
   })
+
+  const openAddForm = () => {
+    setEditId(null)
+    setFormData({ level: '', room: '', advisor_id: '', subject_teacher_id: '' })
+    setShowForm(true)
+    setTimeout(() => {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  const openEditForm = (classroom: any) => {
+    setEditId(classroom.id)
+    setFormData({ 
+      level: classroom.level, 
+      room: classroom.room, 
+      advisor_id: classroom.advisor_id || '',
+      subject_teacher_id: classroom.subject_teacher_id || ''
+    })
+    setShowForm(true)
+    setTimeout(() => {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
 
   const createMutation = useMutation({
     mutationFn: createClassroom,
@@ -51,14 +77,29 @@ export default function Classrooms() {
     }
   })
 
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: string, payload: any }) => updateClassroom(data.id, data.payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] })
+      setShowForm(false)
+      setEditId(null)
+    }
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const payload = {
       level: formData.level,
       room: formData.room,
-      ...(formData.advisor_id ? { advisor_id: formData.advisor_id } : {})
+      advisor_id: formData.advisor_id || '',
+      subject_teacher_id: formData.subject_teacher_id || ''
     }
-    createMutation.mutate(payload)
+
+    if (editId) {
+      updateMutation.mutate({ id: editId, payload })
+    } else {
+      createMutation.mutate(payload)
+    }
   }
 
   // หาชื่อห้องที่กำลังจะลบ
@@ -68,11 +109,11 @@ export default function Classrooms() {
     : ''
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div ref={topRef} className="p-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการห้องเรียน (Classrooms)</h1>
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={openAddForm}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm"
         >
           <Plus size={20} /> เพิ่มห้องเรียน
@@ -102,10 +143,25 @@ export default function Classrooms() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">ครูประจำวิชา</label>
+            <select 
+              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
+              value={formData.subject_teacher_id}
+              onChange={e => setFormData({...formData, subject_teacher_id: e.target.value})}
+            >
+              <option value="">-- ไม่ระบุ --</option>
+              {teachers?.map(t => (
+                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+              ))}
+            </select>
+          </div>
           
           <div className="col-span-1 md:col-span-3 flex justify-end gap-3 mt-4">
             <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm">บันทึก</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm">
+              {editId ? 'บันทึกการแก้ไข' : 'เพิ่มห้องเรียน'}
+            </button>
           </div>
         </form>
       )}
@@ -123,16 +179,26 @@ export default function Classrooms() {
                   <div className="flex flex-col gap-1">
                     <div className={`font-bold text-xl ${palette.title}`}>{classroom.level}/{classroom.room}</div>
                     <div className={`text-sm mt-1 font-medium ${palette.meta}`}>
-                      <span className="opacity-80">ที่ปรึกษา:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
+                      <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษา:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}</div>
+                      <div><span className="opacity-80">ประจำวิชา:</span> {classroom.subject_teacher ? `${classroom.subject_teacher.first_name} ${classroom.subject_teacher.last_name}` : '-'}</div>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setConfirmDeleteId(classroom.id)}
-                    className="p-2.5 text-red-600 bg-white/60 hover:bg-white/90 rounded-xl transition-all shadow-sm flex-shrink-0"
-                    title="ลบข้อมูล"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => openEditForm(classroom)}
+                      className="p-2.5 text-indigo-600 bg-white/60 hover:bg-white/90 rounded-xl transition-all shadow-sm flex-shrink-0"
+                      title="แก้ไขห้องเรียนและครูที่ปรึกษา"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setConfirmDeleteId(classroom.id)}
+                      className="p-2.5 text-red-600 bg-white/60 hover:bg-white/90 rounded-xl transition-all shadow-sm flex-shrink-0"
+                      title="ลบข้อมูล"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -149,6 +215,7 @@ export default function Classrooms() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ระดับชั้น</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้อง</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษา</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูประจำวิชา</th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
                 </tr>
               </thead>
@@ -160,14 +227,26 @@ export default function Classrooms() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {classroom.subject_teacher ? `${classroom.subject_teacher.first_name} ${classroom.subject_teacher.last_name}` : '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button 
-                        onClick={() => setConfirmDeleteId(classroom.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
-                        title="ลบข้อมูล"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button 
+                          onClick={() => openEditForm(classroom)}
+                          className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors inline-flex justify-center"
+                          title="แก้ไขห้องเรียนและครูที่ปรึกษา"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setConfirmDeleteId(classroom.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
+                          title="ลบข้อมูล"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
