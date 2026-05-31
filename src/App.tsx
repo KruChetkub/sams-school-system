@@ -31,8 +31,8 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
   const location = useLocation();
   const isActive = location.pathname === to;
   return (
-    <Link 
-      to={to} 
+    <Link
+      to={to}
       onClick={onClick}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-50 text-blue-700 font-semibold shadow-sm border border-blue-100' : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600 font-medium'}`}
     >
@@ -103,15 +103,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-2">ออกจากระบบ</h3>
               <p className="text-gray-600 font-medium mb-8">คุณต้องการออกจากระบบใช่หรือไม่?</p>
-              
+
               <div className="flex w-full gap-3">
-                <button 
+                <button
                   onClick={() => setShowLogoutModal(false)}
                   className="flex-1 bg-white border-2 border-gray-100 text-gray-600 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap min-w-fit"
                 >
                   <X size={18} strokeWidth={3} className="flex-shrink-0" /> ยกเลิก
                 </button>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="flex-1 bg-[#ea3b3b] text-white font-bold py-3 px-4 rounded-xl hover:bg-[#d42d2d] transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap min-w-fit"
                 >
@@ -125,7 +125,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={closeSidebar}
         />
@@ -153,7 +153,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <NavItem to="/" icon={Home} onClick={closeSidebar}>หน้าหลัก</NavItem>
-          
+
           {/* เมนูใช้งานรายวัน (สำหรับครูและแอดมิน) */}
           {(role === 'ADMIN' || role === 'TEACHER') && (
             <>
@@ -199,14 +199,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <p className="text-sm font-bold text-gray-800 truncate">{user?.email}</p>
             <p className="text-xs text-blue-600 font-semibold mt-1 capitalize">{role?.toLowerCase() || 'Loading...'}</p>
           </div>
-          <Link 
+          <Link
             to="/portal"
             className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 rounded-xl transition-all shadow-sm"
           >
             <AppWindow size={18} /> สลับแอปพลิเคชัน
           </Link>
-          <button 
-            onClick={() => setShowLogoutModal(true)} 
+          <button
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all shadow-sm"
           >
             <LogOut size={18} /> ออกจากระบบ
@@ -219,8 +219,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Mobile Header */}
         <header className="lg:hidden bg-white shadow-sm border-b border-gray-100 p-4 flex items-center justify-between z-30 shrink-0">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(true)} 
+            <button
+              onClick={() => setIsSidebarOpen(true)}
               className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
             >
               <Menu size={26} />
@@ -228,7 +228,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">SAMS</h2>
           </div>
         </header>
-        
+
         {/* Scrollable Content */}
         <div id="main-scroll-container" className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--app-bg, #f3f4f6)' }}>
           {children}
@@ -315,12 +315,12 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/portal" />} />
-        
+
         <Route path="/portal" element={user ? <Portal /> : <Navigate to="/login" />} />
         <Route path="/homevisit/dashboard" element={user ? <HomeVisitLayout><HomeVisitDashboard /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/students" element={user ? <HomeVisitLayout><HomeVisitStudents /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/visit/:studentId" element={user ? <HomeVisitLayout><HomeVisitForm /></HomeVisitLayout> : <Navigate to="/login" />} />
-        
+
         {/* Protected Routes */}
         <Route path="/" element={user ? <DashboardLayout><Dashboard /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/teachers" element={user ? <DashboardLayout><Teachers /></DashboardLayout> : <Navigate to="/login" />} />
@@ -336,7 +336,7 @@ function App() {
         <Route path="/leaves" element={user ? <DashboardLayout><LeaveRequests /></DashboardLayout> : <Navigate to="/login" />} />
 
         <Route path="/settings" element={user ? <DashboardLayout><AppSettings /></DashboardLayout> : <Navigate to="/login" />} />
-        
+
         <Route path="/*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

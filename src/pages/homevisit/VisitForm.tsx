@@ -190,6 +190,7 @@ export default function VisitForm() {
   const [showGpsConfirmModal, setShowGpsConfirmModal] = useState(false);
   const [gpsErrorModal, setGpsErrorModal] = useState({ show: false, message: '' });
   const [saveErrorModal, setSaveErrorModal] = useState({ show: false, message: '' });
+  const [activeMobileMember, setActiveMobileMember] = useState<string | null>(null); // Mobile relationship selector
 
   const [activeTab, setActiveTab] = useState(1);
 
@@ -203,7 +204,7 @@ export default function VisitForm() {
   const [photoExteriorPreview, setPhotoExteriorPreview] = useState<string | null>(null);
   const [photoInteriorFile, setPhotoInteriorFile] = useState<File | null>(null);
   const [photoInteriorPreview, setPhotoInteriorPreview] = useState<string | null>(null);
-  
+
   const [studentPhotoFile, setStudentPhotoFile] = useState<File | null>(null);
   const [studentPhotoPreview, setStudentPhotoPreview] = useState<string | null>(null);
 
@@ -219,7 +220,7 @@ export default function VisitForm() {
     setStudentPhotoFile(null);
     setStudentPhotoPreview(null);
   };
-  
+
   // Signature
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [teacherSignatureDataUrl, setTeacherSignatureDataUrl] = useState<string | null>(null);
@@ -262,32 +263,32 @@ export default function VisitForm() {
     queryKey: ['classroom_advisor_profile', student?.classroom_id],
     queryFn: async () => {
       if (!student?.classroom_id) return null;
-      
+
       // 1. ดึง advisor_id จากตาราง classrooms
       const { data: classroomData, error: classroomError } = await supabase
         .from('classrooms')
         .select('advisor_id')
         .eq('id', student.classroom_id)
         .maybeSingle();
-      
+
       if (classroomError) throw classroomError;
       if (!classroomData?.advisor_id) return null;
-      
+
       // 2. ดึงข้อมูลของครูประจำชั้นคนนั้น
       const { data: teacherData, error: teacherError } = await supabase
         .from('teachers')
         .select('first_name, last_name')
         .eq('user_id', classroomData.advisor_id)
         .maybeSingle();
-        
+
       if (teacherError) throw teacherError;
       return teacherData;
     },
     enabled: !!student?.classroom_id
   });
 
-  const advisorFullName = advisorProfile 
-    ? `${advisorProfile.first_name || ''} ${advisorProfile.last_name || ''}`.trim() 
+  const advisorFullName = advisorProfile
+    ? `${advisorProfile.first_name || ''} ${advisorProfile.last_name || ''}`.trim()
     : '';
 
   // ดึงโปรไฟล์ของครูที่กำลังเข้าใช้งานระบบอยู่ขณะนี้ (Logged-in Teacher)
@@ -306,8 +307,8 @@ export default function VisitForm() {
     enabled: !!user?.id
   });
 
-  const currentUserFullName = role === 'ADMIN' ? 'แอดมิน' : (currentUserProfile 
-    ? `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim() 
+  const currentUserFullName = role === 'ADMIN' ? 'แอดมิน' : (currentUserProfile
+    ? `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim()
     : '');
 
   useEffect(() => {
@@ -415,11 +416,11 @@ export default function VisitForm() {
 
   const dataURLtoFile = (dataurl: string, filename: string) => {
     let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)![1],
-        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-    while(n--){
-        u8arr[n] = bstr.charCodeAt(n);
+      bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
     }
-    return new File([u8arr], filename, {type:mime});
+    return new File([u8arr], filename, { type: mime });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -502,7 +503,7 @@ export default function VisitForm() {
     try {
       const dataUrl = await toJpeg(mapContainerRef.current, { quality: 0.8 });
       setMapPhotoPreview(dataUrl);
-      
+
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], 'map_screenshot.jpg', { type: 'image/jpeg' });
@@ -611,23 +612,23 @@ export default function VisitForm() {
             <hr className="my-6 border-gray-100" />
 
             <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><MapPin className="text-emerald-500 w-4 h-4" /> พิกัดที่อยู่อาศัย (GPS)</h4>
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
               <button
                 type="button"
                 onClick={handleGetLocation}
                 disabled={gpsLoading}
-                className="bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-100 transition-colors"
+                className="w-full sm:w-auto bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors shrink-0"
               >
                 {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
                 กดเพื่อดึงพิกัดปัจจุบัน
               </button>
               {latitude && longitude && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
+                <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-center sm:text-left block w-full sm:w-auto break-words whitespace-normal">
                     Lat: {latitude.toFixed(6)}, Lng: {longitude.toFixed(6)}
                   </span>
                   {distanceToSchoolAuto && (
-                    <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 inline-block w-max">
+                    <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 block w-full sm:w-max max-w-full text-center sm:text-left break-words whitespace-normal">
                       ระยะทาง (GPS ถึงโรงเรียน): {distanceToSchoolAuto} กม.
                     </span>
                   )}
@@ -737,54 +738,109 @@ export default function VisitForm() {
                 <span className="text-sm text-gray-600">ชั่วโมง/วัน</span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div>
                 <label className="block text-sm font-bold text-gray-700 mb-3">3.2 ความสัมพันธ์ระหว่างนักเรียนกับสมาชิกครอบครัว</label>
-                <table className="w-full text-sm text-left text-gray-600 border border-gray-200 rounded-xl overflow-hidden min-w-[600px]">
-                  <thead className="bg-gray-50 text-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 border-b border-gray-200">สมาชิก</th>
-                      {['สนิทสนม', 'เฉยๆ', 'ห่างเหิน', 'ขัดแย้ง', 'ไม่มี'].map(level => (
-                        <th key={level} className="px-4 py-3 border-b border-gray-200 text-center whitespace-nowrap">{level}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map((member, idx) => (
-                      <tr key={member} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                        <td className="px-4 py-3 border-b border-gray-100 font-medium whitespace-nowrap">
-                          {member === 'อื่นๆ' ? (
-                            <div className="flex items-center gap-2">
-                              <span>อื่นๆ</span>
-                              <input
-                                type="text"
-                                value={formData.relation_with_members_other || ''}
-                                onChange={e => updateForm('relation_with_members_other', e.target.value)}
-                                placeholder="ระบุ..."
-                                className="border-b border-gray-300 focus:border-emerald-500 outline-none text-sm w-32 px-1 bg-transparent"
-                              />
-                            </div>
-                          ) : member}
-                        </td>
+
+                {/* Desktop View (Table style) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm text-left text-gray-600 border border-gray-200 rounded-xl overflow-hidden min-w-[600px]">
+                    <thead className="bg-gray-50 text-gray-700">
+                      <tr>
+                        <th className="px-4 py-3 border-b border-gray-200">สมาชิก</th>
                         {['สนิทสนม', 'เฉยๆ', 'ห่างเหิน', 'ขัดแย้ง', 'ไม่มี'].map(level => (
-                          <td key={level} className="px-4 py-3 border-b border-gray-100 text-center">
-                            <input
-                              type="radio"
-                              name={`relation_${member}`}
-                              value={level}
-                              checked={(formData.relation_with_members as any)?.[member] === level}
-                              onChange={(e) => {
-                                const currentRelations = (formData.relation_with_members as any) || {};
-                                const newRelations = { ...currentRelations, [member]: e.target.value };
-                                updateForm('relation_with_members', newRelations);
-                              }}
-                              className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer border-gray-300"
-                            />
-                          </td>
+                          <th key={level} className="px-4 py-3 border-b border-gray-200 text-center whitespace-nowrap">{level}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map((member, idx) => (
+                        <tr key={member} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                          <td className="px-4 py-3 border-b border-gray-100 font-medium whitespace-nowrap">
+                            {member === 'อื่นๆ' ? (
+                              <div className="flex items-center gap-2">
+                                <span>อื่นๆ</span>
+                                <input
+                                  type="text"
+                                  value={formData.relation_with_members_other || ''}
+                                  onChange={e => updateForm('relation_with_members_other', e.target.value)}
+                                  placeholder="ระบุ..."
+                                  className="border-b border-gray-300 focus:border-emerald-500 outline-none text-sm w-32 px-1 bg-transparent"
+                                />
+                              </div>
+                            ) : member}
+                          </td>
+                          {['สนิทสนม', 'เฉยๆ', 'ห่างเหิน', 'ขัดแย้ง', 'ไม่มี'].map(level => (
+                            <td key={level} className="px-4 py-3 border-b border-gray-100 text-center">
+                              <input
+                                type="radio"
+                                name={`relation_${member}`}
+                                value={level}
+                                checked={(formData.relation_with_members as any)?.[member] === level}
+                                onChange={(e) => {
+                                  const currentRelations = (formData.relation_with_members as any) || {};
+                                  const newRelations = { ...currentRelations, [member]: e.target.value };
+                                  updateForm('relation_with_members', newRelations);
+                                }}
+                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer border-gray-300"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View (Touch-friendly card list with bottom sheet modal) */}
+                <div className="block md:hidden space-y-3">
+                  {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map((member) => {
+                    const selectedVal = (formData.relation_with_members as any)?.[member];
+                    
+                    // Style badges based on selection value
+                    const badgeStyles: Record<string, string> = {
+                      'สนิทสนม': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                      'เฉยๆ': 'bg-sky-50 text-sky-700 border-sky-200',
+                      'ห่างเหิน': 'bg-amber-50 text-amber-700 border-amber-200',
+                      'ขัดแย้ง': 'bg-rose-50 text-rose-700 border-rose-200',
+                      'ไม่มี': 'bg-gray-50 text-gray-500 border-gray-200',
+                    };
+
+                    const defaultBadgeStyle = 'bg-gray-50 text-gray-400 border-dashed border-gray-300';
+
+                    return (
+                      <div key={member} className="p-4 bg-white rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow">
+                        <div className="flex justify-between items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            {member === 'อื่นๆ' ? (
+                              <div className="flex flex-col gap-2">
+                                <span className="text-sm font-bold text-gray-800">ระบุสมาชิกอื่นๆ</span>
+                                <input
+                                  type="text"
+                                  value={formData.relation_with_members_other || ''}
+                                  onChange={e => updateForm('relation_with_members_other', e.target.value)}
+                                  placeholder="พิมพ์ระบุ เช่น น้าชาย..."
+                                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50/50"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-sm font-bold text-gray-800">{member}</span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveMobileMember(member)}
+                            className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shrink-0 select-none ${
+                              selectedVal ? badgeStyles[selectedVal] : defaultBadgeStyle
+                            }`}
+                          >
+                            {selectedVal || 'แตะเพื่อเลือก +'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
@@ -816,10 +872,12 @@ export default function VisitForm() {
                   <span className="text-sm font-bold text-gray-700">3.5 นักเรียนได้รับค่าใช้จ่ายจาก</span>
                   <input type="text" value={formData.expense_from} onChange={e => updateForm('expense_from', e.target.value)} className="flex-1 border border-gray-300 rounded-xl p-2 focus:ring-2 focus:ring-emerald-500 outline-none" />
                 </div>
-                <div className="flex items-start gap-4 flex-col md:flex-row md:items-center">
-                  <label className="flex items-center gap-2 font-bold text-sm text-gray-700 cursor-pointer min-w-max">
-                    <input type="checkbox" checked={formData.student_works} onChange={e => updateForm('student_works', e.target.checked)} className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" />
-                    นักเรียนทำงานหารายได้ อาชีพ (ไม่ได้ทำให้เว้นว่างไม่ต้องติ๊ก)
+                <div className="flex items-start gap-4 flex-col md:flex-row md:items-center w-full">
+                  <label className="flex items-start gap-3 font-bold text-sm text-gray-700 cursor-pointer w-full">
+                    <input type="checkbox" checked={formData.student_works} onChange={e => updateForm('student_works', e.target.checked)} className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 shrink-0 mt-0.5" />
+                    <span className="flex-1 break-words whitespace-normal text-sm text-gray-700 leading-normal">
+                      นักเรียนทำงานหารายได้ อาชีพ (ไม่ได้ทำให้เว้นว่างไม่ต้องติ๊ก)
+                    </span>
                   </label>
                   {formData.student_works && (
                     <div className="flex flex-col sm:flex-row gap-3 w-full">
@@ -1029,7 +1087,7 @@ export default function VisitForm() {
               <h4 className="text-md font-bold text-gray-800 mb-4 text-center">รับรองข้อมูลการเยี่ยมบ้าน</h4>
               <div className="max-w-md mx-auto">
                 <SignaturePad onSignatureChange={setSignatureDataUrl} />
-                
+
                 <div className="text-center mt-4 text-gray-600">
                   <p className="font-bold text-sm">"ขอรับรองว่าข้อมูลดังกล่าวเป็นจริง"</p>
                   <div className="mt-3 text-sm flex items-center justify-center gap-2">
@@ -1048,18 +1106,18 @@ export default function VisitForm() {
 
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">วันที่ลงบันทึกการเยี่ยมบ้าน</label>
-              <div className="flex gap-2">
-                <select value={bDay} onChange={e => setBDay(e.target.value)} className="w-24 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <div className="grid grid-cols-3 sm:flex gap-2 w-full">
+                <select value={bDay} onChange={e => setBDay(e.target.value)} className="w-full sm:w-24 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <select value={bMonth} onChange={e => setBMonth(e.target.value)} className="flex-1 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                <select value={bMonth} onChange={e => setBMonth(e.target.value)} className="w-full sm:flex-1 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                   {['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].map((m, i) => (
                     <option key={i + 1} value={i + 1}>{m}</option>
                   ))}
                 </select>
-                <select value={bYear} onChange={e => setBYear(e.target.value)} className="w-28 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                <select value={bYear} onChange={e => setBYear(e.target.value)} className="w-full sm:w-28 border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                   {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + 543 - 5 + i).map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
@@ -1128,7 +1186,7 @@ export default function VisitForm() {
               <h4 className="text-md font-bold text-gray-800 mb-4 text-center">รับรองภาพถ่ายบ้านนักเรียน</h4>
               <div className="max-w-md mx-auto">
                 <SignaturePad onSignatureChange={setTeacherSignatureDataUrl} />
-                
+
                 <div className="text-center mt-4 text-gray-600">
                   <p className="font-bold text-sm">"ขอรับรองว่าข้อมูล และภาพถ่ายบ้านของนักเรียนเป็นความจริง"</p>
                   <div className="mt-3 text-sm flex items-center justify-center gap-2">
@@ -1140,8 +1198,8 @@ export default function VisitForm() {
                   </div>
                   <div className="mt-1 text-sm text-gray-600">ตำแหน่ง ครูที่ปรึกษา</div>
                   <div className="mt-2 text-sm text-gray-600">
-                    วัน <span className="border-b border-dotted border-gray-400 w-8 inline-block text-center text-emerald-700 font-bold">{today.getDate()}</span> 
-                    เดือน <span className="border-b border-dotted border-gray-400 w-24 inline-block text-center text-emerald-700 font-bold">{today.toLocaleDateString('th-TH', { month: 'long' })}</span> 
+                    วัน <span className="border-b border-dotted border-gray-400 w-8 inline-block text-center text-emerald-700 font-bold">{today.getDate()}</span>
+                    เดือน <span className="border-b border-dotted border-gray-400 w-24 inline-block text-center text-emerald-700 font-bold">{today.toLocaleDateString('th-TH', { month: 'long' })}</span>
                     พ.ศ. <span className="border-b border-dotted border-gray-400 w-16 inline-block text-center text-emerald-700 font-bold">{today.getFullYear() + 543}</span>
                   </div>
                 </div>
@@ -1175,10 +1233,10 @@ export default function VisitForm() {
                     ระยะทางโดยประมาณ: <strong className="text-indigo-600">{distanceToSchoolAuto}</strong> กม. (สามารถปรับแก้ไขเองได้ที่หน้า 1)
                   </p>
                 )}
-                
+
                 <div className="mt-6 flex flex-col items-center gap-4 bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
                   <p className="text-sm text-gray-600 text-center font-medium">
-                    หากคุณจัดตำแหน่งและซูมแผนที่จนเห็นเส้นทางชัดเจนแล้ว<br/> 
+                    หากคุณจัดตำแหน่งและซูมแผนที่จนเห็นเส้นทางชัดเจนแล้ว<br />
                     กรุณากดปุ่มด้านล่างเพื่อ <span className="font-bold text-emerald-700">"แคปเจอร์ภาพแผนที่"</span> สำหรับนำไปใช้ในหน้ารายงาน
                   </p>
                   <button
@@ -1190,7 +1248,7 @@ export default function VisitForm() {
                     {isCapturingMap ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                     {isCapturingMap ? 'กำลังประมวลผลภาพ...' : 'บันทึกภาพแผนที่ปัจจุบัน'}
                   </button>
-                  
+
                   {mapPhotoPreview && (
                     <div className="mt-4 w-full">
                       <p className="text-sm font-bold text-gray-700 mb-2 text-center">ตัวอย่างภาพแผนที่ที่จะใช้พิมพ์ในรายงาน:</p>
@@ -1235,7 +1293,7 @@ export default function VisitForm() {
               <Printer size={18} /> พิมพ์รายงาน (PDF)
             </button>
           </div>
-          
+
           <ReportPrintView
             visit={existingData?.visit || {
               id: existingVisitId || 'new_visit_preview',
@@ -1303,6 +1361,75 @@ export default function VisitForm() {
           teacherName={currentUserFullName}
         />,
         document.body
+      )}
+
+      {/* Mobile Modal for Section 3.2 */}
+      {activeMobileMember && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-md rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-emerald-50 flex items-center justify-between bg-emerald-50/30">
+              <div>
+                <h4 className="font-bold text-gray-900 text-lg">เลือกความสัมพันธ์</h4>
+                <p className="text-xs text-emerald-600 font-bold mt-0.5">สมาชิก: {activeMobileMember}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMobileMember(null)}
+                className="text-gray-400 hover:text-gray-600 text-3xl font-light px-2 cursor-pointer transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body / Radio list */}
+            <div className="p-6 space-y-3 overflow-y-auto">
+              {['สนิทสนม', 'เฉยๆ', 'ห่างเหิน', 'ขัดแย้ง', 'ไม่มี'].map(level => {
+                const isSelected = (formData.relation_with_members as any)?.[activeMobileMember] === level;
+                
+                // Active/Inactive Tailwind style classes
+                const colors: Record<string, string> = {
+                  'สนิทสนม': 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/20 text-gray-700',
+                  'เฉยๆ': 'border-gray-200 hover:border-sky-200 hover:bg-sky-50/20 text-gray-700',
+                  'ห่างเหิน': 'border-gray-200 hover:border-amber-200 hover:bg-amber-50/20 text-gray-700',
+                  'ขัดแย้ง': 'border-gray-200 hover:border-rose-200 hover:bg-rose-50/20 text-gray-700',
+                  'ไม่มี': 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50 text-gray-600'
+                };
+                
+                const activeColors: Record<string, string> = {
+                  'สนิทสนม': 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20',
+                  'เฉยๆ': 'border-sky-500 bg-sky-50 text-sky-700 ring-2 ring-sky-500/20',
+                  'ห่างเหิน': 'border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20',
+                  'ขัดแย้ง': 'border-rose-500 bg-rose-50 text-rose-700 ring-2 ring-rose-500/20',
+                  'ไม่มี': 'border-gray-500 bg-gray-100 text-gray-800 ring-2 ring-gray-500/20'
+                };
+
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => {
+                      const currentRelations = (formData.relation_with_members as any) || {};
+                      const newRelations = { ...currentRelations, [activeMobileMember]: level };
+                      updateForm('relation_with_members', newRelations);
+                      setActiveMobileMember(null); // Auto close
+                    }}
+                    className={`w-full text-left p-4.5 rounded-2xl border-2 transition-all flex items-center justify-between font-bold text-sm cursor-pointer ${
+                      isSelected ? activeColors[level] : colors[level]
+                    }`}
+                  >
+                    <span>{level}</span>
+                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isSelected ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                    }`}>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Success Modal */}

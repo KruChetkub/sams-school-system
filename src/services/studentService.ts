@@ -91,3 +91,17 @@ export const updateStudent = async (id: string, student: Omit<Student, 'id' | 'c
   if (error) throw error
   return data as Student
 }
+
+export const promoteClassroomStudents = async (sourceClassroomId: string, targetClassroomId: string) => {
+  const { data, error } = await supabase
+    .from('students')
+    .update({ 
+      classroom_id: targetClassroomId || null,
+      updated_at: new Date().toISOString() 
+    })
+    .eq('classroom_id', sourceClassroomId)
+    .is('deleted_at', null)
+    
+  if (error) throw error
+  return data
+}

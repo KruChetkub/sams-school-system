@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getStudents } from '../../services/studentService';
 import { getHomeVisitsByTeacher } from '../../services/homevisit/visitService';
@@ -19,9 +19,9 @@ export default function StudentsList() {
   });
 
   // 2. ดึงนักเรียนทั้งหมด
-  const { data: students = [], isLoading: isLoadingStudents } = useQuery({ 
-    queryKey: ['students'], 
-    queryFn: getStudents 
+  const { data: students = [], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['students'],
+    queryFn: getStudents
   });
 
   // 3. ดึงประวัติการเยี่ยมบ้านที่ครูคนนี้เคยทำไว้
@@ -30,6 +30,11 @@ export default function StudentsList() {
     queryFn: () => getHomeVisitsByTeacher(user?.id || '', role),
     enabled: !!user?.id
   });
+
+  // เลื่อนหน้าจอขึ้นบนสุดทันทีเมื่อมีการสลับห้องเรียนหรือกดย้อนกลับ
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [selectedClassroomId]);
 
   const isLoading = isLoadingStudents || isLoadingVisits || isLoadingClassrooms;
 
@@ -74,7 +79,7 @@ export default function StudentsList() {
 
   const getCardStyle = (advisorId?: string) => {
     if (!advisorId) return 'bg-white border-gray-100 shadow-sm'; // ไม่มีครู ให้สีเหมือนเดิม
-    
+
     let hash = 0;
     for (let i = 0; i < advisorId.length; i++) {
       hash = advisorId.charCodeAt(i) + ((hash << 5) - hash);
@@ -89,8 +94,8 @@ export default function StudentsList() {
         <div>
           <div className="flex items-center gap-2">
             {role === 'ADMIN' && selectedClassroomId && (
-              <button 
-                onClick={() => setSelectedClassroomId(null)} 
+              <button
+                onClick={() => setSelectedClassroomId(null)}
                 className="text-gray-500 hover:bg-gray-100 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                 title="กลับไปหน้าเลือกห้อง"
               >
@@ -102,18 +107,18 @@ export default function StudentsList() {
             </h1>
           </div>
           <p className="text-gray-500 mt-1 ml-1">
-            {role === 'ADMIN' && !selectedClassroomId 
-              ? 'รายชื่อครูที่ปรึกษาแยกตามห้อง' 
+            {role === 'ADMIN' && !selectedClassroomId
+              ? 'รายชื่อครูที่ปรึกษาแยกตามห้อง'
               : 'เลือกลงบันทึกการเยี่ยมบ้านของนักเรียน'
             }
           </p>
         </div>
-        
+
         {(!role || role === 'TEACHER' || (role === 'ADMIN' && selectedClassroomId)) && (
           <div className="relative w-full md:w-72">
-            <input 
-              type="text" 
-              placeholder="ค้นหาชื่อ, รหัสนักเรียน..." 
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อ, รหัสนักเรียน..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
@@ -130,10 +135,10 @@ export default function StudentsList() {
           {classrooms.map(cls => {
             // นับจำนวนนักเรียนในห้อง (คร่าวๆ จากข้อมูลที่มี)
             const studentCount = students.filter(s => s.classroom_id === cls.id).length;
-            
+
             return (
-              <div 
-                key={cls.id} 
+              <div
+                key={cls.id}
                 onClick={() => setSelectedClassroomId(cls.id)}
                 className={`${getCardStyle(cls.advisor_id)} rounded-2xl p-5 border hover:-translate-y-1 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden`}
               >
@@ -141,7 +146,7 @@ export default function StudentsList() {
                 {cls.advisor_id && (
                   <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/40 rounded-full blur-2xl group-hover:bg-white/60 transition-all"></div>
                 )}
-                
+
                 <div className="flex items-center gap-4 mb-2 relative z-10">
                   <div className="bg-white/80 backdrop-blur-sm text-gray-800 w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
                     {cls.level}/{cls.room}
@@ -155,7 +160,7 @@ export default function StudentsList() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between items-center mt-5 pt-4 border-t border-gray-900/10 relative z-10">
                   <div className="text-sm font-semibold text-gray-700">
                     นักเรียน {studentCount} คน
@@ -178,8 +183,8 @@ export default function StudentsList() {
           {filteredStudents.map(student => {
             const vStatus = getVisitStatus(student.id);
             const isCompleted = vStatus.status === 'COMPLETED';
-            const cardStyle = isCompleted 
-              ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50' 
+            const cardStyle = isCompleted
+              ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50'
               : 'bg-white border-gray-200';
 
             return (
@@ -202,21 +207,20 @@ export default function StudentsList() {
                     {vStatus.label}
                   </span>
                 </div>
-                
-                <Link 
+
+                <Link
                   to={`/homevisit/visit/${student.id}`}
-                  className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${
-                    isCompleted 
-                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm' 
+                  className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
                       : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                  }`}
+                    }`}
                 >
                   {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
                 </Link>
               </div>
             );
           })}
-          
+
           {filteredStudents.length === 0 && (
             <div className="col-span-full text-center py-12 text-gray-400">
               ไม่พบรายชื่อนักเรียนที่ค้นหา

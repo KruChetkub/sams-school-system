@@ -24,24 +24,24 @@ body {
     size: A4;
     margin: 1.5cm;
   }
-  
+
   body {
     background: white !important;
     color: black !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  
+
   /* Hide all generic app UI by default when printing */
-  #root > * {
+  #root>* {
     display: none !important;
   }
-  
+
   /* Show only the print-root element */
   .print-only {
     display: block !important;
   }
-  
+
   /* Ensure background colors in Tailwind are printed */
   * {
     -webkit-print-color-adjust: exact !important;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes } from '../services/studentService'
+import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
 import { getSubjects } from '../services/subjectService'
 import { addMembership, getAllMemberships, getMembershipsByGroup, removeMembership } from '../services/studentGroupService'
@@ -21,6 +21,9 @@ export default function Students() {
   const [bottomSearchKeyword, setBottomSearchKeyword] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [moveStudentId, setMoveStudentId] = useState('')
+  const [promoteSourceClassroomId, setPromoteSourceClassroomId] = useState('')
+  const [promoteTargetClassroomId, setPromoteTargetClassroomId] = useState('')
+  const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject'>('list')
   
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -165,6 +168,21 @@ export default function Students() {
     },
     onError: (err: any) => {
       openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถย้ายนักเรียนได้')
+    }
+  })
+  const bulkPromoteMutation = useMutation({
+    mutationFn: ({ sourceId, targetId }: { sourceId: string; targetId: string }) => {
+      return promoteClassroomStudents(sourceId, targetId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      setPromoteSourceClassroomId('')
+      setPromoteTargetClassroomId('')
+      setShowModal(false)
+      openMessageModal('สำเร็จ', 'เลื่อนชั้นเรียนและย้ายนักเรียนยกห้องเรียบร้อยแล้ว!')
+    },
+    onError: (err: any) => {
+      openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถย้ายนักเรียนยกห้องได้')
     }
   })
   const addMemberMutation = useMutation({
@@ -364,6 +382,19 @@ export default function Students() {
     }
   }
 
+  const handleStartEdit = (student: any) => {
+    setShowForm(true)
+    setEditingStudentId(student.id)
+    setFormData({
+      student_code: student.student_code,
+      prefix: student.prefix ?? '',
+      first_name: student.first_name,
+      last_name: student.last_name,
+      nickname: student.nickname ?? '',
+      classroom_id: student.classroom_id ?? ''
+    })
+  }
+
   const searchableStudents = (students || []).filter((s) => {
     const keyword = searchKeyword.trim().toLowerCase()
     if (!keyword) return true
@@ -386,11 +417,12 @@ export default function Students() {
   const availableMembers = groupCandidates.filter((s) => !groupMemberIds.includes(s.id))
 
   return (
-    <div id="students-page-top" className="p-8 max-w-6xl mx-auto">
+    <div id="students-page-top" className="p-8 pb-28 md:pb-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลนักเรียน (Students)</h1>
         <button 
           onClick={() => {
+            setActiveTab('list')
             setShowForm(!showForm)
             if (!showForm) setEditingStudentId(null)
           }}
@@ -400,212 +432,444 @@ export default function Students() {
         </button>
       </div>
 
+      {/* Mobile Persistent Bottom Tab Bar (LINE App Style) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] z-40 flex justify-around items-center py-2 px-1 pb-safe">
+        {/* Tab 1: All Students */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('list')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+            activeTab === 'list' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
+            <Users size={20} />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">รายชื่อนักเรียน</span>
+        </button>
+
+        {/* Tab 2: Single Move */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('single')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+            activeTab === 'single' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'single' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
+            <Edit3 size={20} />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">ย้ายรายคน</span>
+        </button>
+
+        {/* Tab 3: Bulk Move */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('bulk')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+            activeTab === 'bulk' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'bulk' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
+            <Upload size={20} />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">เลื่อนชั้นเรียน</span>
+        </button>
+
+        {/* Tab 4: Electives */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('subject')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+            activeTab === 'subject' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'subject' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
+            <Plus size={20} />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">วิชาเรียนรวม</span>
+        </button>
+      </div>
+
+      {/* Desktop/Tablet Mode: Premium Horizontal Tab Selector */}
+      <div className="hidden md:flex border-b border-gray-200 mb-8 overflow-x-auto whitespace-nowrap gap-1">
+        <button
+          onClick={() => setActiveTab('list')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
+            activeTab === 'list'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
+          }`}
+        >
+          <Users size={18} /> รายชื่อนักเรียนทั้งหมด
+        </button>
+        <button
+          onClick={() => setActiveTab('single')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
+            activeTab === 'single'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
+          }`}
+        >
+          <Edit3 size={18} /> ย้ายนักเรียนเข้าห้องใหม่
+        </button>
+        <button
+          onClick={() => setActiveTab('bulk')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
+            activeTab === 'bulk'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
+          }`}
+        >
+          <Upload size={18} /> เลื่อนชั้นเรียน / ย้ายยกห้อง (Bulk Move)
+        </button>
+        <button
+          onClick={() => setActiveTab('subject')}
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
+            activeTab === 'subject'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
+          }`}
+        >
+          <Plus size={18} /> วิชาเรียนรวม (ไม่ย้ายห้องหลัก)
+        </button>
+      </div>
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <h2 className="text-lg font-bold text-gray-800 mb-1">{editingStudentId ? 'แก้ไขข้อมูลนักเรียน' : 'เพิ่มนักเรียนใหม่'}</h2>
-            <p className="text-sm text-gray-500 mb-2">กรอกข้อมูลพื้นฐานของนักเรียนให้ครบถ้วน</p>
-          </div>
-          <div><label className="block text-sm font-medium text-gray-700">รหัสนักเรียน</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.student_code} onChange={e => setFormData({...formData, student_code: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">คำนำหน้า</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.prefix} onChange={e => setFormData({...formData, prefix: e.target.value})} placeholder="เช่น ด.ช., ด.ญ., คุณ" /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อเล่น</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อจริง</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
-          <div className="md:col-span-2 border-b pb-4 mb-2">
-            <label className="block text-sm font-medium text-gray-700">ห้องเรียน (ระดับชั้น/ห้อง)</label>
-            <select 
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
-              value={formData.classroom_id}
-              onChange={e => setFormData({...formData, classroom_id: e.target.value})}
-            >
-              <option value="">-- ไม่ระบุ --</option>
-              {classrooms?.map(c => (
-                <option key={c.id} value={c.id}>{c.level}/{c.room}</option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-2 bg-indigo-50/50 p-5 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2 border border-indigo-100 shadow-sm">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-indigo-800 text-lg flex items-center gap-2">
-                นำเข้าข้อมูลนักเรียน (Excel)
-              </h3>
-              <p className="text-sm text-indigo-600/80 mt-1 leading-relaxed">
-                เลือกระดับชั้นและห้องเรียนด้านบนให้เรียบร้อยก่อนทำการอัปโหลดไฟล์ Excel เพื่อเพิ่มรายชื่อนักเรียนทั้งหมดเข้าสู่ระบบในครั้งเดียว
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
-              <button type="button" onClick={downloadTemplate} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-indigo-700 border border-indigo-200 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition shadow-sm font-semibold">
-                <Download size={18} /> ไฟล์ต้นแบบ
-              </button>
-              <label className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 cursor-pointer transition shadow-sm font-semibold">
-                <Upload size={18} /> อัปโหลดไฟล์ Excel
-                <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={bulkCreateMutation.isPending} />
-              </label>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop with blur */}
+          <div 
+            className="absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300" 
+            onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }}
+          ></div>
           
-          <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }} className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={(editingStudentId ? updateMutation.isPending : createMutation.isPending) || !formData.student_code || !formData.first_name} className="px-5 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">{editingStudentId ? 'อัปเดตข้อมูล' : 'บันทึก 1 คน'}</button>
-          </div>
-        </form>
+          {/* Modal Content container */}
+          <form 
+            onSubmit={handleSubmit} 
+            className="relative w-full max-w-lg bg-white p-6 rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh] grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in zoom-in duration-200 z-10"
+          >
+            <div className="md:col-span-2 flex justify-between items-start border-b pb-3 mb-2">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">{editingStudentId ? '📝 แก้ไขข้อมูลนักเรียน' : '👤 เพิ่มนักเรียนใหม่'}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">กรอกข้อมูลพื้นฐานของนักเรียนให้ถูกต้องครบถ้วน</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }}
+                className="text-gray-400 hover:text-gray-600 font-bold p-1 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center w-8 h-8"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Form Fields */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">รหัสนักเรียน</label>
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.student_code} onChange={e => setFormData({...formData, student_code: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">คำนำหน้า</label>
+              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.prefix} onChange={e => setFormData({...formData, prefix: e.target.value})} placeholder="เช่น ด.ช., ด.ญ., นาย, นางสาว" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">ชื่อจริง</label>
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">นามสกุล</label>
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">ชื่อเล่น</label>
+              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} placeholder="ถ้าไม่มีให้เว้นว่าง" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">ห้องเรียน (ระดับชั้น/ห้อง)</label>
+              <select 
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm font-semibold text-gray-700"
+                value={formData.classroom_id}
+                onChange={e => setFormData({...formData, classroom_id: e.target.value})}
+              >
+                <option value="">-- ไม่ระบุ --</option>
+                {classrooms?.map(c => (
+                  <option key={c.id} value={c.id}>{c.level}/{c.room}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Excel Upload Area (Only show when creating a new student, not when editing) */}
+            {!editingStudentId && (
+              <div className="md:col-span-2 bg-indigo-50/50 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-indigo-100 mt-2">
+                <div className="flex-1">
+                  <h3 className="font-bold text-indigo-800 text-sm flex items-center gap-1.5">
+                    นำเข้าข้อมูลนักเรียน (Excel)
+                  </h3>
+                  <p className="text-[11px] text-indigo-600/80 leading-relaxed mt-0.5">
+                    นำเข้ารายชื่อหลายคนพร้อมกันผ่าน Excel
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button type="button" onClick={downloadTemplate} className="flex items-center gap-1.5 bg-white text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl hover:bg-indigo-100 transition text-xs font-semibold">
+                    <Download size={14} /> ไฟล์ต้นแบบ
+                  </button>
+                  <label className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 cursor-pointer transition text-xs font-semibold">
+                    <Upload size={14} /> นำเข้า Excel
+                    <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={bulkCreateMutation.isPending} />
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-3 border-t">
+              <button 
+                type="button" 
+                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }} 
+                className="px-5 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-slate-50 transition font-semibold text-sm"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                type="submit" 
+                disabled={(editingStudentId ? updateMutation.isPending : createMutation.isPending) || !formData.student_code || !formData.first_name} 
+                className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-bold text-sm"
+              >
+                {editingStudentId ? (updateMutation.isPending ? 'กำลังอัปเดต...' : 'บันทึกการแก้ไข') : (createMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล')}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <h2 className="text-lg font-bold text-gray-800 mb-1">ย้ายนักเรียนเข้าห้องใหม่</h2>
-        <p className="text-sm text-gray-500 mb-4">ค้นหานักเรียนเดิมแล้วเปลี่ยนห้องเรียนได้ทันที โดยไม่ต้องเพิ่มข้อมูลซ้ำ</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">ค้นหานักเรียน (รหัส/ชื่อ/ชื่อเล่น)</label>
-            <input
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="เช่น 65001, สมชาย, ชาย"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เลือกนักเรียน</label>
-            <select
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
-              value={moveStudentId}
-              onChange={(e) => setMoveStudentId(e.target.value)}
-            >
-              <option value="">-- เลือกนักเรียน --</option>
-              {searchableStudents.slice(0, 200).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.student_code} - {s.first_name} {s.last_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">ห้องปัจจุบัน</label>
-            <div className="mt-1 border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-sm text-gray-700">
-              {selectedMoveStudent?.classroom ? `${selectedMoveStudent.classroom.level}/${selectedMoveStudent.classroom.room}` : '-'}
+      {activeTab === 'single' && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">ย้ายนักเรียนเข้าห้องใหม่</h2>
+          <p className="text-sm text-gray-500 mb-4">ค้นหานักเรียนเดิมแล้วเปลี่ยนห้องเรียนได้ทันที โดยไม่ต้องเพิ่มข้อมูลซ้ำ</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">ค้นหานักเรียน (รหัส/ชื่อ/ชื่อเล่น)</label>
+              <input
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="เช่น 65001, สมชาย, ชาย"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">เลือกนักเรียน</label>
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
+                value={moveStudentId}
+                onChange={(e) => setMoveStudentId(e.target.value)}
+              >
+                <option value="">-- เลือกนักเรียน --</option>
+                {searchableStudents.slice(0, 200).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.student_code} - {s.first_name} {s.last_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">ห้องปัจจุบัน</label>
+              <div className="mt-1 border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-sm text-gray-700">
+                {selectedMoveStudent?.classroom ? `${selectedMoveStudent.classroom.level}/${selectedMoveStudent.classroom.room}` : '-'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">ห้องใหม่</label>
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
+                value={moveClassroomId}
+                onChange={(e) => setMoveClassroomId(e.target.value)}
+              >
+                <option value="">-- เลือกห้องใหม่ --</option>
+                {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+              </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ห้องใหม่</label>
-            <select
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
-              value={moveClassroomId}
-              onChange={(e) => setMoveClassroomId(e.target.value)}
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              disabled={!moveStudentId || !moveClassroomId || moveClassroomMutation.isPending}
+              onClick={() => {
+                if (!moveStudentId || !moveClassroomId) return
+                const target = students?.find((s) => s.id === moveStudentId)
+                if (target?.classroom_id === moveClassroomId) {
+                  openMessageModal('ข้อมูลเดิม', 'นักเรียนอยู่ห้องนี้อยู่แล้ว')
+                  return
+                }
+                moveClassroomMutation.mutate({ id: moveStudentId, classroomId: moveClassroomId })
+              }}
+              className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold"
             >
-              <option value="">-- เลือกห้องใหม่ --</option>
-              {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
-            </select>
+              {moveClassroomMutation.isPending ? 'กำลังย้ายห้อง...' : 'ย้ายนักเรียนเข้าห้องใหม่'}
+            </button>
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            disabled={!moveStudentId || !moveClassroomId || moveClassroomMutation.isPending}
-            onClick={() => {
-              if (!moveStudentId || !moveClassroomId) return
-              const target = students?.find((s) => s.id === moveStudentId)
-              if (target?.classroom_id === moveClassroomId) {
-                openMessageModal('ข้อมูลเดิม', 'นักเรียนอยู่ห้องนี้อยู่แล้ว')
-                return
-              }
-              moveClassroomMutation.mutate({ id: moveStudentId, classroomId: moveClassroomId })
-            }}
-            className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold"
-          >
-            {moveClassroomMutation.isPending ? 'กำลังย้ายห้อง...' : 'ย้ายนักเรียนเข้าห้องใหม่'}
-          </button>
-        </div>
-      </div>
+      )}
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <h2 className="text-lg font-bold text-gray-800 mb-1">เพิ่มนักเรียนเข้ารายวิชาเรียนรวม (ไม่ย้ายห้องหลัก)</h2>
-        <p className="text-sm text-gray-500 mb-4">เลือกเฉพาะรายวิชา แล้วเพิ่ม/ลบนักเรียนเฉพาะในรายวิชานั้น</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เลือกรายวิชา</label>
-            <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 bg-white" value={groupId} onChange={(e) => {
-              setGroupId(e.target.value)
-              setGroupClassroomFilterId('')
-            }}>
-              <option value="">-- เลือกรายวิชา --</option>
-              {subjects?.map((s) => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
-            </select>
+      {activeTab === 'bulk' && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">เลื่อนชั้นเรียน / ย้ายนักเรียนยกห้อง (Bulk Move)</h2>
+          <p className="text-sm text-gray-500 mb-4">ย้ายนักเรียนทั้งหมดจากห้องเรียนต้นทางไปยังห้องเรียนปลายทางพร้อมกันในครั้งเดียว</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">ห้องเรียนต้นทาง (ที่จะย้ายออก)</label>
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white font-medium text-gray-700"
+                value={promoteSourceClassroomId}
+                onChange={(e) => setPromoteSourceClassroomId(e.target.value)}
+              >
+                <option value="">-- เลือกห้องเรียนต้นทาง --</option>
+                {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">ห้องเรียนปลายทาง (ที่จะย้ายเข้า)</label>
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white font-medium text-gray-700"
+                value={promoteTargetClassroomId}
+                onChange={(e) => setPromoteTargetClassroomId(e.target.value)}
+              >
+                <option value="">-- เลือกห้องเรียนปลายทาง --</option>
+                {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+                <option value="none">-- ปลดออกจากห้องเรียนหลัก (ไม่มีห้องเรียน) --</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เลือกห้องเรียนก่อน</label>
-            <select
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 bg-white"
-              value={groupClassroomFilterId}
-              onChange={(e) => setGroupClassroomFilterId(e.target.value)}
-              disabled={!groupId}
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              disabled={!promoteSourceClassroomId || !promoteTargetClassroomId || bulkPromoteMutation.isPending}
+              onClick={() => {
+                if (!promoteSourceClassroomId || !promoteTargetClassroomId) return
+                if (promoteSourceClassroomId === promoteTargetClassroomId) {
+                  openMessageModal('ข้อมูลขัดแย้ง', 'ห้องเรียนต้นทางและปลายทางต้องไม่เป็นห้องเดียวกัน')
+                  return
+                }
+                const sourceRoom = classrooms?.find(c => c.id === promoteSourceClassroomId)
+                const sourceLabel = sourceRoom ? `${sourceRoom.level}/${sourceRoom.room}` : ''
+                
+                const targetRoom = classrooms?.find(c => c.id === promoteTargetClassroomId)
+                const targetLabel = promoteTargetClassroomId === 'none' ? 'ปลดออก (ไม่มีห้องเรียนหลัก)' : (targetRoom ? `${targetRoom.level}/${targetRoom.room}` : '')
+                
+                const studentCount = (students || []).filter(s => s.classroom_id === promoteSourceClassroomId).length
+                
+                if (studentCount === 0) {
+                  openMessageModal('ไม่พบนักเรียน', `ไม่มีรายชื่อนักเรียนอยู่ในห้องเรียน ${sourceLabel} สำหรับทำรายการย้ายห้อง`)
+                  return
+                }
+                
+                openConfirmModal(
+                  'ยืนยันการย้ายนักเรียนยกห้อง',
+                  `คุณต้องการย้ายนักเรียนจำนวนทั้งหมด ${studentCount} คน จากห้อง ${sourceLabel} ไปยังห้อง ${targetLabel} ใช่หรือไม่?\n\n(การดำเนินการนี้จะอัปเดตข้อมูลนักเรียนทั้งหมดในห้องเรียนต้นทางทันที)`,
+                  () => {
+                    bulkPromoteMutation.mutate({ 
+                      sourceId: promoteSourceClassroomId, 
+                      targetId: promoteTargetClassroomId === 'none' ? '' : promoteTargetClassroomId 
+                    })
+                  }
+                )
+              }}
+              className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold flex items-center gap-2"
             >
-              <option value="">-- เลือกห้องเรียน --</option>
-              {classrooms?.map((c) => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ค้นหานักเรียน</label>
-            <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5" value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)} placeholder="ค้นหารหัส/ชื่อ" disabled={!groupClassroomFilterId} />
+              {bulkPromoteMutation.isPending ? 'กำลังดำเนินการย้ายห้อง...' : 'เลื่อนระดับชั้นยกห้อง'}
+            </button>
           </div>
         </div>
-        {groupId && groupClassroomFilterId && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-700 mb-3">รายชื่อที่ยังไม่อยู่ในกลุ่ม</h3>
-              <div className="max-h-64 overflow-auto space-y-2">
-                {availableMembers.slice(0, 200).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                    <span className="text-sm text-gray-700">{s.student_code} - {s.first_name} {s.last_name}</span>
-                    <button
-                      type="button"
-                      onClick={() => openConfirmModal(
-                        'ยืนยันการเพิ่มสมาชิก',
-                        `ต้องการเพิ่ม ${s.first_name} ${s.last_name} เข้ารายวิชานี้ใช่หรือไม่?`,
-                        () => {
-                          addMemberMutation.mutate({ studentId: s.id })
-                          setShowModal(false)
-                        }
-                      )}
-                      className="text-xs px-2 py-1 rounded bg-indigo-600 text-white"
-                    >
-                      เพิ่ม
-                    </button>
-                  </div>
-                ))}
-              </div>
+      )}
+
+      {activeTab === 'subject' && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">เพิ่มนักเรียนเข้ารายวิชาเรียนรวม (ไม่ย้ายห้องหลัก)</h2>
+          <p className="text-sm text-gray-500 mb-4">เลือกเฉพาะรายวิชา แล้วเพิ่ม/ลบนักเรียนเฉพาะในรายวิชานั้น</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">เลือกรายวิชา</label>
+              <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 bg-white" value={groupId} onChange={(e) => {
+                setGroupId(e.target.value)
+                setGroupClassroomFilterId('')
+              }}>
+                <option value="">-- เลือกรายวิชา --</option>
+                {subjects?.map((s) => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
+              </select>
             </div>
-            <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-700 mb-3">สมาชิกในกลุ่มนี้</h3>
-              <div className="max-h-64 overflow-auto space-y-2">
-                {currentMembers.slice(0, 200).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2">
-                    <span className="text-sm text-gray-700">{s.student_code} - {s.first_name} {s.last_name}</span>
-                    <button
-                      type="button"
-                      onClick={() => openConfirmModal(
-                        'ยืนยันการลบสมาชิก',
-                        `ต้องการลบ ${s.first_name} ${s.last_name} ออกจากรายวิชานี้ใช่หรือไม่?`,
-                        () => {
-                          removeMemberMutation.mutate({ studentId: s.id })
-                          setShowModal(false)
-                        }
-                      )}
-                      className="text-xs px-2 py-1 rounded bg-rose-600 text-white"
-                    >
-                      ลบออก
-                    </button>
-                  </div>
-                ))}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">เลือกห้องเรียนก่อน</label>
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 bg-white"
+                value={groupClassroomFilterId}
+                onChange={(e) => setGroupClassroomFilterId(e.target.value)}
+                disabled={!groupId}
+              >
+                <option value="">-- เลือกห้องเรียน --</option>
+                {classrooms?.map((c) => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">ค้นหานักเรียน</label>
+              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5" value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)} placeholder="ค้นหารหัส/ชื่อ" disabled={!groupClassroomFilterId} />
             </div>
           </div>
-        )}
-        {groupId && !groupClassroomFilterId && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            กรุณาเลือกห้องเรียนก่อน ระบบจะแสดงรายชื่อที่ยังไม่อยู่ในกลุ่มตามห้องที่เลือก
-          </div>
-        )}
-      </div>
+          {groupId && groupClassroomFilterId && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">รายชื่อที่ยังไม่อยู่ในกลุ่ม</h3>
+                <div className="max-h-64 overflow-auto space-y-2">
+                  {availableMembers.slice(0, 200).map((s) => (
+                    <div key={s.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+                      <span className="text-sm text-gray-700">{s.student_code} - {s.first_name} {s.last_name}</span>
+                      <button
+                        type="button"
+                        onClick={() => openConfirmModal(
+                          'ยืนยันการเพิ่มสมาชิก',
+                          `ต้องการเพิ่ม ${s.first_name} ${s.last_name} เข้ารายวิชานี้ใช่หรือไม่?`,
+                          () => {
+                            addMemberMutation.mutate({ studentId: s.id })
+                            setShowModal(false)
+                          }
+                        )}
+                        className="text-xs px-2 py-1 rounded bg-indigo-600 text-white"
+                      >
+                        เพิ่ม
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">สมาชิกในกลุ่มนี้</h3>
+                <div className="max-h-64 overflow-auto space-y-2">
+                  {currentMembers.slice(0, 200).map((s) => (
+                    <div key={s.id} className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2">
+                      <span className="text-sm text-gray-700">{s.student_code} - {s.first_name} {s.last_name}</span>
+                      <button
+                        type="button"
+                        onClick={() => openConfirmModal(
+                          'ยืนยันการลบสมาชิก',
+                          `ต้องการลบ ${s.first_name} ${s.last_name} ออกจากรายวิชานี้ใช่หรือไม่?`,
+                          () => {
+                            removeMemberMutation.mutate({ studentId: s.id })
+                            setShowModal(false)
+                          }
+                        )}
+                        className="text-xs px-2 py-1 rounded bg-rose-600 text-white"
+                      >
+                        ลบออก
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {groupId && !groupClassroomFilterId && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              กรุณาเลือกห้องเรียนก่อน ระบบจะแสดงรายชื่อที่ยังไม่อยู่ในกลุ่มตามห้องที่เลือก
+            </div>
+          )}
+        </div>
+      )}
 
 
       {/* Premium System Modal */}
@@ -661,257 +925,268 @@ export default function Students() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 bg-gray-50/50 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
-            <h2 className="font-bold text-gray-700 flex items-center gap-2">
-              <Users size={20} className="text-indigo-500" /> รายชื่อนักเรียนทั้งหมด
-            </h2>
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <div className="flex items-center gap-2 w-full sm:w-auto relative" ref={dropdownRef}>
-                <label className="text-sm font-semibold text-gray-600 whitespace-nowrap">กรองตามห้องเรียน:</label>
-                <div className="relative min-w-[240px] w-full sm:w-auto">
-                  <div 
-                    onClick={() => setIsFilterDropdownOpen(true)}
-                    className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 gap-2 min-h-[42px]"
-                  >
-                    <input
-                      type="text"
-                      placeholder="ค้นหาห้องเรียน / กิจกรรม..."
-                      value={isFilterDropdownOpen ? filterSearchQuery : (filterOptions.find(o => o.value === filterClassroomId)?.label || '-- กรุณาเลือกห้องเรียน / กิจกรรม --')}
-                      onChange={e => {
-                        setIsFilterDropdownOpen(true)
-                        setFilterSearchQuery(e.target.value)
-                      }}
-                      onFocus={() => setIsFilterDropdownOpen(true)}
-                      className="w-full bg-transparent outline-none border-none text-sm text-gray-700 font-medium placeholder-gray-400 p-0"
-                    />
-                    <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                      {filterClassroomId && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setFilterClassroomId('')
-                            setFilterSearchQuery('')
-                            setIsFilterDropdownOpen(false)
-                          }}
-                          className="text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center w-5 h-5"
-                        >
-                          <span className="text-[10px] font-bold">✕</span>
-                        </button>
-                      )}
-                      <span className="text-gray-400 text-[10px]">▼</span>
+      {activeTab === 'list' && (
+        isLoading ? (
+          <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-5 bg-gray-50/50 border-b border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <h2 className="font-bold text-gray-700 flex items-center gap-2 self-start lg:self-auto">
+                <Users size={20} className="text-indigo-500" /> รายชื่อนักเรียนทั้งหมด
+              </h2>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                {/* Classroom Filter Block */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 relative w-full sm:w-auto" ref={dropdownRef}>
+                  <label className="text-[11px] sm:text-sm font-bold sm:font-semibold text-gray-500 sm:text-gray-600 uppercase tracking-wider sm:normal-case sm:tracking-normal whitespace-nowrap">
+                    กรองตามห้องเรียน:
+                  </label>
+                  <div className="relative w-full sm:min-w-[240px]">
+                    <div 
+                      onClick={() => setIsFilterDropdownOpen(true)}
+                      className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 gap-2 min-h-[42px]"
+                    >
+                      <input
+                        type="text"
+                        placeholder="ค้นหาห้องเรียน / กิจกรรม..."
+                        value={isFilterDropdownOpen ? filterSearchQuery : (filterOptions.find(o => o.value === filterClassroomId)?.label || '-- กรุณาเลือกห้องเรียน / กิจกรรม --')}
+                        onChange={e => {
+                          setIsFilterDropdownOpen(true)
+                          setFilterSearchQuery(e.target.value)
+                        }}
+                        onFocus={() => setIsFilterDropdownOpen(true)}
+                        className="w-full bg-transparent outline-none border-none text-sm text-gray-700 font-medium placeholder-gray-400 p-0"
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                        {filterClassroomId && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setFilterClassroomId('')
+                              setFilterSearchQuery('')
+                              setIsFilterDropdownOpen(false)
+                            }}
+                            className="text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center w-5 h-5"
+                          >
+                            <span className="text-[10px] font-bold">✕</span>
+                          </button>
+                        )}
+                        <span className="text-gray-400 text-[10px]">▼</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {isFilterDropdownOpen && (
-                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl py-1 text-sm">
-                      {filteredFilterOptions.length === 0 ? (
-                        <div className="p-3 text-center text-gray-400 font-medium">ไม่พบผลลัพธ์ที่ค้นหา</div>
-                      ) : (
-                        (() => {
-                          const categories = Array.from(new Set(filteredFilterOptions.map(o => o.category)))
-                          return categories.map(cat => {
-                            const items = filteredFilterOptions.filter(o => o.category === cat)
-                            return (
-                              <div key={cat} className="border-b last:border-0 border-gray-100 pb-1">
-                                {cat !== 'ทั่วไป' && (
-                                  <div className="px-3 py-1.5 text-[11px] font-bold text-indigo-500 uppercase bg-indigo-50/40 tracking-wider">
-                                    {cat}
-                                  </div>
-                                )}
-                                <div className="space-y-0.5 mt-0.5">
-                                  {items.map(opt => (
-                                    <div
-                                      key={opt.value}
-                                      onClick={() => {
-                                        setFilterClassroomId(opt.value)
-                                        setFilterSearchQuery('')
-                                        setIsFilterDropdownOpen(false)
-                                      }}
-                                      className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between ${
-                                        filterClassroomId === opt.value 
-                                          ? 'bg-indigo-50 text-indigo-700 font-bold' 
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      }`}
-                                    >
-                                      <span>{opt.label}</span>
-                                      {filterClassroomId === opt.value && (
-                                        <span className="text-indigo-600 font-bold text-xs">✓</span>
-                                      )}
+                    
+                    {isFilterDropdownOpen && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl py-1 text-sm">
+                        {filteredFilterOptions.length === 0 ? (
+                          <div className="p-3 text-center text-gray-400 font-medium">ไม่พบผลลัพธ์ที่ค้นหา</div>
+                        ) : (
+                          (() => {
+                            const categories = Array.from(new Set(filteredFilterOptions.map(o => o.category)))
+                            return categories.map(cat => {
+                              const items = filteredFilterOptions.filter(o => o.category === cat)
+                              return (
+                                <div key={cat} className="border-b last:border-0 border-gray-100 pb-1">
+                                  {cat !== 'ทั่วไป' && (
+                                    <div className="px-3 py-1.5 text-[11px] font-bold text-indigo-500 uppercase bg-indigo-50/40 tracking-wider">
+                                      {cat}
                                     </div>
-                                  ))}
+                                  )}
+                                  <div className="space-y-0.5 mt-0.5">
+                                    {items.map(opt => (
+                                      <div
+                                        key={opt.value}
+                                        onClick={() => {
+                                          setFilterClassroomId(opt.value)
+                                          setFilterSearchQuery('')
+                                          setIsFilterDropdownOpen(false)
+                                        }}
+                                        className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between ${
+                                          filterClassroomId === opt.value 
+                                            ? 'bg-indigo-50 text-indigo-700 font-bold' 
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        <span>{opt.label}</span>
+                                        {filterClassroomId === opt.value && (
+                                          <span className="text-indigo-600 font-bold text-xs">✓</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          })
-                        })()
-                      )}
-                    </div>
-                  )}
+                              )
+                            })
+                          })()
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Search Input Block */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                  <label className="sm:hidden text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                    ค้นหาชื่อนักเรียน:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="พิมพ์ค้นหารหัส/ชื่อนักเรียน..."
+                    value={bottomSearchKeyword}
+                    onChange={e => setBottomSearchKeyword(e.target.value)}
+                    className="border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-full sm:min-w-[200px] w-full sm:w-auto shadow-sm font-medium"
+                  />
                 </div>
               </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">คำนำหน้า</th>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {!filterClassroomId ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
+                            <Users size={24} />
+                          </div>
+                          <div className="text-base text-gray-600 font-semibold">กรุณาเลือกห้องเรียนหรือกิจกรรมชุมนุมก่อน เพื่อแสดงรายชื่อนักเรียน</div>
+                          <div className="text-xs text-gray-400">ระบบจะกรองและแสดงรายชื่อนักเรียนเฉพาะห้องหรือกลุ่มที่เลือก เพื่อความรวดเร็วและเป็นระเบียบ</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {students?.filter(s => {
+                        // 1. กรองตามห้องเรียน / กิจกรรมรวม
+                        let matchGroup = true
+                        if (filterClassroomId) {
+                          if (filterClassroomId.startsWith('CLASSROOM:')) {
+                            const cid = filterClassroomId.replace('CLASSROOM:', '')
+                            matchGroup = s.classroom_id === cid
+                          } else if (filterClassroomId.startsWith('SUBJECT:')) {
+                            const sid = filterClassroomId.replace('SUBJECT:', '')
+                            matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
+                          }
+                        }
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="text"
-                  placeholder="พิมพ์ค้นหารหัส/ชื่อนักเรียน..."
-                  value={bottomSearchKeyword}
-                  onChange={e => setBottomSearchKeyword(e.target.value)}
-                  className="border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px] w-full sm:w-auto shadow-sm font-medium"
-                />
-              </div>
+                        // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
+                        let matchSearch = true
+                        if (bottomSearchKeyword.trim()) {
+                          const kw = bottomSearchKeyword.toLowerCase().trim()
+                          const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
+                          const code = (s.student_code || '').toLowerCase()
+                          const nick = (s.nickname || '').toLowerCase()
+                          matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
+                        }
+
+                        return matchGroup && matchSearch
+                      }).map(student => {
+                        const subjectMembershipIds = allMemberships
+                          .filter((m) => m.student_id === student.id && m.group_type === 'SUBJECT')
+                          .map((m) => m.group_id)
+                        const subjectLabels = subjectMembershipIds
+                          .map((id) => subjects?.find((sub) => sub.id === id))
+                          .filter(Boolean)
+                          .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
+                        return (
+                        <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
+                          <td 
+                            className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold cursor-pointer hover:text-indigo-600 transition-all group"
+                            onClick={() => handleStartEdit(student)}
+                            title="แตะเพื่อแก้ไขข้อมูลนักเรียน"
+                          >
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="sm:hidden font-medium text-gray-500">{student.prefix || ''}</span>
+                              <span className="group-hover:underline text-indigo-900 sm:text-gray-800">{student.first_name} {student.last_name}</span>
+                              {student.nickname && <span className="text-gray-400 font-normal text-xs">({student.nickname})</span>}
+                              {(() => {
+                                const visit = student.home_visits?.[0];
+                                if (visit?.status !== 'COMPLETED') return null;
+                                const risk = visit.home_visit_assessments?.[0]?.risk_level;
+                                if (risk === 'WATCH') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-800" title="กลุ่มเฝ้าระวัง (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เฝ้าระวัง</span>;
+                                if (risk === 'URGENT') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-800" title="กลุ่มช่วยเหลือเร่งด่วน (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เร่งด่วน</span>;
+                                return null;
+                              })()}
+                            </div>
+                          </td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                            {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
+                            {subjectLabels.length > 0 && (
+                              <div className="mt-1 text-xs text-indigo-700">
+                                กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStartEdit(student)
+                                }}
+                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
+                                title="แก้ไขข้อมูล"
+                              >
+                                <Edit3 size={18} />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => deleteMutation.mutate(student.id))
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
+                                title="ลบข้อมูล"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )})}
+                      {students?.filter(s => {
+                        // 1. กรองตามห้องเรียน / กิจกรรมรวม
+                        let matchGroup = true
+                        if (filterClassroomId) {
+                          if (filterClassroomId.startsWith('CLASSROOM:')) {
+                            const cid = filterClassroomId.replace('CLASSROOM:', '')
+                            matchGroup = s.classroom_id === cid
+                          } else if (filterClassroomId.startsWith('SUBJECT:')) {
+                            const sid = filterClassroomId.replace('SUBJECT:', '')
+                            matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
+                          }
+                        }
+
+                        // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
+                        let matchSearch = true
+                        if (bottomSearchKeyword.trim()) {
+                          const kw = bottomSearchKeyword.toLowerCase().trim()
+                          const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
+                          const code = (s.student_code || '').toLowerCase()
+                          const nick = (s.nickname || '').toLowerCase()
+                          matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
+                        }
+
+                        return matchGroup && matchSearch
+                      }).length === 0 && (
+                        <tr><td colSpan={5} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
+                      )}
+                    </>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">คำนำหน้า</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {!filterClassroomId ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
-                          <Users size={24} />
-                        </div>
-                        <div className="text-base text-gray-600 font-semibold">กรุณาเลือกห้องเรียนหรือกิจกรรมชุมนุมก่อน เพื่อแสดงรายชื่อนักเรียน</div>
-                        <div className="text-xs text-gray-400">ระบบจะกรองและแสดงรายชื่อนักเรียนเฉพาะห้องหรือกลุ่มที่เลือก เพื่อความรวดเร็วและเป็นระเบียบ</div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  <>
-                    {students?.filter(s => {
-                      // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                      let matchGroup = true
-                      if (filterClassroomId) {
-                        if (filterClassroomId.startsWith('CLASSROOM:')) {
-                          const cid = filterClassroomId.replace('CLASSROOM:', '')
-                          matchGroup = s.classroom_id === cid
-                        } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                          const sid = filterClassroomId.replace('SUBJECT:', '')
-                          matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                        }
-                      }
-
-                      // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                      let matchSearch = true
-                      if (bottomSearchKeyword.trim()) {
-                        const kw = bottomSearchKeyword.toLowerCase().trim()
-                        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                        const code = (s.student_code || '').toLowerCase()
-                        const nick = (s.nickname || '').toLowerCase()
-                        matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                      }
-
-                      return matchGroup && matchSearch
-                    }).map(student => {
-                      const subjectMembershipIds = allMemberships
-                        .filter((m) => m.student_id === student.id && m.group_type === 'SUBJECT')
-                        .map((m) => m.group_id)
-                      const subjectLabels = subjectMembershipIds
-                        .map((id) => subjects?.find((sub) => sub.id === id))
-                        .filter(Boolean)
-                        .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
-                      return (
-                      <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">
-                          {student.first_name} {student.last_name} {student.nickname && <span className="text-gray-400 font-normal">({student.nickname})</span>}
-                          {(() => {
-                            const visit = student.home_visits?.[0];
-                            if (visit?.status !== 'COMPLETED') return null;
-                            const risk = visit.home_visit_assessments?.[0]?.risk_level;
-                            if (risk === 'WATCH') return <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" title="กลุ่มเฝ้าระวัง (เยี่ยมบ้าน)"><AlertTriangle size={12} className="mr-1" /> เฝ้าระวัง</span>;
-                            if (risk === 'URGENT') return <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800" title="กลุ่มช่วยเหลือเร่งด่วน (เยี่ยมบ้าน)"><AlertTriangle size={12} className="mr-1" /> เร่งด่วน</span>;
-                            return null;
-                          })()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                          {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
-                          {subjectLabels.length > 0 && (
-                            <div className="mt-1 text-xs text-indigo-700">
-                              กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-1">
-                          <button 
-                            onClick={() => {
-                              setShowForm(true)
-                              setEditingStudentId(student.id)
-                              setFormData({
-                                student_code: student.student_code,
-                                prefix: student.prefix ?? '',
-                                first_name: student.first_name,
-                                last_name: student.last_name,
-                                nickname: student.nickname,
-                                classroom_id: student.classroom_id ?? ''
-                              })
-                              setTimeout(() => {
-                                document.getElementById('students-page-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                              }, 50)
-                            }}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
-                            title="แก้ไขข้อมูล"
-                          >
-                            <Edit3 size={18} />
-                          </button>
-                          <button 
-                            onClick={() => openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => deleteMutation.mutate(student.id))}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
-                            title="ลบข้อมูล"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    )})}
-                    {students?.filter(s => {
-                      // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                      let matchGroup = true
-                      if (filterClassroomId) {
-                        if (filterClassroomId.startsWith('CLASSROOM:')) {
-                          const cid = filterClassroomId.replace('CLASSROOM:', '')
-                          matchGroup = s.classroom_id === cid
-                        } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                          const sid = filterClassroomId.replace('SUBJECT:', '')
-                          matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                        }
-                      }
-
-                      // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                      let matchSearch = true
-                      if (bottomSearchKeyword.trim()) {
-                        const kw = bottomSearchKeyword.toLowerCase().trim()
-                        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                        const code = (s.student_code || '').toLowerCase()
-                        const nick = (s.nickname || '').toLowerCase()
-                        matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                      }
-
-                      return matchGroup && matchSearch
-                    }).length === 0 && (
-                      <tr><td colSpan={5} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
-                    )}
-                  </>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        )
       )}
     </div>
   )
