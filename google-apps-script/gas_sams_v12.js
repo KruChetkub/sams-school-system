@@ -138,12 +138,18 @@ function runDailyDatabaseBackup() {
     const tablesToBackup = [
       "users",
       "teachers",
-      "students",
+      "subjects",
       "classrooms",
-      "student_classrooms",
+      "students",
+      "parents",
+      "schedules",
+      "attendance_sessions",
       "attendance",
+      "leave_requests",
+      "notifications",
       "home_visits",
-      "home_visit_assessments"
+      "home_visit_assessments",
+      "home_visit_photos"
     ];
 
     const backupData = {
@@ -193,12 +199,23 @@ function runDailyDatabaseBackup() {
 function runIncrementalImageBackup(assetsFolder, now) {
   Logger.log("กำลังตรวจเช็ครูปภาพการเยี่ยมบ้านเพื่อทำ Incremental Backup...");
   try {
-    const todayStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    // ป้องกันข้อผิดพลาดกรณีคุณครูกดคลิกเรียกใช้งานฟังก์ชันย่อยนี้โดยตรงจากหน้า Dashboard
+    if (!now) {
+      now = new Date();
+    }
+    if (!assetsFolder) {
+      const rootFolder = getOrCreateFolder(DriveApp.getRootFolder(), CONFIG.DRIVE_BACKUP_ROOT_FOLDER_NAME);
+      assetsFolder = getOrCreateFolder(rootFolder, "02_Storage_Assets");
+    }
+
+    // ย้อนหลัง 48 ชั่วโมงเพื่อให้ครอบคลุมความต่างของเขตเวลา (Timezone Gap - UTC+7 ของไทย)
+    // รูปภาพที่ถ่ายตอนดึก/เช้าตรู่ในไทย จะถูกบันทึกเป็นวันก่อนหน้าในเวลา UTC ทำให้การดึงข้อมูลระบุวันตรงๆ คลาดเคลื่อน
+    const past48Hours = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    const isoString48h = past48Hours.toISOString();
     const monthFolderStr = "Assets_" + Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy_MM");
     
-    // คิวรีรูปที่มีการลงบันทึกในวันนี้ (created_at เริ่มต้นด้วยวันที่ปัจจุบัน)
-    // หมายเหตุ: ตรวจสอบและดึงข้อมูลลิงก์รูปภาพในตารางเก็บประวัติ
-    const queryUrl = `${CONFIG.SUPABASE_URL}/rest/v1/home_visit_photos?created_at=gte.${todayStr}T00:00:00Z&select=*`;
+    // คิวรีรูปที่มีการลงบันทึกในช่วง 48 ชั่วโมงที่ผ่านมา
+    const queryUrl = `${CONFIG.SUPABASE_URL}/rest/v1/home_visit_photos?created_at=gte.${isoString48h}&select=*`;
     const options = {
       method: "GET",
       headers: {
@@ -235,16 +252,25 @@ function runIncrementalImageBackup(assetsFolder, now) {
         const fileResponse = UrlFetchApp.fetch(photoUrl);
         if (fileResponse.getResponseCode() === 200) {
           const blob = fileResponse.getBlob();
-          // หาชื่อไฟล์จาก URL หรือตาราง หรือกำหนดเองตามรหัสนักเรียน
-          const fileName = photo.file_name || `visit_${photo.student_id || "unknown"}_${Date.now()}.jpg`;
+          // หาชื่อไฟล์จาก URL (แกะชื่อไฟล์จริงที่บันทึกไว้ใน Supabase Storage เช่น homevisit_10101_17154245642.jpg)
+          const urlParts = photoUrl.split('/');
+          const fileName = urlParts[urlParts.length - 1] || `visit_${photo.id || Date.now()}.jpg`;
           
-          // ตรวจสอบว่ามีไฟล์เดิมชื่อนี้ในโฟลเดอร์นี้อยู่แล้วหรือไม่ เพื่อไม่ให้สร้างซ้ำซ้อน
-          const existingFiles = monthlyFolder.getFilesByName(fileName);
+          // สร้างโฟลเดอร์แยกของนักเรียนคนนั้นๆ ตามรหัสนักเรียน (เช่น "0088") ป้องกันไม่ให้ภาพกองรวมกัน ตามคุณครูแนะนำ
+          let studentFolder = monthlyFolder;
+          let studentCode = "unknown";
+          if (urlParts.length >= 2) {
+            studentCode = urlParts[urlParts.length - 2];
+            studentFolder = getOrCreateFolder(monthlyFolder, studentCode);
+          }
+          
+          // ตรวจสอบว่ามีไฟล์เดิมชื่อนี้ในโฟลเดอร์นักเรียนแล้วหรือไม่ เพื่อไม่ให้สร้างซ้ำซ้อน
+          const existingFiles = studentFolder.getFilesByName(fileName);
           if (!existingFiles.hasNext()) {
-            monthlyFolder.createFile(blob.setName(fileName));
-            Logger.log(`สำรองข้อมูลรูปภาพสำเร็จ: ${fileName}`);
+            studentFolder.createFile(blob.setName(fileName));
+            Logger.log(`สำรองข้อมูลรูปภาพสำเร็จ: โฟลเดอร์ ${studentCode} -> ${fileName}`);
           } else {
-            Logger.log(`ข้ามรูปภาพ ${fileName} เนื่องจากมีไฟล์ชื่อนี้สำรองไว้แล้ว`);
+            Logger.log(`ข้ามรูปภาพ ${fileName} เนื่องจากมีไฟล์ชื่อนี้สำรองในโฟลเดอร์ ${studentCode} แล้ว`);
           }
         }
       } catch (imgErr) {

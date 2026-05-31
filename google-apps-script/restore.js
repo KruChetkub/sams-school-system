@@ -55,12 +55,18 @@ async function runRestoration() {
     const tablesInOrder = [
       "users",
       "teachers",
-      "students",
+      "subjects",
       "classrooms",
-      "student_classrooms",
+      "students",
+      "parents",
+      "schedules",
+      "attendance_sessions",
       "attendance",
+      "leave_requests",
+      "notifications",
       "home_visits",
-      "home_visit_assessments"
+      "home_visit_assessments",
+      "home_visit_photos"
     ];
 
     for (const tableName of tablesInOrder) {
