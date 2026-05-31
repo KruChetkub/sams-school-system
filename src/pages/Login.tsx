@@ -102,7 +102,7 @@ export default function Login() {
 
     if (error) {
       if (error.message === 'Invalid login credentials') {
-        setError('รหัสผ่านหรืออีเมลไม่ถูกต้อง กรุณาไปดูที่ไลน์')
+        setError('รหัสผ่านหรืออีเมลไม่ถูกต้อง กรุณาไปดูที่ไลน์นะครับ')
       } else {
         setError(error.message)
       }
