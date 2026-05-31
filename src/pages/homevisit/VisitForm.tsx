@@ -204,6 +204,22 @@ export default function VisitForm() {
   const [photoInteriorFile, setPhotoInteriorFile] = useState<File | null>(null);
   const [photoInteriorPreview, setPhotoInteriorPreview] = useState<string | null>(null);
   
+  const [studentPhotoFile, setStudentPhotoFile] = useState<File | null>(null);
+  const [studentPhotoPreview, setStudentPhotoPreview] = useState<string | null>(null);
+
+  const handleStudentPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setStudentPhotoFile(file);
+      setStudentPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveStudentPhoto = () => {
+    setStudentPhotoFile(null);
+    setStudentPhotoPreview(null);
+  };
+  
   // Signature
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [teacherSignatureDataUrl, setTeacherSignatureDataUrl] = useState<string | null>(null);
@@ -321,12 +337,17 @@ export default function VisitForm() {
       }
 
       if (existingData.photos && existingData.photos.length > 0) {
-        const exteriorPhoto = existingData.photos.find((p: any) => p.description === 'ภาพถ่ายสภาพบ้านภายนอก') || existingData.photos[0];
+        const exteriorPhoto = existingData.photos.find((p: any) => p.description === 'ภาพถ่ายสภาพบ้านภายนอก');
         const interiorPhoto = existingData.photos.find((p: any) => p.description === 'ภาพถ่ายภายในบ้าน');
         const mapPhotoDb = existingData.photos.find((p: any) => p.description === 'แผนที่การเดินทาง');
+        const studentPhotoDb = existingData.photos.find((p: any) => p.description === 'รูปถ่ายนักเรียน');
         if (exteriorPhoto) setPhotoExteriorPreview(exteriorPhoto.photo_url);
+        else if (existingData.photos[0] && existingData.photos[0].description !== 'รูปถ่ายนักเรียน' && existingData.photos[0].description !== 'ภาพถ่ายภายในบ้าน' && existingData.photos[0].description !== 'แผนที่การเดินทาง') {
+          setPhotoExteriorPreview(existingData.photos[0].photo_url);
+        }
         if (interiorPhoto) setPhotoInteriorPreview(interiorPhoto.photo_url);
         if (mapPhotoDb) setMapPhotoPreview(mapPhotoDb.photo_url);
+        if (studentPhotoDb) setStudentPhotoPreview(studentPhotoDb.photo_url);
       }
     }
   }, [existingData]);
@@ -442,6 +463,9 @@ export default function VisitForm() {
       });
 
       // 3. Photos & Signature
+      if (studentPhotoFile) {
+        await uploadVisitPhoto(visitId!, student!.student_code, studentPhotoFile, 'รูปถ่ายนักเรียน');
+      }
       if (photoExteriorFile) {
         await uploadVisitPhoto(visitId!, student!.student_code, photoExteriorFile, 'ภาพถ่ายสภาพบ้านภายนอก');
       }
@@ -554,6 +578,33 @@ export default function VisitForm() {
                   className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none"
                   placeholder="กรอกตัวเลข 13 หลัก"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">รูปถ่ายนักเรียน (ขนาด 102 x 126 px)</label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-[102px] h-[126px] border border-gray-300 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 shadow-sm">
+                    {studentPhotoPreview ? (
+                      <img src={studentPhotoPreview} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-gray-400 text-xs text-center font-medium">รูปถ่าย<br />นักเรียน</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-xl text-sm font-bold cursor-pointer transition-colors text-center border border-emerald-100">
+                      {studentPhotoPreview ? 'เปลี่ยนรูปภาพ' : 'อัปโหลดรูปภาพ'}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleStudentPhotoChange} />
+                    </label>
+                    {studentPhotoPreview && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveStudentPhoto}
+                        className="bg-rose-50 text-rose-600 hover:bg-rose-100 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-rose-100"
+                      >
+                        ลบรูปภาพ
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

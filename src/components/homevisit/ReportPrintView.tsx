@@ -32,6 +32,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
   };
 
   const getPhoto = (desc: string) => photos.find(p => p.description === desc)?.photo_url;
+  const photoStudent = getPhoto('รูปถ่ายนักเรียน');
   const signatureParent = liveSignatures?.parent || getPhoto('ลายเซ็นผู้ให้ข้อมูล');
   const signatureTeacher = liveSignatures?.teacher || getPhoto('ลายเซ็นครูที่ปรึกษา');
   const photoExterior = liveSignatures?.exterior || getPhoto('ภาพถ่ายสภาพบ้านภายนอก');
@@ -118,8 +119,8 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
         <div className="page-number">หน้า 1/4</div>
         <div className="doc-code">ด.ล 01</div>
         <div className="photo-box">
-          {student?.photo_url ? (
-            <img src={student.photo_url} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
+          {photoStudent ? (
+            <img src={photoStudent} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
           ) : (
             <span>รูปถ่าย<br />นักเรียน</span>
           )}

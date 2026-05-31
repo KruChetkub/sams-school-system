@@ -95,6 +95,70 @@ const compressImage = (file: File, maxWidth = 1080, quality = 0.8): Promise<File
   });
 };
 
+/**
+ * Helper: ย่อขนาดรูปภาพนักเรียนเป็นขนาดสูงสุดไม่เกิน 102 x 126 px
+ * และทำการ Crop ส่วนตรงกลาง (Center Crop) เพื่อคงสัดส่วนที่สวยงาม
+ */
+export const resizeStudentPhoto = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const targetWidth = 102;
+        const targetHeight = 126;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        const imgRatio = img.width / img.height;
+        const targetRatio = targetWidth / targetHeight;
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+
+        if (imgRatio > targetRatio) {
+          // กว้างกว่าสัดส่วนเป้าหมาย
+          sw = img.height * targetRatio;
+          sx = (img.width - sw) / 2;
+        } else {
+          // สูงกว่าสัดส่วนเป้าหมาย
+          sh = img.width / targetRatio;
+          sy = (img.height - sh) / 2;
+        }
+
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const newName = file.name.replace(/\.[^/.]+$/, ".jpg");
+          const compressedFile = new File([blob], newName, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', 0.9);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | null) => {
   let query = supabase
     .from('home_visits')
@@ -212,8 +276,13 @@ export const saveHomeVisitAssessment = async (assessmentData: Partial<HomeVisitA
 };
 
 export const uploadVisitPhoto = async (visitId: string, studentCode: string, originalFile: File, description?: string) => {
-  // 1. บีบอัดรูปภาพก่อนอัปโหลด
-  const file = await compressImage(originalFile, 1080, 0.8);
+  // 1. บีบอัดรูปภาพก่อนอัปโหลด (ถ้ารูปถ่ายนักเรียนให้ย่อไม่เกิน 102 x 126 px)
+  let file;
+  if (description === 'รูปถ่ายนักเรียน') {
+    file = await resizeStudentPhoto(originalFile);
+  } else {
+    file = await compressImage(originalFile, 1080, 0.8);
+  }
 
   const fileExt = file.name.split('.').pop();
   const fileName = `homevisit_${studentCode}_${Date.now()}.${fileExt}`;
