@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import { logAuditEvent } from './services/auditLogService'
 import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
 import Teachers from './pages/Teachers'
@@ -285,9 +286,24 @@ function App() {
       if (session?.user) fetchRole(session.user.id)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null, session)
-      if (session?.user) fetchRole(session.user.id)
+      if (session?.user) {
+        fetchRole(session.user.id)
+        if (event === 'SIGNED_IN') {
+          const hasLoggedSuccess = sessionStorage.getItem('sams_logged_in_success')
+          if (!hasLoggedSuccess) {
+            sessionStorage.setItem('sams_logged_in_success', 'true')
+            logAuditEvent({
+              action: 'LOGIN_SUCCESS',
+              user_id: session.user.id,
+              user_email: session.user.email,
+            })
+          }
+        }
+      } else {
+        sessionStorage.removeItem('sams_logged_in_success')
+      }
     })
 
     return () => subscription.unsubscribe()

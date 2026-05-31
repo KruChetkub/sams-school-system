@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { logAuditEvent } from '../services/auditLogService'
 import LottieDefault from 'lottie-react'
 import animationData from '../../purple.json'
 
@@ -101,6 +102,10 @@ export default function Login() {
 
     if (error) {
       setError(error.message)
+      await logAuditEvent({
+        action: 'LOGIN_FAILED',
+        user_email: email,
+      })
     }
     const elapsed = Date.now() - start
     if (elapsed < minOverlayMs) {
