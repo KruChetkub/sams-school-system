@@ -101,7 +101,11 @@ export default function Login() {
     })
 
     if (error) {
-      setError(error.message)
+      if (error.message === 'Invalid login credentials') {
+        setError('รหัสผ่านหรืออีเมลไม่ถูกต้อง กรุณาไปดูที่ไลน์')
+      } else {
+        setError(error.message)
+      }
       await logAuditEvent({
         action: 'LOGIN_FAILED',
         user_email: email,
