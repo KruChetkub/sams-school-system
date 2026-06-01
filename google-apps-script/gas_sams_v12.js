@@ -27,8 +27,11 @@ const CONFIG = {
   // 3. ตั้งค่า Google Sheets สำหรับพัก Log (หากเว้นว่างไว้ ระบบจะสร้างสเปรดชีตใหม่ให้โดยอัตโนมัติและแจ้งทางอีเมล)
   GOOGLE_SHEET_ID: "", 
 
-  // 4. อีเมลปลายทางสำหรับส่งแจ้งเตือนกรณีระบบขัดข้องหรือแจ้งผลลัพธ์
-  NOTIFICATION_EMAIL: "your-email@gmail.com" 
+  // 4. การแจ้งเตือนกรณีระบบสำเร็จหรือขัดข้อง (Email, LINE Notify, Telegram)
+  NOTIFICATION_EMAIL: "your-email@gmail.com", // ใส่อีเมลปลายทาง (ถ้าต้องการใช้)
+  LINE_NOTIFY_TOKEN: "",                     // ใส่ LINE Notify Token (ถ้าต้องการใช้)
+  TELEGRAM_BOT_TOKEN: "",                    // ใส่ Telegram Bot Token (ถ้าต้องการใช้ เช่น 123456789:ABCdef...)
+  TELEGRAM_CHAT_ID: ""                       // ใส่ Telegram Chat ID หรือ Group ID (ถ้าต้องการใช้ เช่น -100123456789 หรือ 12345678)
 };
 
 // ==========================================
@@ -110,6 +113,25 @@ function runDailyLogOffload() {
     }
     Logger.log("ทำการล้างพื้นที่ Log เก่าบนฐานข้อมูล Supabase เรียบร้อยแล้ว (คืนพื้นที่ 500 MB)");
 
+    // 5. ส่งแจ้งเตือนการโยกย้าย Log สำเร็จไปยัง Email, LINE, Telegram
+    const formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    const subject = `ระบบโยกย้าย Log (Log Offload) ทำงานสำเร็จ`;
+    const textMsg = `ระบบได้โยกย้าย Log เรียบร้อยแล้ว\n` +
+                    `📅 วันที่ตรวจสอบ: ${dateStr.replace(/_/g, "-")}\n` +
+                    `📦 จำนวน Log ที่สำรอง: ${logs.length} รายการ\n` +
+                    `💾 บันทึกสเปรดชีต: SAMS_Audit_Logs_Sheet\n` +
+                    `📂 บันทึกไฟล์ใน Drive: ${fileName}\n` +
+                    `⏰ เวลาดำเนินการเสร็จสิ้น: ${formattedDate}`;
+                    
+    const htmlMsg = `<b>✅ ระบบโยกย้าย Log (Log Offload) ทำงานสำเร็จ</b>\n\n` +
+                    `📅 <b>วันที่ตรวจสอบ:</b> ${dateStr.replace(/_/g, "-")}\n` +
+                    `📦 <b>จำนวน Log ที่สำรอง:</b> ${logs.length} รายการ\n` +
+                    `💾 <b>บันทึกสเปรดชีต:</b> SAMS_Audit_Logs_Sheet\n` +
+                    `📂 <b>บันทึกไฟล์ใน Drive:</b> <code>${fileName}</code>\n` +
+                    `⏰ <b>เวลาดำเนินการเสร็จสิ้น:</b> <code>${formattedDate}</code>`;
+                    
+    sendSystemNotification(subject, textMsg, htmlMsg);
+
   } catch (error) {
     Logger.log(`เกิดข้อผิดพลาดในการ Offload Log: ${error.toString()}`);
     sendFailureEmail("ระบบ Log Offload ล้มเหลว", error.toString());
@@ -186,6 +208,21 @@ function runDailyDatabaseBackup() {
 
     // 4. สำรองรูปภาพเยี่ยมบ้านแบบ Incremental (เฉพาะภาพใหม่ในวันนี้)
     runIncrementalImageBackup(assetsFolder, now);
+
+    // 5. ส่งแจ้งเตือนการสำรองข้อมูลสำเร็จไปยัง Email, LINE, Telegram
+    const formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    const subject = `ระบบสำรองข้อมูลระบบ (Daily Backup) ทำงานสำเร็จ`;
+    const textMsg = `ระบบได้ทำการสำรองข้อมูลเรียบร้อยแล้ว\n` +
+                    `📅 วันที่ตรวจสอบ: ${dateStr}\n` +
+                    `💾 บันทึกไฟล์ข้อมูล: ${backupFileName} (เก็บถาวรปี ${yearStr})\n` +
+                    `⏰ เวลาดำเนินการเสร็จสิ้น: ${formattedDate}`;
+                    
+    const htmlMsg = `<b>✅ ระบบสำรองข้อมูลระบบ (Daily Backup) ทำงานสำเร็จ</b>\n\n` +
+                    `📅 <b>วันที่ตรวจสอบ:</b> ${dateStr}\n` +
+                    `💾 <b>บันทึกไฟล์ข้อมูล:</b> <code>${backupFileName}</code> (ปี ${yearStr})\n` +
+                    `⏰ <b>เวลาดำเนินการเสร็จสิ้น:</b> <code>${formattedDate}</code>`;
+                    
+    sendSystemNotification(subject, textMsg, htmlMsg);
 
   } catch (error) {
     Logger.log(`เกิดข้อผิดพลาดในการสำรองข้อมูลระบบ: ${error.toString()}`);
@@ -368,5 +405,97 @@ function sendFailureEmail(subject, errorMessage) {
     Logger.log("ส่งอีเมลแจ้งเตือนความผิดพลาดสำเร็จ");
   } catch (err) {
     Logger.log(`ไม่สามารถส่งอีเมลแจ้งเตือนได้: ${err.toString()}`);
+  }
+}
+
+/**
+ * ส่งแจ้งเตือนระบบไปยังช่องทางต่างๆ (Email, LINE, Telegram) เมื่อทำงานสำเร็จ
+ */
+function sendSystemNotification(subject, textMessage, htmlMessage) {
+  // 1. ส่งแจ้งเตือนทาง Email
+  sendEmailNotification(`✅ SAMS V12: ${subject}`, textMessage);
+  
+  // 2. ส่งแจ้งเตือนทาง LINE Notify
+  const lineMsg = `\n📢 [SAMS V12]\n📌 ${subject}\n\n${textMessage}`;
+  sendLineNotification(lineMsg);
+  
+  // 3. ส่งแจ้งเตือนทาง Telegram Bot
+  const tgMsg = `📢 <b>[SAMS V12]</b>\n📌 <b>${subject}</b>\n\n${htmlMessage || textMessage}`;
+  sendTelegramNotification(tgMsg);
+}
+
+/**
+ * ฟังก์ชันส่งการแจ้งเตือนทาง Email (สำเร็จ)
+ */
+function sendEmailNotification(subject, body) {
+  if (!CONFIG.NOTIFICATION_EMAIL || CONFIG.NOTIFICATION_EMAIL.includes("your-email")) {
+    Logger.log("ข้ามการส่ง Email เนื่องจากไม่ได้ตั้งค่าอีเมลที่ถูกต้อง");
+    return;
+  }
+  try {
+    MailApp.sendEmail({
+      to: CONFIG.NOTIFICATION_EMAIL,
+      subject: subject,
+      body: `เรียน ผู้ดูแลระบบ CKW,\n\nระบบบำรุงรักษา SAMS Version 12 ดำเนินงานสำเร็จลุล่วง:\n\n${body}\n\nวันเวลาที่ดำเนินการ: ${new Date().toString()}\n\nนี่เป็นข้อความแจ้งเตือนอัตโนมัติจากระบบ`
+    });
+    Logger.log("ส่งการแจ้งเตือนสำเร็จทาง Email");
+  } catch (err) {
+    Logger.log(`[ข้อผิดพลาด] ไม่สามารถส่ง Email สำเร็จได้: ${err.toString()}`);
+  }
+}
+
+/**
+ * ฟังก์ชันส่งการแจ้งเตือนทาง LINE Notify
+ */
+function sendLineNotification(message) {
+  if (!CONFIG.LINE_NOTIFY_TOKEN || CONFIG.LINE_NOTIFY_TOKEN.trim() === "") {
+    Logger.log("ข้ามการส่ง LINE เนื่องจากไม่ได้ระบุ LINE_NOTIFY_TOKEN");
+    return;
+  }
+  try {
+    const url = "https://notify-api.line.me/api/notify";
+    const options = {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + CONFIG.LINE_NOTIFY_TOKEN,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      payload: {
+        message: message
+      },
+      muteHttpExceptions: true
+    };
+    const response = UrlFetchApp.fetch(url, options);
+    Logger.log(`ส่งการแจ้งเตือนสำเร็จทาง LINE (Response Code: ${response.getResponseCode()})`);
+  } catch (err) {
+    Logger.log(`[ข้อผิดพลาด] ไม่สามารถส่ง LINE ได้: ${err.toString()}`);
+  }
+}
+
+/**
+ * ฟังก์ชันส่งการแจ้งเตือนทาง Telegram Bot
+ */
+function sendTelegramNotification(message) {
+  if (!CONFIG.TELEGRAM_BOT_TOKEN || CONFIG.TELEGRAM_BOT_TOKEN.trim() === "" || 
+      !CONFIG.TELEGRAM_CHAT_ID || CONFIG.TELEGRAM_CHAT_ID.trim() === "") {
+    Logger.log("ข้ามการส่ง Telegram เนื่องจากไม่ได้ระบุ Token หรือ Chat ID");
+    return;
+  }
+  try {
+    const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const options = {
+      method: "POST",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: CONFIG.TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "HTML"
+      }),
+      muteHttpExceptions: true
+    };
+    const response = UrlFetchApp.fetch(url, options);
+    Logger.log(`ส่งการแจ้งเตือนสำเร็จทาง Telegram (Response Code: ${response.getResponseCode()})`);
+  } catch (err) {
+    Logger.log(`[ข้อผิดพลาด] ไม่สามารถส่ง Telegram ได้: ${err.toString()}`);
   }
 }

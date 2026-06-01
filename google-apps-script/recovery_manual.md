@@ -16,7 +16,9 @@
 5. ปรับเปลี่ยนการตั้งค่าที่หัวข้อ **CONFIGURATION** ด้านบนสุดของโค้ด:
    - `SUPABASE_URL`: เปลี่ยนให้ตรงกับโปรเจกต์ Supabase ของโรงเรียน
    - `SUPABASE_KEY`: นำคีย์ `service_role` (คีย์ลับระดับผู้จัดการ) หรือ `anon` มาวาง
-   - `NOTIFICATION_EMAIL`: กรอกอีเมลส่วนตัวของคุณครูเพื่อรับการแจ้งเตือนหากระบบทำงานล้มเหลว
+   - `NOTIFICATION_EMAIL`: กรอกอีเมลส่วนตัวของคุณครูเพื่อรับการแจ้งเตือนหากระบบทำงานล้มเหลว/สำเร็จ
+   - `LINE_NOTIFY_TOKEN`: กรอก Token ของ LINE Notify หากต้องการให้แจ้งเตือนผลลัพธ์ผ่าน LINE
+   - `TELEGRAM_BOT_TOKEN` & `TELEGRAM_CHAT_ID`: กรอก Token และ Chat ID ของบอต Telegram หากต้องการแจ้งเตือนผลลัพธ์ผ่าน Telegram
 6. กดปุ่ม 💾 **บันทึกโครงการ (Save Project)**
 
 ### ขั้นตอนการตั้งเวลารันอัตโนมัติ (Triggers):
