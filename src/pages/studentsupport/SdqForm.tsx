@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar, GraduationCap, User, Users, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar, GraduationCap, User, Users, CheckCircle2, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { studentSupportService, calculateSdqScores } from '../../services/studentsupport/studentSupportService';
 
 const getSdqQuestions = (evaluatorType: 'STUDENT' | 'TEACHER' | 'PARENT') => {
   if (evaluatorType === 'STUDENT') {
@@ -115,6 +115,7 @@ export default function SdqForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [caseAlert, setCaseAlert] = useState<{ studentName: string; level: string } | null>(null);
 
   // ส่วนประเมินด้านหลัง (Impact Assessment)
   const [hasProblems, setHasProblems] = useState<string | null>(null); // 'NO' | 'LITTLE' | 'CLEAR' | 'SEVERE'
@@ -130,22 +131,37 @@ export default function SdqForm() {
   const questions = getSdqQuestions(evaluatorTypeState);
 
   const handleEvaluatorChange = (type: 'STUDENT' | 'TEACHER' | 'PARENT') => {
-    // อัปเดต query param ใน URL เพื่อรักษา State
     setSearchParams({ type });
     setEvaluatorTypeState(type);
-    // รีเซ็ตคำตอบเมื่อสลับประเภทผู้ประเมินเพื่อความปลอดภัยของคะแนน
-    setAnswers(Array(25).fill(-1));
+    // V15.8: โหลด draft ของ type ใหม่จาก localStorage (ถ้ามี)
+    const draftKey = `sdq_draft_${studentId}_${type}`;
+    const saved = localStorage.getItem(draftKey);
+    setAnswers(saved ? JSON.parse(saved) : Array(25).fill(-1));
     setCurrentIdx(0);
     setStep(1);
     setHasProblems(null);
     setImpactAnswers({
-      distress: -1,
-      home: -1,
-      friends: -1,
-      classroom: -1,
-      leisure: -1,
+      distress: -1, home: -1, friends: -1, classroom: -1, leisure: -1,
     });
   };
+
+  // V15.8: บันทึก draft เมื่อ answers เปลี่ยน
+  useEffect(() => {
+    if (!studentId) return;
+    const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
+    localStorage.setItem(draftKey, JSON.stringify(answers));
+  }, [answers, studentId, evaluatorTypeState]);
+
+  // V15.8: โหลด draft เมื่อ evaluatorType หรือ studentId เปลี่ยน
+  useEffect(() => {
+    if (!studentId) return;
+    const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
+    const saved = localStorage.getItem(draftKey);
+    if (saved) {
+      const parsed: number[] = JSON.parse(saved);
+      if (parsed.length === 25) setAnswers(parsed);
+    }
+  }, [studentId, evaluatorTypeState]);
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -216,7 +232,20 @@ export default function SdqForm() {
       }
 
       await studentSupportService.saveSdqAssessment(payload);
-      
+
+      // V15.8: ลบ draft ใน localStorage หลังบันทึกสำเร็จ
+      localStorage.removeItem(`sdq_draft_${studentId}_${evaluatorTypeState}`);
+
+      // V15.6: ตรวจผลลัพธ์และแจ้งเตือนเปิดเคสถ้า PROBLEM
+      if (evaluatorTypeState === 'TEACHER') {
+        try {
+          const scored = calculateSdqScores(answers, 'TEACHER');
+          if (scored.result_difficulties === 'PROBLEM' && student) {
+            setCaseAlert({ studentName: `${student.first_name} ${student.last_name}`, level: 'PROBLEM' });
+          }
+        } catch (_) { /* ignore */ }
+      }
+
       if (evaluatorTypeState === 'TEACHER') {
         setSuccessMessage('บันทึกประเมินฉบับ "ครูประเมินนักเรียน" สำเร็จ! กำลังเปลี่ยนไปยังฉบับ "นักเรียนประเมินตนเอง"...');
         setTimeout(() => {
@@ -271,10 +300,57 @@ export default function SdqForm() {
           </div>
         </div>
       )}
-      
+
+      {/* V15.6: Case Auto-suggest Alert */}
+      {caseAlert && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-6 duration-300">
+          <div className="bg-[#0f172a]/97 backdrop-blur-2xl border border-rose-500/40 px-5 py-4 rounded-2xl shadow-2xl shadow-rose-500/20 flex items-start gap-4">
+            <div className="p-2.5 bg-rose-500/20 text-rose-400 rounded-xl shrink-0">
+              <Bell size={20} className="animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black text-rose-300">⚠️ พบความเสี่ยงระดับ "มีปัญหา"</p>
+              <p className="text-[11px] text-gray-300 mt-1">
+                <span className="font-bold text-white">{caseAlert.studentName}</span> ได้รับผล SDQ ระดับมีปัญหา (ครูประเมิน) แนะนำเปิดเคสดูแลส่วนบุคคลทันที
+              </p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => navigate(`/studentsupport/cases`, { state: { prefillStudentId: studentId } })}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl transition-all"
+                >
+                  <ShieldAlert size={13} /> เปิดเคสช่วยเหลือ
+                </button>
+                <button
+                  onClick={() => setCaseAlert(null)}
+                  className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white text-xs font-bold rounded-xl transition-all"
+                >
+                  ไว้ก่อน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Decorative Glow elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Desktop Back Button — hidden on mobile (bottom nav handles it) */}
+      <div className="hidden md:flex items-center gap-3 w-full max-w-2xl mb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/25 font-bold text-sm transition-all"
+        >
+          <ChevronLeft size={16} />
+          ย้อนกลับ
+        </button>
+        {student && (
+          <span className="text-xs text-gray-500">
+            {student.prefix}{student.first_name} {student.last_name} — SDQ Assessment
+          </span>
+        )}
+      </div>
 
       <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative z-10">
         
@@ -282,22 +358,46 @@ export default function SdqForm() {
         <header className="mb-8 border-b border-white/10 pb-6">
           <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
             
-            {/* Student Info & Badge */}
+        {/* Student Info & Badge */}
             <div className="flex flex-col items-center md:items-start space-y-1.5 md:space-y-0.5 w-full">
               <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                 <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-emerald-500/35 block w-fit">
-                  SDQ Assessment (แบบประเมินพฤติกรรมเด็ก)
-                </span>
-                <span className={`px-3 py-1 text-xxs font-bold rounded-full border block w-fit ${
-                  evaluatorTypeState === 'STUDENT' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' :
-                  evaluatorTypeState === 'PARENT' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
-                  'bg-sky-500/20 text-sky-400 border-sky-500/30'
-                }`}>
-                  {evaluatorTypeState === 'STUDENT' ? 'นักเรียนประเมินตนเอง' :
-                   evaluatorTypeState === 'PARENT' ? 'ผู้ปกครองประเมิน' : 'ครูประเมินนักเรียน'}
+                  SDQ Assessment
                 </span>
               </div>
-              <h2 className="text-xl md:text-3xl font-black text-white leading-tight">
+
+              {/* V15.1: Step Progress Indicator */}
+              <div className="flex items-center gap-1.5 mt-2 w-full">
+                {([
+                  { key: 'TEACHER', label: 'ครูประเมิน', step: 1, color: 'sky' },
+                  { key: 'STUDENT', label: 'นักเรียน', step: 2, color: 'indigo' },
+                  { key: 'PARENT',  label: 'ผู้ปกครอง', step: 3, color: 'amber' },
+                ] as const).map(({ key, label, step: s, color }) => {
+                  const stepOrder: Record<string, number> = { TEACHER: 1, STUDENT: 2, PARENT: 3 };
+                  const curStep = stepOrder[evaluatorTypeState];
+                  const isActive = key === evaluatorTypeState;
+                  const isDone   = stepOrder[key] < curStep;
+                  const colorMap: Record<string, string> = {
+                    sky:    isDone ? 'bg-sky-600 text-white' : isActive ? 'bg-sky-500 text-white ring-2 ring-sky-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                    indigo: isDone ? 'bg-indigo-600 text-white' : isActive ? 'bg-indigo-500 text-white ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                    amber:  isDone ? 'bg-amber-600 text-white' : isActive ? 'bg-amber-500 text-white ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                  };
+                  return (
+                    <React.Fragment key={key}>
+                      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all ${colorMap[color]}`}>
+                        {isDone ? <Check size={10} /> : <span>{s}</span>}
+                        <span className="hidden md:inline">{label}</span>
+                      </div>
+                      {s < 3 && <div className={`flex-1 h-0.5 rounded-full transition-all ${isDone ? 'bg-emerald-500/60' : 'bg-white/10'}`} />}
+                    </React.Fragment>
+                  );
+                })}
+                <span className="text-[10px] text-gray-500 font-bold ml-1">
+                  ขั้นตอนที่ {evaluatorTypeState === 'TEACHER' ? 1 : evaluatorTypeState === 'STUDENT' ? 2 : 3}/3
+                </span>
+              </div>
+
+              <h2 className="text-xl md:text-3xl font-black text-white leading-tight mt-1">
                 {student ? `${student.prefix || ''}${student.first_name} ${student.last_name}` : 'โหลดข้อมูล...'}
               </h2>
               {student?.classroom && (

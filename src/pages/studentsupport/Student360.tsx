@@ -3,11 +3,11 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   User, Home, Calendar, ShieldAlert, Heart, Activity, FileText,
   ChevronLeft, Sparkles, MapPin, Phone, Users, CheckCircle2,
-  AlertTriangle, AlertCircle, Smile, HelpCircle, Eye, Mail, ArrowLeft
+  AlertTriangle, AlertCircle, Smile, HelpCircle, Eye, Mail, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Legend, BarChart, Bar, CartesianGrid } from 'recharts';
 
 // V14: Helper functions
 const getSdqDimLevel = (
@@ -51,6 +51,7 @@ export default function Student360() {
   const [profile, setProfile] = useState<any>(null);
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'SDQ_EQ' | 'HOME_VISIT' | 'ATTENDANCE' | 'CASES'>('OVERVIEW');
+  const [recalcEqLoading, setRecalcEqLoading] = useState(false);
 
   useEffect(() => {
     if (location.state && (location.state as any).activeTab) {
@@ -104,7 +105,7 @@ export default function Student360() {
     );
   }
 
-  const { student, sdq, eq, attendanceSummary, leaves, cases } = profile;
+  const { student, sdq, eq, attendanceSummary, attendanceByMonth, leaves, cases } = profile;
 
   const totalDays = attendanceSummary.present + attendanceSummary.late + attendanceSummary.absent + attendanceSummary.leave;
   const attendanceRate = totalDays ? Math.round((attendanceSummary.present / totalDays) * 100) : 100;
@@ -152,6 +153,34 @@ export default function Student360() {
         : [{ name: 'EQ รวม', value: latestEq.total_score, level: latestEq.eq_level, color: getEqLvColor(latestEq.eq_level) }])
     : [];
   const triWeaknesses = primarySdq ? generateSdqWeaknesses(primarySdq, primaryEvalType) : [];
+
+  // V15.3: SDQ History Timeline Data
+  const sdqTimeline = (() => {
+    const all = (sdq as any[]) ?? [];
+    if (all.length < 2) return [];
+    return all
+      .filter((s: any) => s.total_difficulties_score != null && s.created_at)
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((s: any) => ({
+        date: new Date(s.created_at).toLocaleDateString('th-TH', { month: 'short', year: '2-digit' }),
+        dateRaw: s.created_at,
+        score: s.total_difficulties_score,
+        type: s.evaluator_type as 'TEACHER' | 'STUDENT' | 'PARENT',
+        label: s.evaluator_type === 'TEACHER' ? 'ครู' : s.evaluator_type === 'STUDENT' ? 'นักเรียน' : 'ผู้ปกครอง',
+      }));
+  })();
+
+  // V15.3: Group by date + evaluator for chart
+  const sdqChartData = (() => {
+    const map: Record<string, any> = {};
+    sdqTimeline.forEach(pt => {
+      const key = `${pt.date}_${pt.type}`;
+      if (!map[pt.date]) map[pt.date] = { date: pt.date };
+      const fieldKey = pt.type === 'TEACHER' ? 'TEACHER' : pt.type === 'STUDENT' ? 'STUDENT' : 'PARENT';
+      map[pt.date][fieldKey] = pt.score;
+    });
+    return Object.values(map);
+  })();
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 pb-24 md:pb-8 relative overflow-hidden font-sans">
@@ -517,10 +546,30 @@ export default function Student360() {
             {/* SECTION 3: EQ Donut Chart */}
             {latestEq ? (
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="text-base font-bold text-white flex items-center gap-2 border-b border-white/10 pb-3">
-                  <Smile size={18} className="text-violet-400" />
-                  วิเคราะห์ผลคะแนน EQ — ความฉลาดทางอารมณ์ (52 ข้อ)
-                </h3>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Smile size={18} className="text-violet-400" />
+                    วิเคราะห์ผลคะแนน EQ — ความฉลาดทางอารมณ์ (52 ข้อ)
+                  </h3>
+                  {/* V15.4: EQ Recalculate Button */}
+                  <button
+                    onClick={async () => {
+                      setRecalcEqLoading(true);
+                      try {
+                        await studentSupportService.recalculateAllEqScores();
+                        // Reload profile data
+                        setProfile(await studentSupportService.getStudent360Profile(studentId!));
+                      } catch (e) { console.error(e); }
+                      finally { setRecalcEqLoading(false); }
+                    }}
+                    disabled={recalcEqLoading}
+                    title="คำนวณคะแนน EQ รายมิติใหม่"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/25 text-violet-400 hover:bg-violet-500/20 font-bold text-[11px] transition-all disabled:opacity-40"
+                  >
+                    <RefreshCw size={12} className={recalcEqLoading ? 'animate-spin' : ''} />
+                    {recalcEqLoading ? 'กำลังคำนวณ...' : 'คำนวณใหม่'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                   <div className="flex flex-col items-center">
                     <div className="relative w-full max-w-[280px] mx-auto">
@@ -634,13 +683,57 @@ export default function Student360() {
                 </div>
               </div>
             )}
+
+            {/* SECTION 5: V15.3 SDQ History Timeline */}
+            {sdqChartData.length >= 2 && (
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Activity size={18} className="text-sky-400" />
+                    ประวัติคะแนน SDQ ย้อนหลัง (Timeline)
+                  </h3>
+                  <span className="text-[10px] text-gray-500 font-bold">คะแนนรวมปัญหา (0–40)</span>
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={sdqChartData} margin={{ top: 8, right: 24, left: -16, bottom: 0 }}>
+                    <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 40]} tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <ReferenceLine y={15} stroke="rgba(251,191,36,0.35)" strokeDasharray="4 2"
+                      label={{ value: 'เสี่ยง', fill: '#f59e0b', fontSize: 9, position: 'right' }} />
+                    <ReferenceLine y={18} stroke="rgba(239,68,68,0.35)" strokeDasharray="4 2"
+                      label={{ value: 'ปัญหา', fill: '#ef4444', fontSize: 9, position: 'right' }} />
+                    <Tooltip
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div style={{ background: 'rgba(9,13,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px' }}>
+                            <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 11, marginBottom: 4 }}>{label}</p>
+                            {payload.map((p: any) => (
+                              <p key={p.dataKey} style={{ color: p.stroke, fontWeight: 600, fontSize: 11 }}>
+                                {p.dataKey === 'TEACHER' ? 'ครู' : p.dataKey === 'STUDENT' ? 'นักเรียน' : 'ผู้ปกครอง'}: {p.value} คะแนน
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend formatter={(v: string) => <span style={{ fontSize: 10, color: '#9ca3af' }}>{v === 'TEACHER' ? 'ครูประเมิน' : v === 'STUDENT' ? 'นักเรียนประเมิน' : 'ผู้ปกครองประเมิน'}</span>} />
+                    <Line dataKey="TEACHER" stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
+                    <Line dataKey="STUDENT" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
+                    <Line dataKey="PARENT"  stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+                <p className="text-[10px] text-gray-600 text-center">เส้นแบ่ง: เหลือง = เสี่ยง (≥ 15) │ แดง = มีปัญหา (≥ 18) — อ้างอิงเกณฑ์ครูประเมิน</p>
+              </div>
+            )}
+
           </div>
         )}
 
-
         {/* TAB 4: ATTENDANCE */}
         {activeTab === 'ATTENDANCE' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Visual statistics */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between items-center text-center">
               <h3 className="text-base font-bold text-white border-b border-white/10 pb-3 w-full">
@@ -704,6 +797,46 @@ export default function Student360() {
               )}
             </div>
           </div>
+
+          {/* V15.9: Attendance Monthly Mini-Chart */}
+          {Array.isArray(attendanceByMonth) && attendanceByMonth.length >= 2 && (
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Calendar size={18} className="text-indigo-400" />
+                  แนวโน้มการเข้าเรียนรายเดือน
+                </h3>
+                <span className="text-[10px] text-gray-500 font-bold">จำนวนวันต่อเดือน</span>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={attendanceByMonth} margin={{ top: 4, right: 16, left: -18, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload?.length) return null;
+                      return (
+                        <div style={{ background: 'rgba(9,13,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px' }}>
+                          <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 11, marginBottom: 4 }}>{label}</p>
+                          {payload.map((p: any) => (
+                            <p key={p.dataKey} style={{ color: p.fill, fontWeight: 600, fontSize: 11 }}>
+                              {p.dataKey === 'present' ? 'มาเรียน' : p.dataKey === 'absent' ? 'ขาด' : 'สาย'}: {p.value} วัน
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Legend formatter={(v: string) => <span style={{ fontSize: 10, color: '#9ca3af' }}>{v === 'present' ? 'มาเรียน' : v === 'absent' ? 'ขาดเรียน' : 'มาสาย'}</span>} />
+                  <Bar dataKey="present" fill="#10b981" radius={[4,4,0,0]} maxBarSize={32} />
+                  <Bar dataKey="absent"  fill="#ef4444" radius={[4,4,0,0]} maxBarSize={32} />
+                  <Bar dataKey="late"    fill="#eab308" radius={[4,4,0,0]} maxBarSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
         )}
 
         {/* TAB 5: CASES */}

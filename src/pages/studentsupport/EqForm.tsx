@@ -193,6 +193,18 @@ export default function EqForm() {
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Desktop Back Button — hidden on mobile (bottom nav handles it) */}
+      <div className="hidden md:flex items-center gap-3 w-full max-w-2xl mb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/25 font-bold text-sm transition-all"
+        >
+          <ChevronLeft size={16} />
+          ย้อนกลับ
+        </button>
+        <span className="text-xs text-gray-500">EQ Assessment (52 ข้อ)</span>
+      </div>
+
       <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative z-10">
         
         {/* Header Section */}

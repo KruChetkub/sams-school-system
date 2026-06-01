@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Sparkles, Activity, FileText, CheckCircle2,
-  AlertTriangle, ShieldAlert, Heart, Eye, ArrowRight, Smile, X
+  AlertTriangle, ShieldAlert, Heart, Eye, ArrowRight, Smile, X, ClipboardList, GraduationCap
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
@@ -69,12 +69,38 @@ export default function AdvisorDashboard() {
   }, []);
 
   // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง
+  // *** ใช้วิธีคำนวณ real-time จากข้อมูล SDQ/EQ เหมือน Student360 ***
+  // ไม่พึ่ง student_support_risk_analysis table เพื่อความถูกต้องทันที
+  const computeStudentRisk = (s: any): 'NORMAL' | 'MONITOR' | 'RISK' | 'URGENT' | null => {
+    const sdqList = (s.student_support_sdq as any[]) ?? [];
+    const eqList  = (s.student_support_eq  as any[]) ?? [];
+
+    // ถ้าไม่มี SDQ เลย ถือว่ายังไม่ได้คัดกรอง (null)
+    if (sdqList.length === 0) return null;
+
+    const teacherSdq = sdqList.find((x: any) => x.evaluator_type === 'TEACHER');
+    const studentSdq = sdqList.find((x: any) => x.evaluator_type === 'STUDENT');
+    const primarySdq = teacherSdq ?? studentSdq ?? sdqList[0];
+    const latestEq   = eqList[0] ?? null;
+
+    // คะแนนถ่วงน้ำหนักปัจจัยเสี่ยง (ตรงกับ Student360.getOverallRisk)
+    let score = 0;
+    if (primarySdq?.result_difficulties === 'PROBLEM') score += 3.5;
+    else if (primarySdq?.result_difficulties === 'RISK') score += 1.5;
+    if (latestEq?.eq_level === 'LOWER_THAN_NORMAL') score += 2.0;
+
+    if (score >= 6.0) return 'URGENT';
+    if (score >= 3.5) return 'RISK';
+    if (score >= 1.5) return 'MONITOR';
+    return 'NORMAL';
+  };
+
   const totalCount      = students.length;
-  const normalStudents  = students.filter(s => s.student_support_risk_analysis?.[0]?.risk_level === 'NORMAL');
-  const monitorStudents = students.filter(s => s.student_support_risk_analysis?.[0]?.risk_level === 'MONITOR');
-  const riskStudents    = students.filter(s => s.student_support_risk_analysis?.[0]?.risk_level === 'RISK');
-  const urgentStudents  = students.filter(s => s.student_support_risk_analysis?.[0]?.risk_level === 'URGENT');
-  const unscreenedCount = students.filter(s => !s.student_support_sdq || (s.student_support_sdq as any[]).length === 0).length;
+  const normalStudents  = students.filter(s => computeStudentRisk(s) === 'NORMAL');
+  const monitorStudents = students.filter(s => computeStudentRisk(s) === 'MONITOR');
+  const riskStudents    = students.filter(s => computeStudentRisk(s) === 'RISK');
+  const urgentStudents  = students.filter(s => computeStudentRisk(s) === 'URGENT');
+  const unscreenedCount = students.filter(s => computeStudentRisk(s) === null).length;
   const screenedCount   = totalCount - unscreenedCount;
 
   // V14: Classroom Risk Donut data
@@ -225,6 +251,153 @@ export default function AdvisorDashboard() {
             <h3 className="text-3xl font-black mt-2 text-rose-400">{urgentStudents.length} <span className="text-sm text-rose-600">คน</span></h3>
           </div>
 
+        </section>
+
+        {/* V15.2: SDQ Screening Progress Widget */}
+        <section className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div className="space-y-0.5">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <ClipboardList size={18} className="text-sky-400" />
+                ความคืบหน้าการคัดกรอง SDQ — แยกตามผู้ประเมิน
+              </h2>
+              <p className="text-[11px] text-gray-400">ตรวจสอบว่านักเรียนคนใดยังไม่ได้รับการประเมินครบทั้ง 3 ชุด</p>
+            </div>
+            <button
+              onClick={() => navigate('/studentsupport/students')}
+              className="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 transition-all"
+            >
+              จัดการรายบุคคล <ArrowRight size={12} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {([
+              {
+                type: 'TEACHER',
+                label: 'ครูประเมินนักเรียน',
+                icon: '\ud83d\udc68\u200d\ud83c\udfeb',
+                color: '#0ea5e9',
+                bgColor: 'bg-sky-500/10',
+                borderColor: 'border-sky-500/25',
+                textColor: 'text-sky-400',
+              },
+              {
+                type: 'STUDENT',
+                label: 'นักเรียนประเมินตนเอง',
+                icon: '\ud83c\udf92',
+                color: '#6366f1',
+                bgColor: 'bg-indigo-500/10',
+                borderColor: 'border-indigo-500/25',
+                textColor: 'text-indigo-400',
+              },
+              {
+                type: 'PARENT',
+                label: 'ผู้ปกครองประเมิน',
+                icon: '\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67',
+                color: '#f59e0b',
+                bgColor: 'bg-amber-500/10',
+                borderColor: 'border-amber-500/25',
+                textColor: 'text-amber-400',
+              },
+            ] as const).map(({ type, label, icon, color, bgColor, borderColor, textColor }) => {
+              const doneCount = students.filter(s =>
+                (s.student_support_sdq as any[])?.some((x: any) => x.evaluator_type === type)
+              ).length;
+              const pct = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+              const notDone = totalCount - doneCount;
+              const notDoneStudents = students.filter(s =>
+                !(s.student_support_sdq as any[])?.some((x: any) => x.evaluator_type === type)
+              );
+              return (
+                <div key={type} className={`${bgColor} border ${borderColor} rounded-2xl p-4 space-y-3`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{icon}</span>
+                    <span className={`text-xs font-bold ${textColor}`}>{label}</span>
+                    <span className={`ml-auto text-lg font-black ${textColor}`}>{doneCount}/{totalCount}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-bold">
+                      <span className="text-gray-400">ประเมินแล้ว</span>
+                      <span style={{ color }}>{pct}%</span>
+                    </div>
+                    <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, backgroundColor: color }}
+                      />
+                    </div>
+                  </div>
+                  {notDone > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-gray-500 font-bold">ยังไม่ได้ประเมิน ({notDone} คน):</p>
+                      <div className="flex flex-wrap gap-1">
+                        {notDoneStudents.slice(0, 5).map((s: any) => (
+                          <button
+                            key={s.id}
+                            onClick={() => navigate(`/studentsupport/sdq/${s.id}?type=${type}`)}
+                            className="px-2 py-0.5 bg-white/5 border border-white/10 hover:border-white/25 text-[10px] text-gray-400 hover:text-white font-bold rounded-lg transition-all"
+                          >
+                            {s.first_name}
+                          </button>
+                        ))}
+                        {notDone > 5 && (
+                          <span className="px-2 py-0.5 text-[10px] text-gray-600 font-bold">+{notDone - 5} คน</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {notDone === 0 && (
+                    <p className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                      <CheckCircle2 size={10} /> ครบทุกคนแล้ว! ชุดนี้สมบูรณ์
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* รวม 3 ชุด */}
+          {totalCount > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-4 flex-wrap">
+              <div className="space-y-1 flex-1">
+                <div className="flex justify-between text-[11px] font-bold text-gray-400">
+                  <span>ครบทั้ง 3 ชุด</span>
+                  <span className="text-white">
+                    {students.filter(s => {
+                      const sdqList = s.student_support_sdq as any[];
+                      return ['TEACHER','STUDENT','PARENT'].every(t =>
+                        sdqList?.some((x: any) => x.evaluator_type === t)
+                      );
+                    }).length}/{totalCount} คน
+                  </span>
+                </div>
+                <div className="h-2.5 bg-black/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"
+                    style={{ width: `${Math.round(
+                      (students.filter(s => {
+                        const sdqList = s.student_support_sdq as any[];
+                        return ['TEACHER','STUDENT','PARENT'].every(t =>
+                          sdqList?.some((x: any) => x.evaluator_type === t)
+                        );
+                      }).length / totalCount) * 100
+                    )}%` }}
+                  />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-emerald-400">
+                {Math.round(
+                  (students.filter(s => {
+                    const sdqList = s.student_support_sdq as any[];
+                    return ['TEACHER','STUDENT','PARENT'].every(t =>
+                      sdqList?.some((x: any) => x.evaluator_type === t)
+                    );
+                  }).length / totalCount) * 100
+                )}%
+              </div>
+            </div>
+          )}
         </section>
 
         {/* V14 CHARTS ROW */}
@@ -414,13 +587,27 @@ export default function AdvisorDashboard() {
                   normalStudents
                     .filter(s => !riskFilter || s.student_support_risk_analysis?.[0]?.risk_level === riskFilter || riskFilter === 'NORMAL')
                     .map(student => (
-                    <div key={student.id} onClick={() => navigate(`/studentsupport/profile/${student.id}`)} className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
-                        {student.first_name[0]}
+                    <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
+                          {student.first_name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                      {/* V15.10: Quick Actions */}
+                      <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
+                          <Eye size={10} /> 360°
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
+                          <FileText size={10} /> SDQ
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
+                          <ShieldAlert size={10} /> เคส
+                        </button>
                       </div>
                     </div>
                   ))
@@ -439,13 +626,26 @@ export default function AdvisorDashboard() {
                   <p className="text-xxs text-gray-500 italic text-center py-8">ไม่มีข้อมูลนักเรียน</p>
                 ) : (
                   monitorStudents.map(student => (
-                    <div key={student.id} onClick={() => navigate(`/studentsupport/profile/${student.id}`)} className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
-                        {student.first_name[0]}
+                    <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
+                          {student.first_name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                      <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
+                          <Eye size={10} /> 360°
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
+                          <FileText size={10} /> SDQ
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
+                          <ShieldAlert size={10} /> เคส
+                        </button>
                       </div>
                     </div>
                   ))
@@ -464,13 +664,26 @@ export default function AdvisorDashboard() {
                   <p className="text-xxs text-gray-500 italic text-center py-8">ไม่มีข้อมูลนักเรียน</p>
                 ) : (
                   riskStudents.map(student => (
-                    <div key={student.id} onClick={() => navigate(`/studentsupport/profile/${student.id}`)} className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
-                        {student.first_name[0]}
+                    <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
+                          {student.first_name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                      <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
+                          <Eye size={10} /> 360°
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
+                          <FileText size={10} /> SDQ
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
+                          <ShieldAlert size={10} /> เคส
+                        </button>
                       </div>
                     </div>
                   ))
@@ -489,13 +702,26 @@ export default function AdvisorDashboard() {
                   <p className="text-xxs text-gray-500 italic text-center py-8">ไม่มีข้อมูลนักเรียน</p>
                 ) : (
                   urgentStudents.map(student => (
-                    <div key={student.id} onClick={() => navigate(`/studentsupport/profile/${student.id}`)} className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
-                        {student.first_name[0]}
+                    <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                        <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
+                          {student.first_name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                      <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
+                          <Eye size={10} /> 360°
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
+                          <FileText size={10} /> SDQ
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
+                          <ShieldAlert size={10} /> เคส
+                        </button>
                       </div>
                     </div>
                   ))

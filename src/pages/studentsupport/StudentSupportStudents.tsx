@@ -156,12 +156,34 @@ export default function StudentSupportStudents() {
     );
   };
 
+  // คำนวณ risk level จาก SDQ/EQ real-time (ตรงกับ Student360 + AdvisorDashboard)
+  const computeStudentRisk = (s: any): string => {
+    const sdqList = (s.student_support_sdq as any[]) ?? [];
+    const eqList  = (s.student_support_eq  as any[]) ?? [];
+    if (sdqList.length === 0) return 'UNASSESSED';
+
+    const teacherSdq = sdqList.find((x: any) => x.evaluator_type === 'TEACHER');
+    const studentSdq = sdqList.find((x: any) => x.evaluator_type === 'STUDENT');
+    const primarySdq = teacherSdq ?? studentSdq ?? sdqList[0];
+    const latestEq   = eqList[0] ?? null;
+
+    let score = 0;
+    if (primarySdq?.result_difficulties === 'PROBLEM') score += 3.5;
+    else if (primarySdq?.result_difficulties === 'RISK') score += 1.5;
+    if (latestEq?.eq_level === 'LOWER_THAN_NORMAL') score += 2.0;
+
+    if (score >= 6.0) return 'URGENT';
+    if (score >= 3.5) return 'RISK';
+    if (score >= 1.5) return 'MONITOR';
+    return 'NORMAL';
+  };
+
   const filteredStudents = students.filter(s => {
     const fullName = `${s.prefix || ''}${s.first_name} ${s.last_name} ${s.nickname || ''}`.toLowerCase();
     const code = (s.student_code || '').toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || code.includes(searchTerm.toLowerCase());
 
-    const overallRisk = s.student_support_risk_analysis?.[0]?.risk_level || 'UNASSESSED';
+    const overallRisk = computeStudentRisk(s);
     const matchesRisk = filterRisk === 'ALL' || overallRisk === filterRisk;
 
     return matchesSearch && matchesRisk;
@@ -255,8 +277,7 @@ export default function StudentSupportStudents() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredStudents.map(student => {
-              const riskAnalysis = student.student_support_risk_analysis?.[0];
-              const riskLevel = riskAnalysis?.risk_level || 'UNASSESSED';
+              const riskLevel = computeStudentRisk(student);
               const sdqList = student.student_support_sdq || [];
               const eqList = student.student_support_eq || [];
 

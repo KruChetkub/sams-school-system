@@ -347,7 +347,7 @@ export const studentSupportService = {
             id, status,
             home_visit_assessments ( risk_level )
           ),
-          student_support_sdq ( id, result_difficulties, created_at ),
+          student_support_sdq ( id, evaluator_type, result_difficulties, created_at ),
           student_support_eq ( id, eq_level, created_at ),
           student_support_risk_analysis ( id, risk_level, factors_summary )
         `)
@@ -563,8 +563,9 @@ export const studentSupportService = {
       // 4. ดึงสถิติการเช็คชื่อเข้าแถว (Homeroom) และการลา
       const { data: homeroom, error: hrErr } = await supabase
         .from('homeroom_attendance')
-        .select('status')
-        .eq('student_id', studentId);
+        .select('status, attendance_date')
+        .eq('student_id', studentId)
+        .order('attendance_date', { ascending: true });
 
       if (hrErr) throw hrErr;
 
@@ -595,12 +596,34 @@ export const studentSupportService = {
         leave: homeroom ? homeroom.filter(a => a.status === 'LEAVE').length : 0,
       };
 
+      // จัดกลุ่มข้อมูลการเช็คชื่อตามเดือน (V15.9: Attendance Mini-Chart)
+      const attendanceByMonth: { month: string; present: number; absent: number; late: number }[] = [];
+      if (homeroom && homeroom.length > 0) {
+        const monthMap: Record<string, { present: number; absent: number; late: number }> = {};
+        homeroom.forEach((a: any) => {
+          if (!a.attendance_date) return;
+          const key = a.attendance_date.slice(0, 7); // YYYY-MM
+          if (!monthMap[key]) monthMap[key] = { present: 0, absent: 0, late: 0 };
+          if (a.status === 'PRESENT') monthMap[key].present++;
+          else if (a.status === 'ABSENT') monthMap[key].absent++;
+          else if (a.status === 'LATE') monthMap[key].late++;
+        });
+        Object.entries(monthMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .forEach(([key, v]) => {
+            const [year, month] = key.split('-');
+            const thMonth = new Date(+year, +month - 1, 1).toLocaleDateString('th-TH', { month: 'short' });
+            attendanceByMonth.push({ month: thMonth, ...v });
+          });
+      }
+
       return {
         student,
         homeVisit,
         sdq,
         eq,
         attendanceSummary,
+        attendanceByMonth,
         leaves,
         cases
       };
@@ -615,13 +638,23 @@ export const studentSupportService = {
    */
   updateOverallRiskAnalysis: async (studentId: string) => {
     try {
-      // 1. ดึงคะแนนประเมินล่าสุดที่มี
-      const { data: sdq } = await supabase
+      // 1. ดึงคะแนนประเมินผู้ประเมินทุกชุด (ใช้ผลเลวร้ายที่สุดในการคำนวณคะแนนความเสี่ยง)
+      const { data: sdqAll } = await supabase
         .from('student_support_sdq')
-        .select('result_difficulties')
+        .select('result_difficulties, evaluator_type')
         .eq('student_id', studentId)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
+
+      // เลือก result_difficulties ที่เลวร้ายที่สุด: PROBLEM > RISK > NORMAL
+      const worstSdq = ((sdqAll ?? []) as any[]).reduce(
+        (worst: string, s: any) => {
+          if (s.result_difficulties === 'PROBLEM') return 'PROBLEM';
+          if (s.result_difficulties === 'RISK' && worst !== 'PROBLEM') return 'RISK';
+          return worst;
+        },
+        'NORMAL'
+      );
+      const sdq = [{ result_difficulties: worstSdq }];
 
       const { data: eq } = await supabase
         .from('student_support_eq')
