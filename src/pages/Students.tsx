@@ -76,6 +76,7 @@ export default function Students() {
   })
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
+    gender: '',
     student_code: '',
     prefix: '',
     first_name: '',
@@ -96,7 +97,7 @@ export default function Students() {
       queryClient.invalidateQueries({ queryKey: ['students'] })
       setShowForm(false)
       setEditingStudentId(null)
-      setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' })
+      setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' })
     },
     onError: async (err: any) => {
       const isDuplicate = err?.code === '23505' || String(err?.message || '').includes('students_student_code_key')
@@ -128,7 +129,7 @@ export default function Students() {
       queryClient.invalidateQueries({ queryKey: ['students'] })
       setShowForm(false)
       setEditingStudentId(null)
-      setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' })
+      setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' })
     },
     onError: async (err: any) => {
       const isDuplicate = err?.code === '23505' || String(err?.message || '').includes('students_student_code_key')
@@ -372,6 +373,7 @@ export default function Students() {
       first_name: formData.first_name,
       last_name: formData.last_name,
       nickname: formData.nickname,
+      gender: formData.gender || null,
       ...(formData.classroom_id ? { classroom_id: formData.classroom_id } : {})
     }
 
@@ -391,7 +393,8 @@ export default function Students() {
       first_name: student.first_name,
       last_name: student.last_name,
       nickname: student.nickname ?? '',
-      classroom_id: student.classroom_id ?? ''
+      classroom_id: student.classroom_id ?? '',
+      gender: student.gender ?? ''
     })
   }
 
@@ -540,7 +543,7 @@ export default function Students() {
           {/* Backdrop with blur */}
           <div 
             className="absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300" 
-            onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }}
+            onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }}
           ></div>
           
           {/* Modal Content container */}
@@ -555,7 +558,7 @@ export default function Students() {
               </div>
               <button 
                 type="button" 
-                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }}
+                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }}
                 className="text-gray-400 hover:text-gray-600 font-bold p-1 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center w-8 h-8"
               >
                 ✕
@@ -582,6 +585,18 @@ export default function Students() {
             <div>
               <label className="block text-sm font-semibold text-gray-700">ชื่อเล่น</label>
               <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} placeholder="ถ้าไม่มีให้เว้นว่าง" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">เพศ</label>
+              <select 
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm font-semibold text-gray-700"
+                value={formData.gender}
+                onChange={e => setFormData({...formData, gender: e.target.value})}
+              >
+                <option value="">-- ไม่ระบุ --</option>
+                <option value="MALE">ชาย</option>
+                <option value="FEMALE">หญิง</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">ห้องเรียน (ระดับชั้น/ห้อง)</label>
@@ -623,7 +638,7 @@ export default function Students() {
             <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-3 border-t">
               <button 
                 type="button" 
-                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '' }) }} 
+                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }} 
                 className="px-5 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-slate-50 transition font-semibold text-sm"
               >
                 ยกเลิก
@@ -1045,6 +1060,7 @@ export default function Students() {
                     <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
                     <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">คำนำหน้า</th>
                     <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">เพศ</th>
                     <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
                     <th className="hidden sm:table-cell px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
                   </tr>
@@ -1052,7 +1068,7 @@ export default function Students() {
                 <tbody className="divide-y divide-gray-100">
                   {!filterClassroomId ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
+                      <td colSpan={6} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
                             <Users size={24} />
@@ -1119,6 +1135,9 @@ export default function Students() {
                               })()}
                             </div>
                           </td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {student.gender === 'MALE' ? 'ชาย' : student.gender === 'FEMALE' ? 'หญิง' : '-'}
+                          </td>
                           <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
                             {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
                             {subjectLabels.length > 0 && (
@@ -1178,7 +1197,7 @@ export default function Students() {
 
                         return matchGroup && matchSearch
                       }).length === 0 && (
-                        <tr><td colSpan={5} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
+                        <tr><td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
                       )}
                     </>
                   )}

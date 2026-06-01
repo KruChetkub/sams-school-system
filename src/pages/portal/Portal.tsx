@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, LogOut, ChevronRight, Home as HomeIcon } from 'lucide-react';
+import { GraduationCap, LogOut, ChevronRight, Home as HomeIcon, Heart } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import LottieDefault from 'lottie-react';
@@ -131,6 +131,27 @@ const Portal = () => {
 
                 <div className="flex items-center text-[11px] md:text-base text-emerald-600 font-bold group-hover:gap-2 transition-all mt-auto">
                   <span>เข้าสู่ระบบเยี่ยมบ้าน</span> <ChevronRight className="w-3 h-3 md:w-5 md:h-5 ml-0.5 md:ml-1" />
+                </div>
+              </div>
+            </Link>
+
+            {/* Card 3: Student Support (SAMS v13) */}
+            <Link to="/studentsupport" className="group relative bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-lg border border-white/60 hover:border-violet-400 hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 flex flex-col h-full justify-between w-full md:w-[calc(50%-12px)] max-w-md">
+              <div className="absolute top-0 right-0 w-16 h-16 md:w-32 md:h-32 bg-violet-100 rounded-bl-full -mr-4 -mt-4 md:-mr-8 md:-mt-8 opacity-60 group-hover:scale-125 transition-transform duration-500"></div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30 mb-3 md:mb-6 text-white group-hover:scale-110 transition-transform duration-300">
+                    <Heart className="w-5 h-5 md:w-8 md:h-8" />
+                  </div>
+                  <h3 className="text-sm md:text-2xl font-bold text-gray-900 mb-1.5 md:mb-3 leading-tight">ระบบดูแลช่วยเหลือนักเรียน</h3>
+                  <p className="hidden md:block text-gray-500 text-xs md:text-sm leading-relaxed mb-4 md:mb-8">
+                    คัดกรองพฤติกรรม (SDQ) ประเมินความฉลาดทางอารมณ์ (EQ 52 ข้อ) วิเคราะห์ความเสี่ยงและติดตามเคสสะสม
+                  </p>
+                </div>
+
+                <div className="flex items-center text-[11px] md:text-base text-violet-600 font-bold group-hover:gap-2 transition-all mt-auto">
+                  <span>เข้าสู่ระบบดูแลช่วยเหลือ</span> <ChevronRight className="w-3 h-3 md:w-5 md:h-5 ml-0.5 md:ml-1" />
                 </div>
               </div>
             </Link>

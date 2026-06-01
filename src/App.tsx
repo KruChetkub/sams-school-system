@@ -24,6 +24,16 @@ import HomeVisitDashboard from './pages/homevisit/Dashboard'
 import HomeVisitStudents from './pages/homevisit/StudentsList'
 import HomeVisitForm from './pages/homevisit/VisitForm'
 import HomeVisitLayout from './components/homevisit/HomeVisitLayout'
+
+// Student Support System (SAMS v13)
+import StudentSupportPortal from './pages/studentsupport/index'
+import SdqForm from './pages/studentsupport/SdqForm'
+import EqForm from './pages/studentsupport/EqForm'
+import Student360 from './pages/studentsupport/Student360'
+import CaseManagement from './pages/studentsupport/CaseManagement'
+import StudentSupportLayout from './components/studentsupport/StudentSupportLayout'
+import StudentSupportStudents from './pages/studentsupport/StudentSupportStudents'
+
 import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart, AppWindow } from 'lucide-react'
 
 // NavItem Component to handle active state and auto-close
@@ -320,6 +330,14 @@ function App() {
         <Route path="/homevisit/dashboard" element={user ? <HomeVisitLayout><HomeVisitDashboard /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/students" element={user ? <HomeVisitLayout><HomeVisitStudents /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/visit/:studentId" element={user ? <HomeVisitLayout><HomeVisitForm /></HomeVisitLayout> : <Navigate to="/login" />} />
+
+        {/* Student Support System (SAMS v13) */}
+        <Route path="/studentsupport" element={user ? <StudentSupportLayout><StudentSupportPortal /></StudentSupportLayout> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/students" element={user ? <StudentSupportLayout><StudentSupportStudents /></StudentSupportLayout> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/sdq/:studentId" element={user ? <SdqForm /> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/eq/:studentId" element={user ? <EqForm /> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/profile/:studentId" element={user ? <Student360 /> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/cases" element={user ? <StudentSupportLayout><CaseManagement /></StudentSupportLayout> : <Navigate to="/login" />} />
 
         {/* Protected Routes */}
         <Route path="/" element={user ? <DashboardLayout><Dashboard /></DashboardLayout> : <Navigate to="/login" />} />

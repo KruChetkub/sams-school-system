@@ -7,6 +7,7 @@ export interface Student {
   first_name: string
   last_name: string
   nickname: string
+  gender?: string | null
   updated_at?: string
   deleted_at?: string
   classroom_id?: string
@@ -25,7 +26,7 @@ export const getStudents = async () => {
   const { data, error } = await supabase
     .from('students')
     .select(`
-      id, student_code, prefix, first_name, last_name, nickname, classroom_id,
+      id, student_code, prefix, first_name, last_name, nickname, classroom_id, gender,
       classroom:classroom_id (level, room),
       home_visits (
         id, status,
