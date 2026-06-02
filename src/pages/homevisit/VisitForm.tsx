@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
 import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -178,7 +179,11 @@ export default function VisitForm() {
   const { user, role } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const { data: students, isPending: isLoadingStudents, isError: isErrorStudents } = useQuery({ queryKey: ['students'], queryFn: getStudents });
+  const { selectedYear } = useAcademicYearStore();
+  const { data: students, isPending: isLoadingStudents, isError: isErrorStudents } = useQuery({ 
+    queryKey: ['students', selectedYear?.id], 
+    queryFn: () => getStudents(selectedYear?.id) 
+  });
   const student = students?.find(s => s.id === studentId);
 
   const [isLoading, setIsLoading] = useState(false);

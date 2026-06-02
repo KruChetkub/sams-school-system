@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend
@@ -13,6 +14,7 @@ import {
 
 export default function AdvisorDashboard() {
   const navigate = useNavigate();
+  const { selectedYear } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -52,11 +54,13 @@ export default function AdvisorDashboard() {
         }
 
         // ดึงข้อมูลนักเรียนในห้องเรียน
-        const data = await studentSupportService.getAdvisorStudents(user.id);
+        const data = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
         setStudents(data);
         
         if (data && data.length > 0 && data[0].classroom) {
           setClassroomInfo(`${data[0].classroom.level}/${data[0].classroom.room}`);
+        } else {
+          setClassroomInfo('');
         }
       } catch (err: any) {
         setError(err.message);
@@ -66,7 +70,7 @@ export default function AdvisorDashboard() {
     };
 
     loadAdvisorData();
-  }, []);
+  }, [selectedYear]);
 
   // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง
   // *** ใช้วิธีคำนวณ real-time จากข้อมูล SDQ/EQ เหมือน Student360 ***

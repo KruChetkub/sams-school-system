@@ -17,14 +17,20 @@ export interface Classroom {
   }
 }
 
-export const getClassrooms = async () => {
-  const { data, error } = await supabase
+export const getClassrooms = async (academicYearId?: string) => {
+  let query = supabase
     .from('classrooms')
     .select(`
       *,
       advisor:advisor_id (first_name, last_name),
       subject_teacher:subject_teacher_id (first_name, last_name)
     `)
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
     .order('level')
     .order('room')
   if (error) throw error

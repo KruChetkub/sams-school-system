@@ -2,12 +2,17 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getParents, createParent, deleteParent, assignParentToStudent } from '../services/parentService'
 import { getStudents } from '../services/studentService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { Plus, Trash2, Users, Link as LinkIcon } from 'lucide-react'
 
 export default function Parents() {
   const queryClient = useQueryClient()
+  const { selectedYear } = useAcademicYearStore()
   const { data: parents, isLoading } = useQuery({ queryKey: ['parents'], queryFn: getParents })
-  const { data: students } = useQuery({ queryKey: ['students'], queryFn: getStudents })
+  const { data: students } = useQuery({ 
+    queryKey: ['students', selectedYear?.id], 
+    queryFn: () => getStudents(selectedYear?.id) 
+  })
   
   const [showForm, setShowForm] = useState(false)
   const [showAssignForm, setShowAssignForm] = useState(false)

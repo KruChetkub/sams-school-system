@@ -4,14 +4,26 @@ import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStu
 import { getClassrooms } from '../services/classroomService'
 import { getSubjects } from '../services/subjectService'
 import { addMembership, getAllMemberships, getMembershipsByGroup, removeMembership } from '../services/studentGroupService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Students() {
   const queryClient = useQueryClient()
-  const { data: students, isLoading } = useQuery({ queryKey: ['students'], queryFn: getStudents })
-  const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
-  const { data: subjects } = useQuery({ queryKey: ['subjects'], queryFn: getSubjects })
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
+  
+  const { data: students, isLoading } = useQuery({ 
+    queryKey: ['students', selectedYear?.id], 
+    queryFn: () => getStudents(selectedYear?.id) 
+  })
+  const { data: classrooms } = useQuery({ 
+    queryKey: ['classrooms', selectedYear?.id], 
+    queryFn: () => getClassrooms(selectedYear?.id) 
+  })
+  const { data: subjects } = useQuery({ 
+    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id], 
+    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id) 
+  })
   const { data: allMemberships = [] } = useQuery({ queryKey: ['student_group_memberships_all'], queryFn: getAllMemberships })
   
   const [showForm, setShowForm] = useState(false)

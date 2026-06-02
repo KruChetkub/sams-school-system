@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getDashboardStats, getAnalyticsData, getPendingClassroomChecksToday, getCheckedHomeroomClassroomsToday, getAttendanceTrendToday, getAttendanceDailyRates, getClassroomReport, getMonthlyAttendanceCompare, getAttendanceStatusSummaryByDate, getHomeroomStatusSummaryByDate } from '../services/dashboardService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { Users, GraduationCap, BookOpen, Library, TrendingUp, Calendar as CalIcon, ClipboardCheck, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, ReferenceLine, Line } from 'recharts'
 
@@ -73,6 +74,8 @@ const StackedBar = ({ data }: { data: any[] }) => {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { selectedYear } = useAcademicYearStore()
+  const academicYearId = selectedYear?.id
   const [now, setNow] = useState(new Date())
   const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedSummaryDateInput, setSelectedSummaryDateInput] = useState('')
@@ -168,67 +171,67 @@ export default function Dashboard() {
     setSelectedSummaryDateError('รูปแบบวันที่ไม่ถูกต้อง โปรดใช้ วว/ดด/ปปปป')
   }
 
-  const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats'], queryFn: getDashboardStats })
+  const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats', academicYearId], queryFn: () => getDashboardStats(academicYearId) })
   const { data: pendingChecks, isLoading: loadingPendingChecks } = useQuery({
-    queryKey: ['dashboard_pending_checks_today'],
-    queryFn: getPendingClassroomChecksToday,
+    queryKey: ['dashboard_pending_checks_today', academicYearId],
+    queryFn: () => getPendingClassroomChecksToday(academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
   })
   const { data: checkedHomeroomToday, isLoading: loadingHomeroomToday } = useQuery({
-    queryKey: ['dashboard_homeroom_checked_today'],
-    queryFn: getCheckedHomeroomClassroomsToday,
+    queryKey: ['dashboard_homeroom_checked_today', academicYearId],
+    queryFn: () => getCheckedHomeroomClassroomsToday(academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
   })
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({ 
-    queryKey: ['dashboard_analytics', 'month'], 
-    queryFn: () => getAnalyticsData('month'),
+    queryKey: ['dashboard_analytics', 'month', academicYearId],
+    queryFn: () => getAnalyticsData('month', academicYearId),
     enabled: showAdvancedAnalytics,
   })
   const { data: trendToday, isLoading: loadingTrendToday } = useQuery({
-    queryKey: ['dashboard_attendance_trend_today'],
-    queryFn: getAttendanceTrendToday,
+    queryKey: ['dashboard_attendance_trend_today', academicYearId],
+    queryFn: () => getAttendanceTrendToday(academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
     enabled: showAdvancedAnalytics,
   })
   const { data: classroomWeekRows = [], isLoading: loadingClassroomWeekRows } = useQuery({
-    queryKey: ['dashboard_classroom_report_week'],
-    queryFn: () => getClassroomReport('week'),
+    queryKey: ['dashboard_classroom_report_week', academicYearId],
+    queryFn: () => getClassroomReport('week', academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
     enabled: showAdvancedAnalytics,
   })
   const { data: dailyRates = [], isLoading: loadingDailyRates } = useQuery({
-    queryKey: ['dashboard_attendance_daily_rates_7d'],
-    queryFn: () => getAttendanceDailyRates(7),
+    queryKey: ['dashboard_attendance_daily_rates_7d', academicYearId],
+    queryFn: () => getAttendanceDailyRates(7, academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
     enabled: showAdvancedAnalytics,
   })
   const { data: monthlyCompare, isLoading: loadingMonthlyCompare } = useQuery({
-    queryKey: ['dashboard_monthly_attendance_compare'],
-    queryFn: getMonthlyAttendanceCompare,
+    queryKey: ['dashboard_monthly_attendance_compare', academicYearId],
+    queryFn: () => getMonthlyAttendanceCompare(academicYearId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
     enabled: showAdvancedAnalytics,
   })
   const { data: dailyStatusSummary, isLoading: loadingDailyStatusSummary } = useQuery({
-    queryKey: ['dashboard_attendance_status_summary', selectedSummaryDate],
-    queryFn: () => getAttendanceStatusSummaryByDate(selectedSummaryDate),
+    queryKey: ['dashboard_attendance_status_summary', selectedSummaryDate, academicYearId],
+    queryFn: () => getAttendanceStatusSummaryByDate(selectedSummaryDate, academicYearId),
     refetchOnWindowFocus: false,
     staleTime: 15000,
   })
   const { data: homeroomStatusSummary, isLoading: loadingHomeroomStatusSummary } = useQuery({
-    queryKey: ['dashboard_homeroom_status_summary', selectedSummaryDate],
-    queryFn: () => getHomeroomStatusSummaryByDate(selectedSummaryDate),
+    queryKey: ['dashboard_homeroom_status_summary', selectedSummaryDate, academicYearId],
+    queryFn: () => getHomeroomStatusSummaryByDate(selectedSummaryDate, academicYearId),
     refetchOnWindowFocus: false,
     staleTime: 15000,
   })

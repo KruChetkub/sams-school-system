@@ -4,24 +4,26 @@ import { getStudents } from '../../services/studentService';
 import { getHomeVisitsByTeacher } from '../../services/homevisit/visitService';
 import { getClassrooms } from '../../services/classroomService';
 import { useAuthStore } from '../../store/authStore';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, CheckCircle, Clock, ArrowLeft, Users } from 'lucide-react';
 
 export default function StudentsList() {
   const { user, role } = useAuthStore();
+  const { selectedYear } = useAcademicYearStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
 
   // 1. ดึงห้องเรียนทั้งหมด เพื่อหาว่าครูคนนี้ประจำชั้นห้องไหน
   const { data: classrooms = [], isLoading: isLoadingClassrooms } = useQuery({
-    queryKey: ['classrooms'],
-    queryFn: getClassrooms
+    queryKey: ['classrooms', selectedYear?.id],
+    queryFn: () => getClassrooms(selectedYear?.id)
   });
 
   // 2. ดึงนักเรียนทั้งหมด
   const { data: students = [], isLoading: isLoadingStudents } = useQuery({
-    queryKey: ['students'],
-    queryFn: getStudents
+    queryKey: ['students', selectedYear?.id],
+    queryFn: () => getStudents(selectedYear?.id)
   });
 
   // 3. ดึงประวัติการเยี่ยมบ้านที่ครูคนนี้เคยทำไว้

@@ -15,16 +15,28 @@ export interface Schedule {
   classroom?: { level: string; room: string }
 }
 
-export const getSchedules = async (classroomId?: string, teacherId?: string) => {
-  let query = supabase.from('schedules').select(`
+export const getSchedules = async (classroomId?: string, teacherId?: string, academicYearId?: string) => {
+  let selectStr = `
     *,
     subject:subject_id (subject_code, subject_name),
     teacher:teacher_id (first_name, last_name),
-    classroom:classroom_id (level, room)
-  `).order('day_of_week').order('period')
+    classroom:classroom_id (level, room, academic_year_id)
+  `
+
+  if (academicYearId && !classroomId) {
+    selectStr = `
+      *,
+      subject:subject_id (subject_code, subject_name),
+      teacher:teacher_id (first_name, last_name),
+      classroom:classroom_id!inner(level, room, academic_year_id)
+    `
+  }
+
+  let query = supabase.from('schedules').select(selectStr).order('day_of_week').order('period')
 
   if (classroomId) query = query.eq('classroom_id', classroomId)
   if (teacherId) query = query.eq('teacher_id', teacherId)
+  if (academicYearId && !classroomId) query = query.eq('classroom.academic_year_id', academicYearId)
 
   const { data, error } = await query
   if (error) throw error

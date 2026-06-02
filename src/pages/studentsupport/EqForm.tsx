@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 
 const EQ_QUESTIONS = [
   // 1-10
@@ -74,6 +75,7 @@ const QUESTIONS_PER_PAGE = 5;
 export default function EqForm() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
 
   const [student, setStudent] = useState<any>(null);
   const [answers, setAnswers] = useState<number[]>(Array(52).fill(-1));
@@ -156,7 +158,9 @@ export default function EqForm() {
       await studentSupportService.saveEqAssessment({
         student_id: studentId,
         evaluator_id: user?.id || '',
-        answers: answers
+        answers: answers,
+        academic_year_id: selectedYear?.id || null,
+        semester_id: selectedSemester?.id || null
       });
 
       navigate('/studentsupport');

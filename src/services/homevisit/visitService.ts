@@ -159,7 +159,7 @@ export const resizeStudentPhoto = (file: File): Promise<File> => {
   });
 };
 
-export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | null) => {
+export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | null, academicYearId?: string) => {
   let query = supabase
     .from('home_visits')
     .select(`
@@ -171,6 +171,10 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
 
   if (role !== 'ADMIN') {
     query = query.eq('teacher_id', teacherId);
+  }
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId);
   }
 
   const { data, error } = await query;
@@ -207,7 +211,12 @@ export const getHomeVisitById = async (visitId: string) => {
   return { visit, assessment: assessments, photos };
 };
 
-export const getHomeVisitByStudentAndTeacher = async (studentId: string, teacherId: string, role?: string | null) => {
+export const getHomeVisitByStudentAndTeacher = async (
+  studentId: string,
+  teacherId: string,
+  role?: string | null,
+  academicYearId?: string
+) => {
   let query = supabase
     .from('home_visits')
     .select(`*`)
@@ -215,6 +224,10 @@ export const getHomeVisitByStudentAndTeacher = async (studentId: string, teacher
     
   if (role !== 'ADMIN') {
     query = query.eq('teacher_id', teacherId);
+  }
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId);
   }
 
   const { data: visit, error: visitError } = await query

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getAnalyticsData, getClassroomReport, getHomeroomClassroomDetailReport, getHomeroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
   const [activeTab, setActiveTab] = useState(() => {
     return window.location.hash.replace('#', '') || 'overview'
   })
@@ -29,37 +31,37 @@ export default function Reports() {
   }, [])
 
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ['dashboard_analytics', activeTimeFilter],
-    queryFn: () => getAnalyticsData(activeTimeFilter)
+    queryKey: ['dashboard_analytics', activeTimeFilter, selectedYear?.id],
+    queryFn: () => getAnalyticsData(activeTimeFilter, selectedYear?.id)
   })
   const { data: classroomRows = [], isLoading: loadingClassroom } = useQuery({
-    queryKey: ['report_classroom', activeTimeFilter],
-    queryFn: () => getClassroomReport(activeTimeFilter),
+    queryKey: ['report_classroom', activeTimeFilter, selectedYear?.id],
+    queryFn: () => getClassroomReport(activeTimeFilter, selectedYear?.id),
     enabled: activeTab === 'classroom'
   })
   const { data: homeroomRows = [], isLoading: loadingHomeroom } = useQuery({
-    queryKey: ['report_homeroom', activeTimeFilter],
-    queryFn: () => getHomeroomReport(activeTimeFilter),
+    queryKey: ['report_homeroom', activeTimeFilter, selectedYear?.id],
+    queryFn: () => getHomeroomReport(activeTimeFilter, selectedYear?.id),
     enabled: activeTab === 'homeroom'
   })
   const { data: homeroomClassroomDetail, isLoading: loadingHomeroomClassroomDetail } = useQuery({
-    queryKey: ['report_homeroom_classroom_detail', selectedHomeroomClassroomId, activeTimeFilter],
-    queryFn: () => getHomeroomClassroomDetailReport(selectedHomeroomClassroomId as string, activeTimeFilter),
+    queryKey: ['report_homeroom_classroom_detail', selectedHomeroomClassroomId, activeTimeFilter, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getHomeroomClassroomDetailReport(selectedHomeroomClassroomId as string, activeTimeFilter, selectedYear?.id, selectedSemester?.id),
     enabled: activeTab === 'homeroom' && !!selectedHomeroomClassroomId
   })
   const { data: studentRows = [], isLoading: loadingStudent } = useQuery({
-    queryKey: ['report_student', activeTimeFilter],
-    queryFn: () => getStudentReport(activeTimeFilter),
+    queryKey: ['report_student', activeTimeFilter, selectedYear?.id],
+    queryFn: () => getStudentReport(activeTimeFilter, undefined, selectedYear?.id),
     enabled: activeTab === 'student'
   })
   const { data: studentDetail, isLoading: loadingStudentDetail } = useQuery({
-    queryKey: ['report_student_detail', selectedStudentId, activeTimeFilter],
-    queryFn: () => getStudentDetailReport(selectedStudentId as string, activeTimeFilter),
+    queryKey: ['report_student_detail', selectedStudentId, activeTimeFilter, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getStudentDetailReport(selectedStudentId as string, activeTimeFilter, selectedYear?.id, selectedSemester?.id),
     enabled: activeTab === 'student' && !!selectedStudentId
   })
   const { data: subjectRows = [], isLoading: loadingSubject } = useQuery({
-    queryKey: ['report_subject', activeTimeFilter],
-    queryFn: () => getSubjectReport(activeTimeFilter),
+    queryKey: ['report_subject', activeTimeFilter, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getSubjectReport(activeTimeFilter, selectedYear?.id, selectedSemester?.id),
     enabled: activeTab === 'subject'
   })
   const { data: subjectDetail, isLoading: loadingSubjectDetail } = useQuery({

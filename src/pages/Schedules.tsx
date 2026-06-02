@@ -4,6 +4,7 @@ import { getSchedules, createSchedule, deleteSchedule, updateSchedule } from '..
 import { getSubjects } from '../services/subjectService'
 import { getClassrooms } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 
 const DAYS = [
@@ -145,9 +146,20 @@ const getSubjectPalette = (subjectKey: string) => {
 export default function Schedules() {
   const formRef = useRef<HTMLFormElement | null>(null)
   const queryClient = useQueryClient()
-  const { data: schedules, isLoading } = useQuery({ queryKey: ['schedules'], queryFn: () => getSchedules() })
-  const { data: subjects } = useQuery({ queryKey: ['subjects'], queryFn: getSubjects })
-  const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
+
+  const { data: schedules, isLoading } = useQuery({ 
+    queryKey: ['schedules', selectedYear?.id], 
+    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id) 
+  })
+  const { data: subjects } = useQuery({ 
+    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id], 
+    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id) 
+  })
+  const { data: classrooms } = useQuery({ 
+    queryKey: ['classrooms', selectedYear?.id], 
+    queryFn: () => getClassrooms(selectedYear?.id) 
+  })
   const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)

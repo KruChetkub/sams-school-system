@@ -2,15 +2,20 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getLeaveRequests, submitLeaveRequest, updateLeaveStatus } from '../services/leaveService'
 import { getStudents } from '../services/studentService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { CheckCircle, XCircle, FileText, Clock, Calendar } from 'lucide-react'
 
 export default function LeaveRequests() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'list' | 'submit'>('list')
   
+  const { selectedYear } = useAcademicYearStore()
   // Queries
   const { data: leaves, isLoading } = useQuery({ queryKey: ['leaves'], queryFn: getLeaveRequests })
-  const { data: students } = useQuery({ queryKey: ['students'], queryFn: getStudents })
+  const { data: students } = useQuery({ 
+    queryKey: ['students', selectedYear?.id], 
+    queryFn: () => getStudents(selectedYear?.id) 
+  })
 
   // Mutations
   const updateStatusMutation = useMutation({

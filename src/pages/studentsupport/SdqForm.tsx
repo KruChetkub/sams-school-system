@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar, GraduationCap, User, Users, CheckCircle2, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService, calculateSdqScores } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 
 const getSdqQuestions = (evaluatorType: 'STUDENT' | 'TEACHER' | 'PARENT') => {
   if (evaluatorType === 'STUDENT') {
@@ -97,6 +98,7 @@ export default function SdqForm() {
   const { studentId } = useParams<{ studentId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
 
   // ดึง evaluator_type จาก query param, default เป็น 'TEACHER' สำหรับครูประจำชั้น
   const [evaluatorTypeState, setEvaluatorTypeState] = useState<'STUDENT' | 'TEACHER' | 'PARENT'>('TEACHER');
@@ -217,7 +219,9 @@ export default function SdqForm() {
         student_id: studentId,
         evaluator_type: evaluatorTypeState,
         evaluator_id: user?.id || null,
-        answers: answers
+        answers: answers,
+        academic_year_id: selectedYear?.id || null,
+        semester_id: selectedSemester?.id || null
       };
 
       // บันทึกคำตอบด้านผลกระทบด้านหลัง (ถ้าผู้เรียนระบุว่า มีปัญหา)

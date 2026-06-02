@@ -7,9 +7,11 @@ import {
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
 import type { SupportCase } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 
 export default function CaseManagement() {
   const navigate = useNavigate();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [selectedCase, setSelectedCase] = useState<SupportCase | null>(null);
@@ -55,16 +57,27 @@ export default function CaseManagement() {
       }
 
       if (teacherErr) throw teacherErr;
+      const role = teacher?.role;
       if (teacher) {
-        setUserRole(teacher.role);
+        setUserRole(role);
       }
 
-      // ดึงรายชื่อเคสของครูที่ปรึกษา
-      const advisorCases = await studentSupportService.getAdvisorCases(user.id);
-      setCases(advisorCases as any[]);
+      // ดึงรายชื่อเคส
+      let loadedCases = [];
+      if (role === 'ADMIN' || role === 'EXECUTIVE') {
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+      } else {
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+      }
+      setCases(loadedCases as any[]);
 
-      // ดึงรายชื่อเด็กในชั้นเรียนมาเก็บไว้ เผื่อคุณครูต้องการเปิดเคสช่วยเหลือคนใหม่
-      const students = await studentSupportService.getAdvisorStudents(user.id);
+      // ดึงรายชื่อเด็กมาเก็บไว้ เผื่อคุณครูต้องการเปิดเคสช่วยเหลือคนใหม่
+      let students = [];
+      if (role === 'ADMIN' || role === 'EXECUTIVE') {
+        students = await studentSupportService.getAllStudentsForExecutive(selectedYear?.id);
+      } else {
+        students = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
+      }
       setAdvisingStudents(students);
     } catch (err: any) {
       setError(err.message);
@@ -75,7 +88,7 @@ export default function CaseManagement() {
 
   useEffect(() => {
     fetchCasesData();
-  }, []);
+  }, [selectedYear]);
 
   // ดึงรายละเอียดเคสที่เลือกแบบสมบูรณ์ รวมถึง Case Logs
   const selectCaseDetails = async (caseId: string) => {
@@ -142,8 +155,13 @@ export default function CaseManagement() {
       await selectCaseDetails(selectedCase.id!);
       
       // รีเฟรชรายการเคสหลัก
-      const advisorCases = await studentSupportService.getAdvisorCases(user.id);
-      setCases(advisorCases as any[]);
+      let loadedCases = [];
+      if (userRole === 'ADMIN' || userRole === 'EXECUTIVE') {
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+      } else {
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+      }
+      setCases(loadedCases as any[]);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -165,7 +183,9 @@ export default function CaseManagement() {
         title: newCaseTitle,
         description: newCaseDesc,
         risk_level: newCaseRisk,
-        teacher_user_id: user.id
+        teacher_user_id: user.id,
+        academic_year_id: selectedYear?.id,
+        semester_id: selectedSemester?.id
       });
 
       setOpenModal(false);
@@ -175,8 +195,13 @@ export default function CaseManagement() {
       setNewCaseRisk('MONITOR');
 
       // รีโหลดข้อมูลเคส
-      const advisorCases = await studentSupportService.getAdvisorCases(user.id);
-      setCases(advisorCases as any[]);
+      let loadedCases = [];
+      if (userRole === 'ADMIN' || userRole === 'EXECUTIVE') {
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+      } else {
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+      }
+      setCases(loadedCases as any[]);
 
       if (data) {
         await selectCaseDetails(data.id);

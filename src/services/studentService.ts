@@ -22,19 +22,37 @@ export interface Student {
   }[]
 }
 
-export const getStudents = async () => {
-  const { data, error } = await supabase
-    .from('students')
-    .select(`
+export const getStudents = async (academicYearId?: string) => {
+  let selectStr = `
+    id, student_code, prefix, first_name, last_name, nickname, classroom_id, gender,
+    classroom:classroom_id (level, room, academic_year_id),
+    home_visits (
+      id, status,
+      home_visit_assessments ( risk_level )
+    )
+  `
+  
+  if (academicYearId) {
+    selectStr = `
       id, student_code, prefix, first_name, last_name, nickname, classroom_id, gender,
-      classroom:classroom_id (level, room),
+      classroom:classroom_id!inner(level, room, academic_year_id),
       home_visits (
         id, status,
         home_visit_assessments ( risk_level )
       )
-    `)
+    `
+  }
+
+  let query = supabase
+    .from('students')
+    .select(selectStr)
     .is('deleted_at', null)
-    .order('student_code')
+  
+  if (academicYearId) {
+    query = query.eq('classroom.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query.order('student_code')
   if (error) throw error
   return data as Student[]
 }

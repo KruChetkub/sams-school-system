@@ -29,22 +29,31 @@ export const getStudentsByClassroom = async (classroomId: string) => {
     .from('students')
     .select('id, student_code, prefix, first_name, last_name, nickname')
     .eq('classroom_id', classroomId)
+    .is('deleted_at', null)
     .order('student_code')
   
   if (error) throw error
   return data
 }
 
-export const getCheckedHomeroomClassroomsByDate = async (date: string): Promise<CheckedHomeroomClassroom[]> => {
-  const { data, error } = await supabase
+export const getCheckedHomeroomClassroomsByDate = async (date: string, academicYearId?: string): Promise<CheckedHomeroomClassroom[]> => {
+  let selectStr = `
+    students!inner (
+      classroom_id,
+      classrooms!inner ( level, room, academic_year_id )
+    )
+  `
+  
+  let query = supabase
     .from('homeroom_attendance')
-    .select(`
-      students (
-        classroom_id,
-        classrooms ( level, room )
-      )
-    `)
+    .select(selectStr)
     .eq('attendance_date', date)
+
+  if (academicYearId) {
+    query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
 
@@ -64,23 +73,46 @@ export const getCheckedHomeroomClassroomsByDate = async (date: string): Promise<
   return Array.from(map.values()).sort((a, b) => a.classroom_label.localeCompare(b.classroom_label))
 }
 
-export const getHomeroomClassroomSummaryByDate = async (date: string): Promise<HomeroomClassroomSummary[]> => {
-  const { data: classroomRows, error: classroomError } = await supabase
+export const getHomeroomClassroomSummaryByDate = async (date: string, academicYearId?: string): Promise<HomeroomClassroomSummary[]> => {
+  let classroomQuery = supabase
     .from('classrooms')
     .select('id, level, room')
+
+  if (academicYearId) {
+    classroomQuery = classroomQuery.eq('academic_year_id', academicYearId)
+  }
+
+  const { data: classroomRows, error: classroomError } = await classroomQuery
     .order('level')
     .order('room')
   if (classroomError) throw classroomError
 
-  const { data: studentRows, error: studentError } = await supabase
+  let studentQuery = supabase
     .from('students')
     .select('id, classroom_id')
+    .is('deleted_at', null)
+
+  if (academicYearId) {
+    studentQuery = supabase
+      .from('students')
+      .select('id, classroom_id, classroom:classroom_id!inner(academic_year_id)')
+      .is('deleted_at', null)
+      .eq('classroom.academic_year_id', academicYearId)
+  }
+
+  const { data: studentRows, error: studentError } = await studentQuery
   if (studentError) throw studentError
 
-  const { data: attendanceRows, error: attendanceError } = await supabase
+  let attendanceQuery = supabase
     .from('homeroom_attendance')
-    .select('student_id, status, students(classroom_id)')
+    .select('student_id, status, students!inner(classroom_id, classrooms!inner(academic_year_id))')
     .eq('attendance_date', date)
+
+  if (academicYearId) {
+    attendanceQuery = attendanceQuery.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  const { data: attendanceRows, error: attendanceError } = await attendanceQuery
   if (attendanceError) throw attendanceError
 
   const baseMap = new Map<string, HomeroomClassroomSummary>()
@@ -122,25 +154,33 @@ export const getHomeroomClassroomSummaryByDate = async (date: string): Promise<H
 }
 
 export const getExistingHomeroomAttendance = async (date: string, classroomId: string) => {
+  const { data: studentIdsData, error: studentIdsError } = await supabase
+    .from('students')
+    .select('id')
+    .eq('classroom_id', classroomId)
+    .is('deleted_at', null)
+  
+  if (studentIdsError) throw studentIdsError
+  const ids = (studentIdsData || []).map((s: any) => s.id)
+  
+  if (ids.length === 0) return []
+
   const { data, error } = await supabase
     .from('homeroom_attendance')
     .select('student_id, status')
     .eq('attendance_date', date)
-    .in(
-      'student_id',
-      (
-        await supabase
-          .from('students')
-          .select('id')
-          .eq('classroom_id', classroomId)
-      ).data?.map((s: any) => s.id) || []
-    )
+    .in('student_id', ids)
   if (error) throw error
   return data || []
 }
 
 // Save Homeroom Attendance
-export const saveHomeroomAttendance = async (date: string, records: HomeroomAttendance[]) => {
+export const saveHomeroomAttendance = async (
+  date: string, 
+  records: HomeroomAttendance[], 
+  academicYearId?: string, 
+  semesterId?: string
+) => {
   const studentIds = records.map(r => r.student_id)
   if (studentIds.length > 0) {
     // Delete existing records for this date and these students to avoid duplicates
@@ -150,8 +190,14 @@ export const saveHomeroomAttendance = async (date: string, records: HomeroomAtte
       .eq('attendance_date', date)
       .in('student_id', studentIds)
 
-    // Insert new records
-    const { error } = await supabase.from('homeroom_attendance').insert(records)
+    // Insert new records with academic year & semester tags
+    const recordsToInsert = records.map(r => ({
+      ...r,
+      academic_year_id: academicYearId || null,
+      semester_id: semesterId || null
+    }))
+
+    const { error } = await supabase.from('homeroom_attendance').insert(recordsToInsert)
     if (error) throw error
   }
 }

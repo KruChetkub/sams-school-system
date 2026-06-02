@@ -4,6 +4,7 @@ import { getSchedules } from '../services/scheduleService'
 import { getStudentsForSchedule, saveClassroomAttendance } from '../services/attendanceService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { supabase } from '../lib/supabase'
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -193,10 +194,12 @@ export default function Attendance() {
     enabled: !!user?.id && role === 'TEACHER'
   })
 
+  const { selectedYear } = useAcademicYearStore()
+
   // ครูเห็นเฉพาะคาบของตัวเอง, แอดมินเห็นทั้งหมด
   const { data: schedules } = useQuery({
-    queryKey: ['schedules', role, teacherProfile?.id || 'all'],
-    queryFn: () => getSchedules(undefined, role === 'TEACHER' ? teacherProfile?.id : undefined),
+    queryKey: ['schedules', role, teacherProfile?.id || 'all', selectedYear?.id],
+    queryFn: () => getSchedules(undefined, role === 'TEACHER' ? teacherProfile?.id : undefined, selectedYear?.id),
     enabled: role !== 'TEACHER' || !!teacherProfile?.id
   })
 

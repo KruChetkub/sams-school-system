@@ -1,14 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import AdvisorDashboard from './AdvisorDashboard';
 import ExecutiveDashboard from './ExecutiveDashboard';
-import { AlertCircle, ShieldAlert, Sparkles, LogOut, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+
+type StudentSupportRole = 'TEACHER' | 'EXECUTIVE' | 'ADMIN';
+
+const normalizeRole = (role?: string | null): StudentSupportRole | null => {
+  const normalized = role?.toUpperCase();
+  if (normalized === 'ADMIN' || normalized === 'EXECUTIVE') return normalized;
+  if (normalized === 'TEACHER' || normalized === 'ADVISOR') return 'TEACHER';
+  return null;
+};
 
 export default function StudentSupportPortal() {
   const navigate = useNavigate();
+  const authRole = useAuthStore((state) => state.role);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<'TEACHER' | 'EXECUTIVE' | 'ADMIN' | null>(null);
+  const [role, setRole] = useState<StudentSupportRole | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,9 +50,30 @@ export default function StudentSupportPortal() {
         }
 
         if (teacherErr) throw teacherErr;
+
+        const teacherRole = normalizeRole(teacher?.role);
+        if (teacherRole) {
+          setRole(teacherRole);
+          return;
+        }
+
+        const storeRole = normalizeRole(authRole);
+        if (storeRole) {
+          setRole(storeRole);
+          return;
+        }
+
+        const { data: userProfile, error: userErr } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (userErr) throw userErr;
         
-        if (teacher) {
-          setRole(teacher.role as 'TEACHER' | 'EXECUTIVE' | 'ADMIN');
+        const userRole = normalizeRole(userProfile?.role);
+        if (userRole) {
+          setRole(userRole);
         } else {
           // หากไม่พบอาจเป็นผู้ใช้ทั่วไป/นักเรียน 
           setError('ไม่พบสิทธิ์ของบุคลากรทางการศึกษาในบัญชีของคุณ');
@@ -54,7 +86,7 @@ export default function StudentSupportPortal() {
     };
 
     checkRole();
-  }, []);
+  }, [authRole]);
 
   if (loading) {
     return (

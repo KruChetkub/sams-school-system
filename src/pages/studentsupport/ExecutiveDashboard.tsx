@@ -8,6 +8,7 @@ import {
   TrendingUp, Users, ShieldAlert, AlertTriangle, CheckCircle2, Activity,
   Search, Eye, Filter, Download, ArrowLeft, GraduationCap, School
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
 
 // สีตามแบรนด์
@@ -23,8 +24,9 @@ export default function ExecutiveDashboard() {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('ALL');
+  const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedRisk, setSelectedRisk] = useState('ALL');
+  const [dbClassrooms, setDbClassrooms] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,24 @@ export default function ExecutiveDashboard() {
       try {
         const data = await studentSupportService.getAllStudentsForExecutive();
         setStudents(data);
+
+        // ดึงข้อมูลห้องเรียนทั้งหมดจากฐานข้อมูล
+        const { data: classroomsData } = await supabase
+          .from('classrooms')
+          .select('id, level, room');
+        
+        if (classroomsData) {
+          const sorted = [...classroomsData].sort((a: any, b: any) => {
+            const lvlA = a.level || '';
+            const lvlB = b.level || '';
+            const levelCompare = lvlA.localeCompare(lvlB, 'th');
+            if (levelCompare !== 0) return levelCompare;
+            const roomA = a.room || '';
+            const roomB = b.room || '';
+            return roomA.localeCompare(roomB, 'th', { numeric: true });
+          });
+          setDbClassrooms(sorted);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -42,30 +62,45 @@ export default function ExecutiveDashboard() {
     fetchAllData();
   }, []);
 
-  // คำนวณสถิติ
-  const totalStudents = students.length;
-  
-  const getRiskStats = () => {
-    let normal = 0, monitor = 0, risk = 0, urgent = 0;
-    
-    students.forEach(s => {
-      const lvl = s.student_support_risk_analysis?.[0]?.risk_level || 'NORMAL';
-      if (lvl === 'URGENT') urgent++;
-      else if (lvl === 'RISK') risk++;
-      else if (lvl === 'MONITOR') monitor++;
-      else normal++;
-    });
+  // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง ( real-time เหมือน AdvisorDashboard และ Student360 )
+  const computeStudentRisk = (s: any): 'NORMAL' | 'MONITOR' | 'RISK' | 'URGENT' | null => {
+    const sdqList = (s.student_support_sdq as any[]) ?? [];
+    const eqList  = (s.student_support_eq  as any[]) ?? [];
 
-    return { normal, monitor, risk, urgent };
+    // ถ้าไม่มี SDQ เลย ถือว่ายังไม่ได้คัดกรอง (null)
+    if (sdqList.length === 0) return null;
+
+    const teacherSdq = sdqList.find((x: any) => x.evaluator_type === 'TEACHER');
+    const studentSdq = sdqList.find((x: any) => x.evaluator_type === 'STUDENT');
+    const primarySdq = teacherSdq ?? studentSdq ?? sdqList[0];
+    const latestEq   = eqList[0] ?? null;
+
+    // คะแนนถ่วงน้ำหนักปัจจัยเสี่ยง
+    let score = 0;
+    if (primarySdq?.result_difficulties === 'PROBLEM') score += 3.5;
+    else if (primarySdq?.result_difficulties === 'RISK') score += 1.5;
+    if (latestEq?.eq_level === 'LOWER_THAN_NORMAL') score += 2.0;
+
+    if (score >= 6.0) return 'URGENT';
+    if (score >= 3.5) return 'RISK';
+    if (score >= 1.5) return 'MONITOR';
+    return 'NORMAL';
   };
 
-  const { normal, monitor, risk, urgent } = getRiskStats();
+  // คำนวณสถิติ
+  const totalStudents = students.length;
+  const normalStudents  = students.filter(s => computeStudentRisk(s) === 'NORMAL');
+  const monitorStudents = students.filter(s => computeStudentRisk(s) === 'MONITOR');
+  const riskStudents    = students.filter(s => computeStudentRisk(s) === 'RISK');
+  const urgentStudents  = students.filter(s => computeStudentRisk(s) === 'URGENT');
+  const unscreenedCount = students.filter(s => computeStudentRisk(s) === null).length;
+  const screenedCount   = totalStudents - unscreenedCount;
 
   const pieData = [
-    { name: 'ปกติ (เขียว)', value: normal, color: COLORS.NORMAL },
-    { name: 'เฝ้าระวัง (เหลือง)', value: monitor, color: COLORS.MONITOR },
-    { name: 'กลุ่มเสี่ยง (ส้ม)', value: risk, color: COLORS.RISK },
-    { name: 'ช่วยเหลือด่วน (แดง)', value: urgent, color: COLORS.URGENT }
+    { name: 'ปกติ (เขียว)', value: normalStudents.length, color: COLORS.NORMAL },
+    { name: 'เฝ้าระวัง (เหลือง)', value: monitorStudents.length, color: COLORS.MONITOR },
+    { name: 'กลุ่มเสี่ยง (ส้ม)', value: riskStudents.length, color: COLORS.RISK },
+    { name: 'ช่วยเหลือด่วน (แดง)', value: urgentStudents.length, color: COLORS.URGENT }
   ].filter(d => d.value > 0);
 
   // สถิติแยกตามระดับชั้นเรียน
@@ -74,8 +109,11 @@ export default function ExecutiveDashboard() {
 
     students.forEach(s => {
       const level = s.classroom?.level || 'ไม่ระบุ';
-      const lvlName = `ม.${level}`;
-      const riskLvl = s.student_support_risk_analysis?.[0]?.risk_level || 'NORMAL';
+      const lvlName = level.startsWith('ม') ? level : `ม.${level}`;
+      const riskLvl = computeStudentRisk(s);
+
+      // ข้ามเด็กที่ยังไม่ได้ประเมินในการแสดงกราฟ
+      if (!riskLvl) return;
 
       if (!grades[level]) {
         grades[level] = { name: lvlName, normal: 0, monitor: 0, risk: 0, urgent: 0 };
@@ -84,7 +122,7 @@ export default function ExecutiveDashboard() {
       if (riskLvl === 'URGENT') grades[level].urgent++;
       else if (riskLvl === 'RISK') grades[level].risk++;
       else if (riskLvl === 'MONITOR') grades[level].monitor++;
-      else grades[level].normal++;
+      else if (riskLvl === 'NORMAL') grades[level].normal++;
     });
 
     // เรียงตามระดับ ม.1 -> ม.6
@@ -97,33 +135,34 @@ export default function ExecutiveDashboard() {
 
   // กรองรายชื่อนักเรียนที่มีความเสี่ยงสูงเพื่อแสดงให้ผู้บริหารติดตาม
   const filteredHighRiskStudents = students.filter(s => {
-    const riskLvl = s.student_support_risk_analysis?.[0]?.risk_level || 'NORMAL';
-    const level = s.classroom?.level || '';
+    const riskLvl = computeStudentRisk(s);
     const fullName = `${s.prefix || ''}${s.first_name} ${s.last_name}`.toLowerCase();
     const code = (s.student_code || '').toLowerCase();
 
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || code.includes(searchTerm.toLowerCase());
-    const matchesGrade = selectedGrade === 'ALL' || level === selectedGrade;
-    const matchesRisk = selectedRisk === 'ALL' || riskLvl === selectedRisk;
+    const matchesGrade = selectedGrade === 'ALL' || s.classroom?.id === selectedGrade;
+    const matchesRisk = selectedRisk === 'ALL' || (riskLvl || 'NORMAL') === selectedRisk;
 
     return matchesSearch && matchesGrade && matchesRisk;
   });
 
-  const getRiskText = (level: string) => {
+  const getRiskText = (level: string | null) => {
     switch (level) {
       case 'URGENT': return 'ช่วยเหลือด่วน';
       case 'RISK': return 'กลุ่มเสี่ยง';
       case 'MONITOR': return 'เฝ้าระวัง';
-      default: return 'ปกติ';
+      case 'NORMAL': return 'ปกติ';
+      default: return 'ยังไม่ได้ประเมิน';
     }
   };
 
-  const getRiskColorClass = (level: string) => {
+  const getRiskColorClass = (level: string | null) => {
     switch (level) {
       case 'URGENT': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
       case 'RISK': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'MONITOR': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-      default: return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'NORMAL': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
@@ -201,7 +240,7 @@ export default function ExecutiveDashboard() {
               <Users size={20} />
             </div>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">นักเรียนประเมินแล้ว</p>
-            <h3 className="text-3xl font-black mt-2 text-white">{totalStudents} <span className="text-sm text-gray-500">คน</span></h3>
+            <h3 className="text-3xl font-black mt-2 text-white">{screenedCount} <span className="text-sm text-gray-500">/ {totalStudents} คน</span></h3>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-lg relative overflow-hidden hover:border-emerald-500/30 transition-all">
@@ -209,7 +248,7 @@ export default function ExecutiveDashboard() {
               <CheckCircle2 size={20} />
             </div>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">กลุ่มปกติ</p>
-            <h3 className="text-3xl font-black mt-2 text-emerald-400">{normal} <span className="text-xs text-gray-500">({totalStudents ? Math.round((normal/totalStudents)*100) : 0}%)</span></h3>
+            <h3 className="text-3xl font-black mt-2 text-emerald-400">{normalStudents.length} <span className="text-xs text-gray-500">({screenedCount ? Math.round((normalStudents.length/screenedCount)*100) : 0}%)</span></h3>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-lg relative overflow-hidden hover:border-yellow-500/30 transition-all">
@@ -217,7 +256,7 @@ export default function ExecutiveDashboard() {
               <Activity size={20} />
             </div>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">กลุ่มเฝ้าระวัง</p>
-            <h3 className="text-3xl font-black mt-2 text-yellow-400">{monitor} <span className="text-xs text-gray-500">({totalStudents ? Math.round((monitor/totalStudents)*100) : 0}%)</span></h3>
+            <h3 className="text-3xl font-black mt-2 text-yellow-400">{monitorStudents.length} <span className="text-xs text-gray-500">({screenedCount ? Math.round((monitorStudents.length/screenedCount)*100) : 0}%)</span></h3>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-lg relative overflow-hidden hover:border-amber-500/30 transition-all">
@@ -225,7 +264,7 @@ export default function ExecutiveDashboard() {
               <AlertTriangle size={20} />
             </div>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">กลุ่มเสี่ยง</p>
-            <h3 className="text-3xl font-black mt-2 text-amber-400">{risk} <span className="text-xs text-gray-500">({totalStudents ? Math.round((risk/totalStudents)*100) : 0}%)</span></h3>
+            <h3 className="text-3xl font-black mt-2 text-amber-400">{riskStudents.length} <span className="text-xs text-gray-500">({screenedCount ? Math.round((riskStudents.length/screenedCount)*100) : 0}%)</span></h3>
           </div>
 
           <div className="col-span-2 lg:col-span-1 bg-white/5 border border-white/10 rounded-3xl p-5 shadow-lg relative overflow-hidden hover:border-rose-500/30 transition-all">
@@ -233,7 +272,7 @@ export default function ExecutiveDashboard() {
               <ShieldAlert size={20} />
             </div>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">กลุ่มช่วยเหลือด่วน</p>
-            <h3 className="text-3xl font-black mt-2 text-rose-400">{urgent} <span className="text-xs text-gray-500">({totalStudents ? Math.round((urgent/totalStudents)*100) : 0}%)</span></h3>
+            <h3 className="text-3xl font-black mt-2 text-rose-400">{urgentStudents.length} <span className="text-xs text-gray-500">({screenedCount ? Math.round((urgentStudents.length/screenedCount)*100) : 0}%)</span></h3>
           </div>
         </section>
 
@@ -275,8 +314,8 @@ export default function ExecutiveDashboard() {
 
               {/* Total label center of doughnut */}
               <div className="absolute text-center">
-                <span className="text-2xl font-black text-white">{totalStudents}</span>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">คนทั้งหมด</p>
+                <span className="text-2xl font-black text-white">{screenedCount}</span>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">คัดกรองแล้ว</p>
               </div>
             </div>
 
@@ -350,28 +389,31 @@ export default function ExecutiveDashboard() {
               <select
                 value={selectedGrade}
                 onChange={(e) => setSelectedGrade(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-indigo-500 text-gray-300"
+                className="bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-indigo-500 text-white"
               >
-                <option value="ALL">ระดับชั้นปี: ทั้งหมด</option>
-                <option value="1">มัธยมศึกษาปีที่ 1</option>
-                <option value="2">มัธยมศึกษาปีที่ 2</option>
-                <option value="3">มัธยมศึกษาปีที่ 3</option>
-                <option value="4">มัธยมศึกษาปีที่ 4</option>
-                <option value="5">มัธยมศึกษาปีที่ 5</option>
-                <option value="6">มัธยมศึกษาปีที่ 6</option>
+                <option value="" className="bg-[#1e293b] text-white">-- เลือกห้องเรียน --</option>
+                <option value="ALL" className="bg-[#1e293b] text-white">ระดับชั้นปี: ทั้งหมด</option>
+                {dbClassrooms.map((cls) => {
+                  const displayLevel = cls.level.startsWith('ม') ? cls.level : `ม.${cls.level}`;
+                  return (
+                    <option key={cls.id} value={cls.id} className="bg-[#1e293b] text-white">
+                      ชั้น {displayLevel}/{cls.room}
+                    </option>
+                  );
+                })}
               </select>
 
               {/* Risk selector */}
               <select
                 value={selectedRisk}
                 onChange={(e) => setSelectedRisk(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-indigo-500 text-gray-300"
+                className="bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-indigo-500 text-white"
               >
-                <option value="ALL">ความเสี่ยง: ทั้งหมด</option>
-                <option value="URGENT">ช่วยเหลือด่วน (แดง)</option>
-                <option value="RISK">กลุ่มเสี่ยง (ส้ม)</option>
-                <option value="MONITOR">เฝ้าระวัง (เหลือง)</option>
-                <option value="NORMAL">ปกติ (เขียว)</option>
+                <option value="ALL" className="bg-[#1e293b] text-white">ความเสี่ยง: ทั้งหมด</option>
+                <option value="URGENT" className="bg-[#1e293b] text-white">ช่วยเหลือด่วน (แดง)</option>
+                <option value="RISK" className="bg-[#1e293b] text-white">กลุ่มเสี่ยง (ส้ม)</option>
+                <option value="MONITOR" className="bg-[#1e293b] text-white">เฝ้าระวัง (เหลือง)</option>
+                <option value="NORMAL" className="bg-[#1e293b] text-white">ปกติ (เขียว)</option>
               </select>
             </div>
           </div>
@@ -390,7 +432,13 @@ export default function ExecutiveDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredHighRiskStudents.length === 0 ? (
+                {!selectedGrade ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-indigo-300/60 font-bold">
+                      กรุณาเลือกห้องเรียนเพื่อแสดงรายชื่อนักเรียน
+                    </td>
+                  </tr>
+                ) : filteredHighRiskStudents.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-gray-500 font-bold">
                       ไม่พบคัดสรรนักเรียนตามเงื่อนไขดังกล่าว
@@ -409,7 +457,7 @@ export default function ExecutiveDashboard() {
                           {s.prefix || ''}{s.first_name} {s.last_name}
                         </td>
                         <td className="py-3 px-4 text-gray-300">
-                          ม.{s.classroom?.level}/{s.classroom?.room}
+                          {s.classroom?.level ? (s.classroom.level.startsWith('ม') ? s.classroom.level : `ม.${s.classroom.level}`) : '-'}/{s.classroom?.room}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black border ${getRiskColorClass(rLvl)}`}>

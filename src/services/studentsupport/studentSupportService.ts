@@ -30,6 +30,8 @@ export interface SdqAssessment {
   };
   impact_score?: number;
   result_impact?: 'NORMAL' | 'RISK' | 'PROBLEM';
+  academic_year_id?: string | null;
+  semester_id?: string | null;
   created_at?: string;
   
   student?: {
@@ -53,6 +55,8 @@ export interface EqAssessment {
   goodness_level?: 'NORMAL' | 'LOWER_THAN_NORMAL' | 'HIGHER_THAN_NORMAL';
   competence_level?: 'NORMAL' | 'LOWER_THAN_NORMAL' | 'HIGHER_THAN_NORMAL';
   happiness_level?: 'NORMAL' | 'LOWER_THAN_NORMAL' | 'HIGHER_THAN_NORMAL';
+  academic_year_id?: string | null;
+  semester_id?: string | null;
   created_at?: string;
   
   student?: {
@@ -73,7 +77,7 @@ export interface RiskAnalysis {
     attendance?: 'NORMAL' | 'RISK' | 'PROBLEM';
     home_visit?: 'NORMAL' | 'MONITOR' | 'RISK' | 'URGENT';
     health?: 'NORMAL' | 'RISK';
-    behavior?: 'NORMAL' | 'RISK';
+    behavior?: 'NORMAL' | 'RISK' | 'PROBLEM';
   };
   updated_at?: string;
 }
@@ -305,7 +309,7 @@ export const studentSupportService = {
   /**
    * ดึงรายชื่อนักเรียนเฉพาะในห้องเรียนที่ครูที่ปรึกษาท่านนี้ดูแล
    */
-  getAdvisorStudents: async (teacherUserId: string) => {
+  getAdvisorStudents: async (teacherUserId: string, academicYearId?: string) => {
     try {
       // 1. ค้นหา teacher id ของครูที่ปรึกษาก่อน
       let { data: teacher, error: teacherErr } = await supabase
@@ -327,10 +331,16 @@ export const studentSupportService = {
       if (!teacher) return [];
 
       // 2. ดึงห้องเรียนที่ครูคนนี้ดูแล
-      const { data: classrooms, error: classErr } = await supabase
+      let classQuery = supabase
         .from('classrooms')
         .select('id')
         .eq('advisor_id', teacher.id);
+      
+      if (academicYearId) {
+        classQuery = classQuery.eq('academic_year_id', academicYearId);
+      }
+
+      const { data: classrooms, error: classErr } = await classQuery;
 
       if (classErr) throw classErr;
       if (!classrooms || classrooms.length === 0) return [];
@@ -338,22 +348,33 @@ export const studentSupportService = {
       const classroomIds = classrooms.map(c => c.id);
 
       // 3. ดึงรายชื่อเด็กนักเรียนและรายละเอียดการเยี่ยมบ้าน สถิติ และ SDQ/EQ
-      const { data: students, error: studentErr } = await supabase
+      let selectStr = `
+        id, student_code, prefix, first_name, last_name, nickname, photo_url, gender,
+        classroom:classroom_id (id, level, room),
+        home_visits (
+          id, status,
+          home_visit_assessments ( risk_level )
+        ),
+        student_support_sdq ( id, evaluator_type, result_difficulties, created_at, academic_year_id, semester_id ),
+        student_support_eq ( id, eq_level, created_at, academic_year_id ),
+        student_support_risk_analysis ( id, risk_level, factors_summary, academic_year_id )
+      `
+
+      let studentQuery = supabase
         .from('students')
-        .select(`
-          id, student_code, prefix, first_name, last_name, nickname, photo_url, gender,
-          classroom:classroom_id (id, level, room),
-          home_visits (
-            id, status,
-            home_visit_assessments ( risk_level )
-          ),
-          student_support_sdq ( id, evaluator_type, result_difficulties, created_at ),
-          student_support_eq ( id, eq_level, created_at ),
-          student_support_risk_analysis ( id, risk_level, factors_summary )
-        `)
+        .select(selectStr)
         .in('classroom_id', classroomIds)
-        .is('deleted_at', null)
-        .order('student_code');
+        .is('deleted_at', null);
+
+      if (academicYearId) {
+        studentQuery = studentQuery
+          .eq('home_visits.academic_year_id', academicYearId)
+          .eq('student_support_sdq.academic_year_id', academicYearId)
+          .eq('student_support_eq.academic_year_id', academicYearId)
+          .eq('student_support_risk_analysis.academic_year_id', academicYearId);
+      }
+
+      const { data: students, error: studentErr } = await studentQuery.order('student_code');
 
       if (studentErr) throw studentErr;
       return students;
@@ -366,19 +387,41 @@ export const studentSupportService = {
   /**
    * ดึงข้อมูลนักเรียนทั้งหมดในระบบ (สำหรับแอดมินหรือผู้บริหาร)
    */
-  getAllStudentsForExecutive: async () => {
+  getAllStudentsForExecutive: async (academicYearId?: string) => {
     try {
-      const { data: students, error } = await supabase
-        .from('students')
-        .select(`
+      let selectStr = `
+        id, student_code, prefix, first_name, last_name, nickname, photo_url, gender,
+        classroom:classroom_id (id, level, room, academic_year_id),
+        student_support_sdq ( id, result_difficulties, evaluator_type, academic_year_id ),
+        student_support_eq ( id, eq_level, academic_year_id ),
+        student_support_risk_analysis ( id, risk_level, factors_summary, academic_year_id ),
+        student_support_cases ( id, status, risk_level, academic_year_id )
+      `
+      if (academicYearId) {
+        selectStr = `
           id, student_code, prefix, first_name, last_name, nickname, photo_url, gender,
-          classroom:classroom_id (id, level, room),
-          student_support_sdq ( id, result_difficulties, evaluator_type ),
-          student_support_eq ( id, eq_level ),
-          student_support_risk_analysis ( id, risk_level, factors_summary ),
-          student_support_cases ( id, status, risk_level )
-        `)
+          classroom:classroom_id!inner(id, level, room, academic_year_id),
+          student_support_sdq ( id, result_difficulties, evaluator_type, academic_year_id ),
+          student_support_eq ( id, eq_level, academic_year_id ),
+          student_support_risk_analysis ( id, risk_level, factors_summary, academic_year_id ),
+          student_support_cases ( id, status, risk_level, academic_year_id )
+        `
+      }
+
+      let query = supabase
+        .from('students')
+        .select(selectStr)
         .is('deleted_at', null);
+
+      if (academicYearId) {
+        query = query.eq('classroom.academic_year_id', academicYearId)
+          .eq('student_support_sdq.academic_year_id', academicYearId)
+          .eq('student_support_eq.academic_year_id', academicYearId)
+          .eq('student_support_risk_analysis.academic_year_id', academicYearId)
+          .eq('student_support_cases.academic_year_id', academicYearId);
+      }
+
+      const { data: students, error } = await query;
 
       if (error) throw error;
       return students;
@@ -409,11 +452,23 @@ export const studentSupportService = {
       };
 
       // 3. ตรวจสอบประวัติประเมินเดิมของประเภทผู้ประเมินนี้ เพื่อทำการอัปเดต (Update) แทนการเขียนซ้ำซ้อน
-      const { data: existing } = await supabase
+      let existingQuery = supabase
         .from('student_support_sdq')
-        .select('id')
+        .select('id, academic_year_id')
         .eq('student_id', input.student_id)
-        .eq('evaluator_type', input.evaluator_type)
+        .eq('evaluator_type', input.evaluator_type);
+
+      if (input.academic_year_id) {
+        existingQuery = existingQuery.or(`academic_year_id.eq.${input.academic_year_id},academic_year_id.is.null`);
+      }
+      if (input.semester_id) {
+        existingQuery = existingQuery.or(`semester_id.eq.${input.semester_id},semester_id.is.null`);
+      }
+
+      const { data: existing } = await existingQuery
+        .order('academic_year_id', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       let result;
@@ -439,7 +494,7 @@ export const studentSupportService = {
       }
 
       // 4. ทำการทริกเกอร์อัปเดตระดับความเสี่ยงภาพรวมของเด็กโดยอัตโนมัติ
-      await studentSupportService.updateOverallRiskAnalysis(input.student_id);
+      await studentSupportService.updateOverallRiskAnalysis(input.student_id, input.academic_year_id || undefined);
 
       return result;
     } catch (err) {
@@ -451,7 +506,7 @@ export const studentSupportService = {
   /**
    * บันทึกข้อมูลคัดกรอง EQ (ฉลาดอัปเดต: หากมีข้อมูลเก่าอยู่แล้วจะทำการอัปเดตให้ทันที)
    */
-  saveEqAssessment: async (input: { student_id: string; evaluator_id: string; answers: number[] }) => {
+  saveEqAssessment: async (input: { student_id: string; evaluator_id: string; answers: number[]; academic_year_id?: string | null; semester_id?: string | null }) => {
     try {
       const computed = calculateEqScore(input.answers);
       
@@ -461,10 +516,22 @@ export const studentSupportService = {
       };
 
       // ตรวจสอบประวัติประเมินเดิมเพื่อทำการอัปเดต (Update)
-      const { data: existing } = await supabase
+      let existingQuery = supabase
         .from('student_support_eq')
         .select('id')
-        .eq('student_id', input.student_id)
+        .eq('student_id', input.student_id);
+
+      if (input.academic_year_id) {
+        existingQuery = existingQuery.or(`academic_year_id.eq.${input.academic_year_id},academic_year_id.is.null`);
+      }
+      if (input.semester_id) {
+        existingQuery = existingQuery.or(`semester_id.eq.${input.semester_id},semester_id.is.null`);
+      }
+
+      const { data: existing } = await existingQuery
+        .order('academic_year_id', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       let result;
@@ -489,7 +556,7 @@ export const studentSupportService = {
         result = data;
       }
 
-      await studentSupportService.updateOverallRiskAnalysis(input.student_id);
+      await studentSupportService.updateOverallRiskAnalysis(input.student_id, input.academic_year_id || undefined);
       return result;
     } catch (err) {
       console.error('Error in saveEqAssessment:', err);
@@ -500,21 +567,31 @@ export const studentSupportService = {
   /**
    * ดึงแบบประเมิน SDQ/EQ ของเด็กรายบุคคล
    */
-  getStudentAssessments: async (studentId: string) => {
+  getStudentAssessments: async (studentId: string, academicYearId?: string) => {
     try {
-      const { data: sdq, error: sdqErr } = await supabase
+      let sdqQuery = supabase
         .from('student_support_sdq')
         .select('*')
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .eq('student_id', studentId);
+        
+      if (academicYearId) {
+        sdqQuery = sdqQuery.or(`academic_year_id.eq.${academicYearId},academic_year_id.is.null`);
+      }
+
+      const { data: sdq, error: sdqErr } = await sdqQuery.order('created_at', { ascending: false });
 
       if (sdqErr) throw sdqErr;
 
-      const { data: eq, error: eqErr } = await supabase
+      let eqQuery = supabase
         .from('student_support_eq')
         .select('*')
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .eq('student_id', studentId);
+        
+      if (academicYearId) {
+        eqQuery = eqQuery.or(`academic_year_id.eq.${academicYearId},academic_year_id.is.null`);
+      }
+
+      const { data: eq, error: eqErr } = await eqQuery.order('created_at', { ascending: false });
 
       if (eqErr) throw eqErr;
 
@@ -528,7 +605,7 @@ export const studentSupportService = {
   /**
    * ดึงข้อมูลภาพรวม 360 องศาของเด็กนักเรียน (เชื่อมโยงข้อมูลเก่า + ข้อมูลใหม่เข้าด้วยกัน)
    */
-  getStudent360Profile: async (studentId: string) => {
+  getStudent360Profile: async (studentId: string, academicYearId?: string, semesterId?: string) => {
     try {
       // 1. ดึงประวัตินักเรียนและผู้ปกครอง
       const { data: student, error: stErr } = await supabase
@@ -544,47 +621,78 @@ export const studentSupportService = {
       if (stErr) throw stErr;
 
       // 2. ดึงข้อมูลประวัติการเยี่ยมบ้าน
-      const { data: homeVisit, error: hvErr } = await supabase
+      let homeVisitQuery = supabase
         .from('home_visits')
         .select(`
           *,
           home_visit_assessments (*),
           home_visit_photos (*)
         `)
-        .eq('student_id', studentId)
+        .eq('student_id', studentId);
+
+      if (academicYearId) {
+        homeVisitQuery = homeVisitQuery.eq('academic_year_id', academicYearId);
+      }
+
+      const { data: homeVisit, error: hvErr } = await homeVisitQuery
         .order('created_at', { ascending: false })
         .maybeSingle();
 
       if (hvErr) throw hvErr;
 
       // 3. ดึงข้อมูลการประเมินช่วยเหลือ SDQ / EQ
-      const { sdq, eq } = await studentSupportService.getStudentAssessments(studentId);
+      const { sdq, eq } = await studentSupportService.getStudentAssessments(studentId, academicYearId);
 
       // 4. ดึงสถิติการเช็คชื่อเข้าแถว (Homeroom) และการลา
-      const { data: homeroom, error: hrErr } = await supabase
+      let homeroomQuery = supabase
         .from('homeroom_attendance')
         .select('status, attendance_date')
-        .eq('student_id', studentId)
-        .order('attendance_date', { ascending: true });
+        .eq('student_id', studentId);
+
+      if (academicYearId) {
+        homeroomQuery = homeroomQuery.eq('academic_year_id', academicYearId);
+      }
+      if (semesterId) {
+        homeroomQuery = homeroomQuery.eq('semester_id', semesterId);
+      }
+
+      const { data: homeroom, error: hrErr } = await homeroomQuery.order('attendance_date', { ascending: true });
 
       if (hrErr) throw hrErr;
 
-      const { data: leaves, error: lvErr } = await supabase
+      let leavesQuery = supabase
         .from('leave_requests')
         .select('*')
         .eq('student_id', studentId);
 
+      if (academicYearId) {
+        leavesQuery = leavesQuery.eq('academic_year_id', academicYearId);
+      }
+      if (semesterId) {
+        leavesQuery = leavesQuery.eq('semester_id', semesterId);
+      }
+
+      const { data: leaves, error: lvErr } = await leavesQuery;
+
       if (lvErr) throw lvErr;
 
       // 5. ดึงประวัติเคสช่วยเหลือ
-      const { data: cases, error: csErr } = await supabase
+      let casesQuery = supabase
         .from('student_support_cases')
         .select(`
           *,
           case_logs:student_support_case_logs (*)
         `)
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .eq('student_id', studentId);
+
+      if (academicYearId) {
+        casesQuery = casesQuery.eq('academic_year_id', academicYearId);
+      }
+      if (semesterId) {
+        casesQuery = casesQuery.eq('semester_id', semesterId);
+      }
+
+      const { data: cases, error: csErr } = await casesQuery.order('created_at', { ascending: false });
 
       if (csErr) throw csErr;
 
@@ -636,14 +744,31 @@ export const studentSupportService = {
   /**
    * คำนวณและปรับเปลี่ยนระดับความเสี่ยงภาพรวมของเด็กนักเรียนโดยอัตโนมัติ (Risk Intelligence engine)
    */
-  updateOverallRiskAnalysis: async (studentId: string) => {
+  updateOverallRiskAnalysis: async (studentId: string, academicYearId?: string) => {
     try {
+      // ดึง Active Academic Year หากไม่ได้ระบุ
+      let yearId = academicYearId;
+      if (!yearId) {
+        const { data: activeYear } = await supabase
+          .from('academic_years')
+          .select('id')
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        if (activeYear) yearId = activeYear.id;
+      }
+
       // 1. ดึงคะแนนประเมินผู้ประเมินทุกชุด (ใช้ผลเลวร้ายที่สุดในการคำนวณคะแนนความเสี่ยง)
-      const { data: sdqAll } = await supabase
+      let sdqQuery = supabase
         .from('student_support_sdq')
         .select('result_difficulties, evaluator_type')
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .eq('student_id', studentId);
+
+      if (yearId) {
+        sdqQuery = sdqQuery.eq('academic_year_id', yearId);
+      }
+
+      const { data: sdqAll } = await sdqQuery.order('created_at', { ascending: false });
 
       // เลือก result_difficulties ที่เลวร้ายที่สุด: PROBLEM > RISK > NORMAL
       const worstSdq = ((sdqAll ?? []) as any[]).reduce(
@@ -656,33 +781,82 @@ export const studentSupportService = {
       );
       const sdq = [{ result_difficulties: worstSdq }];
 
-      const { data: eq } = await supabase
+      let eqQuery = supabase
         .from('student_support_eq')
         .select('eq_level')
-        .eq('student_id', studentId)
+        .eq('student_id', studentId);
+
+      if (yearId) {
+        eqQuery = eqQuery.eq('academic_year_id', yearId);
+      }
+
+      const { data: eq } = await eqQuery
         .order('created_at', { ascending: false })
         .limit(1);
 
       // ดึงสถิติเช็คชื่อโฮมรูม
-      const { data: homeroom } = await supabase
+      let homeroomQuery = supabase
         .from('homeroom_attendance')
         .select('status')
         .eq('student_id', studentId);
 
+      if (yearId) {
+        homeroomQuery = homeroomQuery.eq('academic_year_id', yearId);
+      }
+
+      const { data: homeroom } = await homeroomQuery;
+
       // ดึงการเยี่ยมบ้าน
-      const { data: homeVisit } = await supabase
+      let homeVisitQuery = supabase
         .from('home_visits')
         .select('status, home_visit_assessments(risk_level)')
-        .eq('student_id', studentId)
+        .eq('student_id', studentId);
+
+      if (yearId) {
+        homeVisitQuery = homeVisitQuery.eq('academic_year_id', yearId);
+      }
+
+      const { data: homeVisit } = await homeVisitQuery
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // ดึงคะแนนพฤติกรรม
+      let behaviorQuery = supabase
+        .from('student_behavior_points')
+        .select('type, points')
+        .eq('student_id', studentId);
+
+      if (yearId) {
+        behaviorQuery = behaviorQuery.eq('academic_year_id', yearId);
+      }
+
+      const { data: behaviorPoints } = await behaviorQuery;
+
+      let plusSum = 0;
+      let minusSum = 0;
+      (behaviorPoints || []).forEach(item => {
+        if (item.type === 'PLUS') {
+          plusSum += item.points;
+        } else if (item.type === 'MINUS') {
+          minusSum += item.points;
+        }
+      });
+      const netBehaviorScore = Math.max(0, 100 + plusSum - minusSum);
+
+      let behaviorRisk: 'NORMAL' | 'RISK' | 'PROBLEM' = 'NORMAL';
+      if (netBehaviorScore < 50) {
+        behaviorRisk = 'PROBLEM';
+      } else if (netBehaviorScore < 80) {
+        behaviorRisk = 'RISK';
+      }
 
       const factors_summary: RiskAnalysis['factors_summary'] = {
         sdq: sdq && sdq.length > 0 ? (sdq[0].result_difficulties as any) : 'NORMAL',
         eq: eq && eq.length > 0 ? (eq[0].eq_level as any) : 'NORMAL',
         attendance: 'NORMAL',
         home_visit: 'NORMAL',
+        behavior: behaviorRisk,
       };
 
       // วิเคราะห์ปัจจัยการเช็คชื่อ
@@ -712,6 +886,9 @@ export const studentSupportService = {
       if (factors_summary.home_visit === 'URGENT') riskScore += 2.0;
       else if (factors_summary.home_visit === 'RISK') riskScore += 1.0;
 
+      if (factors_summary.behavior === 'PROBLEM') riskScore += 3.5;
+      else if (factors_summary.behavior === 'RISK') riskScore += 1.5;
+
       let risk_level: RiskAnalysis['risk_level'] = 'NORMAL';
       if (riskScore >= 6.0) risk_level = 'URGENT';    // แดง
       else if (riskScore >= 3.5) risk_level = 'RISK';  // ส้ม
@@ -723,6 +900,7 @@ export const studentSupportService = {
         .upsert(
           {
             student_id: studentId,
+            academic_year_id: yearId,
             risk_score: riskScore,
             risk_level,
             factors_summary,
@@ -745,7 +923,7 @@ export const studentSupportService = {
   /**
    * เปิดเคสช่วยเหลือ
    */
-  openSupportCase: async (input: { student_id: string; title: string; description: string; risk_level: 'MONITOR' | 'RISK' | 'URGENT'; teacher_user_id: string }) => {
+  openSupportCase: async (input: { student_id: string; title: string; description: string; risk_level: 'MONITOR' | 'RISK' | 'URGENT'; teacher_user_id: string; academic_year_id?: string; semester_id?: string }) => {
     try {
       // ดึง teacher id (สืบค้นด้วย user_id ก่อน แล้วจึง fallback ไปยัง id)
       let { data: teacher } = await supabase
@@ -773,7 +951,9 @@ export const studentSupportService = {
           title: input.title,
           description: input.description,
           risk_level: input.risk_level,
-          status: 'OPEN'
+          status: 'OPEN',
+          academic_year_id: input.academic_year_id || null,
+          semester_id: input.semester_id || null
         }])
         .select()
         .single();
@@ -844,9 +1024,51 @@ export const studentSupportService = {
   },
 
   /**
+   * ดึงข้อมูลเคสช่วยเหลือทั้งหมดในระบบ (สำหรับแอดมินหรือผู้บริหาร)
+   */
+  getAllCases: async (academicYearId?: string) => {
+    try {
+      let selectStr = `
+        *,
+        student:student_id (
+          id, first_name, last_name, student_code,
+          classroom:classroom_id (id, level, room, advisor_id, academic_year_id)
+        ),
+        teacher:opened_by (first_name, last_name)
+      `
+      if (academicYearId) {
+        selectStr = `
+          *,
+          student:student_id!inner (
+            id, first_name, last_name, student_code,
+            classroom:classroom_id!inner (id, level, room, advisor_id, academic_year_id)
+          ),
+          teacher:opened_by (first_name, last_name)
+        `
+      }
+
+      let query = supabase
+        .from('student_support_cases')
+        .select(selectStr);
+
+      if (academicYearId) {
+        query = query.eq('student.classroom.academic_year_id', academicYearId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error in getAllCases:', err);
+      throw err;
+    }
+  },
+
+  /**
    * ดึงข้อมูลเคสช่วยเหลือทั้งหมดที่เชื่อมโยงกับครูผู้ดูแลประจำชั้น
    */
-  getAdvisorCases: async (teacherUserId: string) => {
+  getAdvisorCases: async (teacherUserId: string, academicYearId?: string) => {
     try {
       // ดึง teacher id (สืบค้นด้วย user_id ก่อน แล้วจึง fallback ไปยัง id)
       let { data: teacher } = await supabase
@@ -866,17 +1088,34 @@ export const studentSupportService = {
 
       if (!teacher) return [];
 
-      const { data, error } = await supabase
-        .from('student_support_cases')
-        .select(`
+      let selectStr = `
+        *,
+        student:student_id (
+          id, first_name, last_name, student_code,
+          classroom:classroom_id (id, level, room, advisor_id, academic_year_id)
+        ),
+        teacher:opened_by (first_name, last_name)
+      `
+      if (academicYearId) {
+        selectStr = `
           *,
-          student:student_id (
+          student:student_id!inner (
             id, first_name, last_name, student_code,
-            classroom:classroom_id (id, level, room)
+            classroom:classroom_id!inner (id, level, room, advisor_id, academic_year_id)
           ),
           teacher:opened_by (first_name, last_name)
-        `)
-        .order('created_at', { ascending: false });
+        `
+      }
+
+      let query = supabase
+        .from('student_support_cases')
+        .select(selectStr);
+
+      if (academicYearId) {
+        query = query.eq('student.classroom.academic_year_id', academicYearId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       
@@ -946,22 +1185,31 @@ export const studentSupportService = {
    * V14: ดึงข้อมูลสรุปคะแนน SDQ ทั้งห้องเรียนแยกรายมิติ
    * สำหรับ Stacked 100% Bar Chart บน AdvisorDashboard
    */
-  getClassroomSdqDashboard: async (classroomIds: string[]) => {
+  getClassroomSdqDashboard: async (classroomIds: string[], academicYearId?: string) => {
     try {
-      const { data, error } = await supabase
+      let selectStr = `
+        id, gender,
+        student_support_sdq (
+          evaluator_type,
+          emotional_score, conduct_score, hyperactivity_score,
+          peer_score, prosocial_score, total_difficulties_score,
+          result_difficulties, result_prosocial,
+          result_emotional, result_conduct, result_hyperactivity, result_peer,
+          academic_year_id
+        )
+      `
+      
+      let query = supabase
         .from('students')
-        .select(`
-          id, gender,
-          student_support_sdq (
-            evaluator_type,
-            emotional_score, conduct_score, hyperactivity_score,
-            peer_score, prosocial_score, total_difficulties_score,
-            result_difficulties, result_prosocial,
-            result_emotional, result_conduct, result_hyperactivity, result_peer
-          )
-        `)
+        .select(selectStr)
         .in('classroom_id', classroomIds)
         .is('deleted_at', null);
+
+      if (academicYearId) {
+        query = query.eq('student_support_sdq.academic_year_id', academicYearId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -984,17 +1232,26 @@ export const studentSupportService = {
    * V14: นับความคืบหน้าการคัดกรองห้องเรียน
    * สำหรับ Donut Chart ตรงกลาง AdvisorDashboard (X/Y นักเรียนที่คัดกรองแล้ว)
    */
-  getClassroomScreeningProgress: async (classroomIds: string[]) => {
+  getClassroomScreeningProgress: async (classroomIds: string[], academicYearId?: string) => {
     try {
-      const { data: students, error } = await supabase
+      let selectStr = `
+        id, first_name, last_name,
+        student_support_sdq ( evaluator_type, academic_year_id ),
+        student_support_risk_analysis ( risk_level, academic_year_id )
+      `
+
+      let query = supabase
         .from('students')
-        .select(`
-          id, first_name, last_name,
-          student_support_sdq ( evaluator_type ),
-          student_support_risk_analysis ( risk_level )
-        `)
+        .select(selectStr)
         .in('classroom_id', classroomIds)
         .is('deleted_at', null);
+
+      if (academicYearId) {
+        query = query.eq('student_support_sdq.academic_year_id', academicYearId)
+                     .eq('student_support_risk_analysis.academic_year_id', academicYearId);
+      }
+
+      const { data: students, error } = await query;
 
       if (error) throw error;
 

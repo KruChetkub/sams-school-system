@@ -34,7 +34,15 @@ import CaseManagement from './pages/studentsupport/CaseManagement'
 import StudentSupportLayout from './components/studentsupport/StudentSupportLayout'
 import StudentSupportStudents from './pages/studentsupport/StudentSupportStudents'
 
-import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart, AppWindow } from 'lucide-react'
+// New Features (SAMS Phase 1)
+import AcademicYears from './pages/AcademicYears'
+import TeacherDashboard from './pages/TeacherDashboard'
+import StudentPortfolio from './pages/StudentPortfolio'
+
+import { useQueryClient } from '@tanstack/react-query'
+import { useAcademicYearStore } from './store/academicYearStore'
+
+import { LogOut, Users, Home, Settings, BookOpen, GraduationCap, Library, Calendar, CheckSquare, ClipboardCheck, HeartHandshake, QrCode, ScanLine, FileText, LayoutDashboard, Menu, X, AlertCircle, PieChart, AppWindow, CalendarRange, Filter } from 'lucide-react'
 
 // NavItem Component to handle active state and auto-close
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
@@ -60,6 +68,30 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [teacherDisplayName, setTeacherDisplayName] = useState('')
   const userDisplayName = teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน')
+
+  const queryClient = useQueryClient()
+  const { 
+    years, 
+    selectedYear, 
+    selectedSemester, 
+    initializeStore, 
+    setSelectedYear, 
+    setSelectedSemester 
+  } = useAcademicYearStore()
+
+  useEffect(() => {
+    initializeStore()
+  }, [initializeStore])
+
+  const handleYearChange = (yearId: string) => {
+    setSelectedYear(yearId)
+    queryClient.invalidateQueries()
+  }
+
+  const handleSemesterChange = (semesterId: string) => {
+    setSelectedSemester(semesterId)
+    queryClient.invalidateQueries()
+  }
 
   const closeSidebar = () => setIsSidebarOpen(false)
 
@@ -161,6 +193,55 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <X size={24} />
           </button>
         </div>
+        {/* Academic Year Selector (Premium Design) */}
+        {(role === 'ADMIN' || role === 'TEACHER') && (
+          <div className="px-5 py-4 border-b border-gray-150 bg-gradient-to-r from-pink-50/20 via-indigo-50/10 to-blue-50/20 space-y-2 shrink-0">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-bold tracking-wide">
+              <Filter className="w-3.5 h-3.5 text-indigo-500" />
+              <span>เลือกปีการศึกษา / ภาคเรียน</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <select
+                  value={selectedYear?.id || ''}
+                  onChange={(e) => handleYearChange(e.target.value)}
+                  className="w-full text-xs font-semibold text-gray-800 bg-white border border-gray-200 rounded-xl px-2.5 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
+                >
+                  {years.map((y) => (
+                    <option key={y.id} value={y.id}>
+                      ปี {y.year} {y.is_active ? ' (ปัจจุบัน)' : ''}
+                    </option>
+                  ))}
+                  {years.length === 0 && <option value="">กำลังโหลด...</option>}
+                </select>
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedSemester?.id || ''}
+                  onChange={(e) => handleSemesterChange(e.target.value)}
+                  className="w-full text-xs font-semibold text-gray-800 bg-white border border-gray-200 rounded-xl px-2.5 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
+                  disabled={!selectedYear}
+                >
+                  {selectedYear?.semesters?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label || `ภาคเรียนที่ ${s.semester_number}`} {s.is_active ? ' (ปัจจุบัน)' : ''}
+                    </option>
+                  ))}
+                  {selectedYear && (!selectedYear.semesters || selectedYear.semesters.length === 0) && (
+                    <option value="">ยังไม่มีภาคเรียน</option>
+                  )}
+                  {!selectedYear && <option value="">เลือกปีการศึกษา</option>}
+                </select>
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <NavItem to="/" icon={Home} onClick={closeSidebar}>หน้าหลัก</NavItem>
 
@@ -193,6 +274,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {/* ตั้งค่าระบบ */}
           {role === 'ADMIN' && (
             <div className="pt-3 mt-3 border-t border-gray-100">
+              <NavItem to="/academic-years" icon={CalendarRange} onClick={closeSidebar}>ปีการศึกษา</NavItem>
               <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
             </div>
           )}
@@ -244,6 +326,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {children}
         </div>
       </main>
+    </div>
+  )
+}
+
+const RootDashboard = () => {
+  const { role } = useAuthStore()
+  if (role === 'ADMIN') return <Dashboard />
+  if (role === 'TEACHER' || role === 'ADVISOR') return <TeacherDashboard />
+  if (role === 'PARENT') return <ParentDashboard />
+  if (role === 'STUDENT') return <Navigate to="/studentscan" replace />
+  return (
+    <div className="flex items-center justify-center min-h-[300px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
     </div>
   )
 }
@@ -337,10 +432,11 @@ function App() {
         <Route path="/studentsupport/sdq/:studentId" element={user ? <SdqForm /> : <Navigate to="/login" />} />
         <Route path="/studentsupport/eq/:studentId" element={user ? <EqForm /> : <Navigate to="/login" />} />
         <Route path="/studentsupport/profile/:studentId" element={user ? <Student360 /> : <Navigate to="/login" />} />
+        <Route path="/studentsupport/profile/:studentId/portfolio" element={user ? <StudentPortfolio /> : <Navigate to="/login" />} />
         <Route path="/studentsupport/cases" element={user ? <StudentSupportLayout><CaseManagement /></StudentSupportLayout> : <Navigate to="/login" />} />
 
         {/* Protected Routes */}
-        <Route path="/" element={user ? <DashboardLayout><Dashboard /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/" element={user ? <DashboardLayout><RootDashboard /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/teachers" element={user ? <DashboardLayout><Teachers /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/classrooms" element={user ? <DashboardLayout><Classrooms /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/students" element={user ? <DashboardLayout><Students /></DashboardLayout> : <Navigate to="/login" />} />
@@ -350,6 +446,11 @@ function App() {
         <Route path="/homeroom" element={user ? <DashboardLayout><Homeroom /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/attendance" element={user ? <DashboardLayout><Attendance /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? <DashboardLayout><Reports /></DashboardLayout> : <Navigate to="/login" />} />
+
+        {/* New Features Routes */}
+        <Route path="/academic-years" element={user ? <DashboardLayout><AcademicYears /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/portfolio/:studentId" element={user ? <DashboardLayout><StudentPortfolio /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/studentscan" element={user ? <StudentScan /> : <Navigate to="/login" />} />
 
         <Route path="/leaves" element={user ? <DashboardLayout><LeaveRequests /></DashboardLayout> : <Navigate to="/login" />} />
 

@@ -61,15 +61,21 @@ export interface HomeroomClassroomDetailReport {
   students: HomeroomClassroomStudentRow[]
 }
 
-export const getHomeroomReport = async (timeFilter: string = 'month'): Promise<HomeroomReportRow[]> => {
+export const getHomeroomReport = async (timeFilter: string = 'month', academicYearId?: string): Promise<HomeroomReportRow[]> => {
   const startDate = getStartDate(timeFilter).split('T')[0]
-  const { data } = await supabase
+  let query = supabase
     .from('homeroom_attendance')
     .select(`
       status,
       students ( classroom_id, classrooms(id, level, room) )
     `)
     .gte('attendance_date', startDate)
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId)
+  }
+
+  const { data } = await query
 
   const statsMap: Record<string, HomeroomReportRow> = {}
 
@@ -95,7 +101,9 @@ export const getHomeroomReport = async (timeFilter: string = 'month'): Promise<H
 
 export const getHomeroomClassroomDetailReport = async (
   classroomId: string,
-  timeFilter: string = 'month'
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  semesterId?: string
 ): Promise<HomeroomClassroomDetailReport | null> => {
   const startDate = getStartDate(timeFilter).split('T')[0]
 
@@ -113,12 +121,20 @@ export const getHomeroomClassroomDetailReport = async (
     .eq('classroom_id', classroomId)
     .order('student_code')
 
-  const { data: homeroomRows } = await supabase
+  let homeroomQuery = supabase
     .from('homeroom_attendance')
     .select('student_id, attendance_date, status')
     .gte('attendance_date', startDate)
     .in('student_id', (students || []).map((s: any) => s.id))
-    .order('attendance_date', { ascending: false })
+
+  if (academicYearId) {
+    homeroomQuery = homeroomQuery.eq('academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    homeroomQuery = homeroomQuery.eq('semester_id', semesterId)
+  }
+
+  const { data: homeroomRows } = await homeroomQuery.order('attendance_date', { ascending: false })
 
   const rowsByStudent: Record<string, HomeroomClassroomStudentRow> = {}
 
@@ -162,15 +178,29 @@ export const getHomeroomClassroomDetailReport = async (
   }
 }
 
-export const getClassroomReport = async (timeFilter: string = 'month'): Promise<ClassroomReportRow[]> => {
+export const getClassroomReport = async (timeFilter: string = 'month', academicYearId?: string): Promise<ClassroomReportRow[]> => {
   const startDate = getStartDate(timeFilter)
-  const { data } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    status,
+    students ( classroom_id, classrooms(id, level, room) )
+  `
+  if (academicYearId) {
+    selectStr = `
       status,
-      students ( classroom_id, classrooms(id, level, room) )
-    `)
+      students ( classroom_id, classrooms!inner(id, level, room, academic_year_id) )
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', startDate)
+
+  if (academicYearId) {
+    query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  const { data } = await query
 
   const statsMap: Record<string, ClassroomReportRow> = {}
 
@@ -207,15 +237,31 @@ export interface StudentReportRow {
   rate: number
 }
 
-export const getStudentReport = async (timeFilter: string = 'month', classroomId?: string): Promise<StudentReportRow[]> => {
+export const getStudentReport = async (
+  timeFilter: string = 'month',
+  classroomId?: string,
+  academicYearId?: string
+): Promise<StudentReportRow[]> => {
   const startDate = getStartDate(timeFilter)
+  let selectStr = `
+    status,
+    students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms(level, room) )
+  `
+  if (academicYearId) {
+    selectStr = `
+      status,
+      students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms!inner(level, room, academic_year_id) )
+    `
+  }
+
   let query = supabase
     .from('attendance')
-    .select(`
-      status,
-      students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms(level, room) )
-    `)
+    .select(selectStr)
     .gte('checkin_time', startDate)
+
+  if (academicYearId) {
+    query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
 
   const { data } = await query
 
@@ -287,7 +333,12 @@ export interface StudentDetailReport {
   homeroomHistory: StudentHomeroomHistoryRow[]
 }
 
-export const getStudentDetailReport = async (studentId: string, timeFilter: string = 'month'): Promise<StudentDetailReport | null> => {
+export const getStudentDetailReport = async (
+  studentId: string,
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  semesterId?: string
+): Promise<StudentDetailReport | null> => {
   const startDate = getStartDate(timeFilter)
 
   const { data: studentData } = await supabase
@@ -298,22 +349,43 @@ export const getStudentDetailReport = async (studentId: string, timeFilter: stri
 
   if (!studentData) return null
 
-  const { data: attendanceData } = await supabase
+  let attQuery = supabase
     .from('attendance')
     .select(`
       id, status, checkin_time,
-      attendance_sessions ( session_date, subjects(subject_name) )
+      attendance_sessions!inner(
+        session_date,
+        subjects!inner(subject_name, academic_year_id, semester_id)
+      )
     `)
     .eq('student_id', studentId)
     .gte('checkin_time', startDate)
+
+  if (academicYearId) {
+    attQuery = attQuery.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    attQuery = attQuery.eq('attendance_sessions.subjects.semester_id', semesterId)
+  }
+
+  const { data: attendanceData } = await attQuery
     .order('checkin_time', { ascending: false })
     .limit(2000)
 
-  const { data: homeroomData } = await supabase
+  let homeroomQuery = supabase
     .from('homeroom_attendance')
     .select('id, attendance_date, status, checkin_time')
     .eq('student_id', studentId)
     .gte('attendance_date', startDate.split('T')[0])
+
+  if (academicYearId) {
+    homeroomQuery = homeroomQuery.eq('academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    homeroomQuery = homeroomQuery.eq('semester_id', semesterId)
+  }
+
+  const { data: homeroomData } = await homeroomQuery
     .order('attendance_date', { ascending: false })
     .limit(2000)
 
@@ -460,20 +532,46 @@ export const getSubjectDetailReport = async (subjectId: string, timeFilter: stri
   }
 }
 
-export const getSubjectReport = async (timeFilter: string = 'month'): Promise<SubjectReportRow[]> => {
+export const getSubjectReport = async (
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  semesterId?: string
+): Promise<SubjectReportRow[]> => {
   const startDate = getStartDate(timeFilter)
-  const { data } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    status,
+    students ( id, student_code, prefix, first_name, last_name ),
+    attendance_sessions (
+      subject_id,
+      subjects(id, subject_code, subject_name),
+      schedules(classroom_id, classrooms(level, room))
+    )
+  `
+  if (academicYearId || semesterId) {
+    selectStr = `
       status,
       students ( id, student_code, prefix, first_name, last_name ),
-      attendance_sessions ( 
-        subject_id, 
-        subjects(id, subject_code, subject_name),
+      attendance_sessions!inner (
+        subject_id,
+        subjects!inner(id, subject_code, subject_name, academic_year_id, semester_id),
         schedules(classroom_id, classrooms(level, room))
       )
-    `)
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', startDate)
+
+  if (academicYearId) {
+    query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    query = query.eq('attendance_sessions.subjects.semester_id', semesterId)
+  }
+
+  const { data } = await query
 
   const statsMap: Record<string, SubjectReportRow> = {}
 
@@ -532,7 +630,21 @@ export const getSubjectReport = async (timeFilter: string = 'month'): Promise<Su
     })
 }
 
-export const getDashboardStats = async () => {
+export const getDashboardStats = async (academicYearId?: string) => {
+  let studentQuery = supabase.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null)
+  let classroomQuery = supabase.from('classrooms').select('*', { count: 'exact', head: true })
+  let subjectQuery = supabase.from('subjects').select('*', { count: 'exact', head: true })
+
+  if (academicYearId) {
+    studentQuery = supabase.from('students')
+      .select('classroom:classroom_id!inner(academic_year_id)', { count: 'exact', head: true })
+      .eq('classroom.academic_year_id', academicYearId)
+      .is('deleted_at', null)
+
+    classroomQuery = classroomQuery.eq('academic_year_id', academicYearId)
+    subjectQuery = subjectQuery.eq('academic_year_id', academicYearId)
+  }
+
   const [
     { count: teachersCount },
     { count: studentsCount },
@@ -540,9 +652,9 @@ export const getDashboardStats = async () => {
     { count: subjectsCount }
   ] = await Promise.all([
     supabase.from('teachers').select('*', { count: 'exact', head: true }),
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('classrooms').select('*', { count: 'exact', head: true }),
-    supabase.from('subjects').select('*', { count: 'exact', head: true })
+    studentQuery,
+    classroomQuery,
+    subjectQuery
   ])
 
   return {
@@ -605,15 +717,31 @@ export interface HomeroomStatusSummaryByDate {
   total: number
 }
 
-export const getAttendanceStatusSummaryByDate = async (date: string): Promise<AttendanceStatusSummaryByDate> => {
-  const { data, error } = await supabase
-    .from('attendance_sessions')
-    .select(`
+export const getAttendanceStatusSummaryByDate = async (date: string, academicYearId?: string): Promise<AttendanceStatusSummaryByDate> => {
+  let selectStr = `
+    id,
+    session_date,
+    attendance ( status )
+  `
+  if (academicYearId) {
+    selectStr = `
       id,
       session_date,
+      subjects!inner(academic_year_id),
       attendance ( status )
-    `)
+    `
+  }
+
+  let query = supabase
+    .from('attendance_sessions')
+    .select(selectStr)
     .eq('session_date', date)
+
+  if (academicYearId) {
+    query = query.eq('subjects.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getAttendanceStatusSummaryByDate] error:', error)
@@ -644,11 +772,17 @@ export const getAttendanceStatusSummaryByDate = async (date: string): Promise<At
   }
 }
 
-export const getHomeroomStatusSummaryByDate = async (date: string): Promise<HomeroomStatusSummaryByDate> => {
-  const { data, error } = await supabase
+export const getHomeroomStatusSummaryByDate = async (date: string, academicYearId?: string): Promise<HomeroomStatusSummaryByDate> => {
+  let query = supabase
     .from('homeroom_attendance')
     .select('status')
     .eq('attendance_date', date)
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getHomeroomStatusSummaryByDate] error:', error)
@@ -677,18 +811,32 @@ export const getHomeroomStatusSummaryByDate = async (date: string): Promise<Home
   }
 }
 
-export const getMonthlyAttendanceCompare = async (): Promise<MonthlyAttendanceCompareResult> => {
+export const getMonthlyAttendanceCompare = async (academicYearId?: string): Promise<MonthlyAttendanceCompareResult> => {
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
-  const { data, error } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    status,
+    attendance_sessions ( session_date )
+  `
+  if (academicYearId) {
+    selectStr = `
       status,
-      attendance_sessions ( session_date )
-    `)
+      attendance_sessions!inner ( session_date, subjects!inner(academic_year_id) )
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', prevMonthStart.toISOString())
+
+  if (academicYearId) {
+    query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getMonthlyAttendanceCompare] error:', error)
@@ -726,19 +874,33 @@ export const getMonthlyAttendanceCompare = async (): Promise<MonthlyAttendanceCo
   }
 }
 
-export const getAttendanceDailyRates = async (days: number = 7): Promise<AttendanceDailyRatePoint[]> => {
+export const getAttendanceDailyRates = async (days: number = 7, academicYearId?: string): Promise<AttendanceDailyRatePoint[]> => {
   const now = new Date()
   const startDate = new Date(now)
   startDate.setDate(startDate.getDate() - (days - 1))
   startDate.setHours(0, 0, 0, 0)
 
-  const { data, error } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    status,
+    attendance_sessions ( session_date )
+  `
+  if (academicYearId) {
+    selectStr = `
       status,
-      attendance_sessions ( session_date )
-    `)
+      attendance_sessions!inner ( session_date, subjects!inner(academic_year_id) )
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', startDate.toISOString())
+
+  if (academicYearId) {
+    query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getAttendanceDailyRates] error:', error)
@@ -780,7 +942,7 @@ export const getAttendanceDailyRates = async (days: number = 7): Promise<Attenda
   })
 }
 
-export const getAttendanceTrendToday = async (): Promise<AttendanceTrendTodayResult> => {
+export const getAttendanceTrendToday = async (academicYearId?: string): Promise<AttendanceTrendTodayResult> => {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
@@ -791,13 +953,27 @@ export const getAttendanceTrendToday = async (): Promise<AttendanceTrendTodayRes
   const startDate = new Date(yesterdayDate)
   startDate.setHours(0, 0, 0, 0)
 
-  const { data, error } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    status,
+    attendance_sessions ( session_date )
+  `
+  if (academicYearId) {
+    selectStr = `
       status,
-      attendance_sessions ( session_date )
-    `)
+      attendance_sessions!inner ( session_date, subjects!inner(academic_year_id) )
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', startDate.toISOString())
+
+  if (academicYearId) {
+    query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getAttendanceTrendToday] error:', error)
@@ -838,12 +1014,12 @@ export const getAttendanceTrendToday = async (): Promise<AttendanceTrendTodayRes
   }
 }
 
-export const getCheckedHomeroomClassroomsToday = async (): Promise<CheckedHomeroomTodayResult> => {
+export const getCheckedHomeroomClassroomsToday = async (academicYearId?: string): Promise<CheckedHomeroomTodayResult> => {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('homeroom_attendance')
     .select(`
       students (
@@ -851,6 +1027,12 @@ export const getCheckedHomeroomClassroomsToday = async (): Promise<CheckedHomero
       )
     `)
     .eq('attendance_date', today)
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getCheckedHomeroomClassroomsToday] error:', error)
@@ -871,7 +1053,7 @@ export const getCheckedHomeroomClassroomsToday = async (): Promise<CheckedHomero
   }
 }
 
-export const getPendingClassroomChecksToday = async (): Promise<PendingClassroomCheckResult> => {
+export const getPendingClassroomChecksToday = async (academicYearId?: string): Promise<PendingClassroomCheckResult> => {
   const now = new Date()
   const jsDay = now.getDay() // 0=Sun..6=Sat
   const dayOfWeek = jsDay === 0 ? 7 : jsDay // 1=Mon..7=Sun
@@ -879,10 +1061,18 @@ export const getPendingClassroomChecksToday = async (): Promise<PendingClassroom
   // ใช้วันที่ local (ไทย) แทน UTC เพื่อให้เทียบ attendance_date ตรงวันจริง
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 
-  const { data: todaySchedules } = await supabase
+  const classroomSelect = academicYearId ? 'classrooms!inner(level, room, academic_year_id)' : 'classrooms(level, room)'
+  let scheduleQuery = supabase
     .from('schedules')
-    .select('id, classroom_id, classrooms(level, room)')
+    .select(`id, classroom_id, ${classroomSelect}`)
     .eq('day_of_week', dayOfWeek)
+
+  if (academicYearId) {
+    // schedules joins classrooms, so filter classrooms by academic_year_id
+    scheduleQuery = scheduleQuery.filter('classrooms.academic_year_id', 'eq', academicYearId)
+  }
+
+  const { data: todaySchedules } = await scheduleQuery
 
   if (!todaySchedules || todaySchedules.length === 0) {
     return { pendingClassroomCount: 0, pendingClassrooms: [] }
@@ -928,7 +1118,7 @@ export const getPendingClassroomChecksToday = async (): Promise<PendingClassroom
   }
 }
 
-export const getAnalyticsData = async (timeFilter: string = 'month') => {
+export const getAnalyticsData = async (timeFilter: string = 'month', academicYearId?: string) => {
   // คำนวณวันที่เริ่มต้นตาม timeFilter
   const now = new Date()
   let startDate = new Date()
@@ -945,15 +1135,29 @@ export const getAnalyticsData = async (timeFilter: string = 'month') => {
     startDate.setFullYear(now.getFullYear() - 1)
   }
 
-  // ดึงข้อมูลจริงทั้งหมด (จำกัด 2000 รายการ)
-  const { data: rawAttendance } = await supabase
-    .from('attendance')
-    .select(`
+  let selectStr = `
+    id, checkin_time, status,
+    students ( student_code, first_name, last_name, classrooms(level, room) ),
+    attendance_sessions ( session_date, subjects(subject_name) )
+  `
+  if (academicYearId) {
+    selectStr = `
       id, checkin_time, status,
       students ( student_code, first_name, last_name, classrooms(level, room) ),
-      attendance_sessions ( session_date, subjects(subject_name) )
-    `)
+      attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id) )
+    `
+  }
+
+  let query = supabase
+    .from('attendance')
+    .select(selectStr)
     .gte('checkin_time', startDate.toISOString())
+
+  if (academicYearId) {
+    query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  const { data: rawAttendance } = await query
     .order('checkin_time', { ascending: false })
     .limit(2000)
 

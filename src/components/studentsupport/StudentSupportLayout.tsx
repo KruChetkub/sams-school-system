@@ -6,6 +6,15 @@ import {
   LayoutDashboard, Users, ShieldAlert, Menu, X, ArrowLeft, LogOut, Heart, Sparkles
 } from 'lucide-react';
 
+type StudentSupportRole = 'TEACHER' | 'EXECUTIVE' | 'ADMIN';
+
+const normalizeRole = (role?: string | null): StudentSupportRole | null => {
+  const normalized = role?.toUpperCase();
+  if (normalized === 'ADMIN' || normalized === 'EXECUTIVE') return normalized;
+  if (normalized === 'TEACHER' || normalized === 'ADVISOR') return 'TEACHER';
+  return null;
+};
+
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
   const location = useLocation();
   // match active route exactly or prefix match (excluding exact dashboard / root match)
@@ -24,11 +33,11 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
 };
 
 export default function StudentSupportLayout({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuthStore();
+  const { user, role, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [teacherDisplayName, setTeacherDisplayName] = useState('');
-  const [userRole, setUserRole] = useState<'TEACHER' | 'EXECUTIVE' | 'ADMIN' | null>(null);
+  const [userRole, setUserRole] = useState<StudentSupportRole | null>(normalizeRole(role));
 
   const closeSidebar = () => setIsSidebarOpen(false);
 
@@ -54,10 +63,35 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
           if (fallbackTeacher) teacher = fallbackTeacher;
         }
 
+        if (teacherErr) throw teacherErr;
+
         if (teacher) {
           const fullName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim();
           setTeacherDisplayName(fullName);
-          setUserRole(teacher.role as 'TEACHER' | 'EXECUTIVE' | 'ADMIN');
+          const teacherRole = normalizeRole(teacher.role);
+          if (teacherRole) {
+            setUserRole(teacherRole);
+            return;
+          }
+        }
+
+        const storeRole = normalizeRole(role);
+        if (storeRole) {
+          setUserRole(storeRole);
+          return;
+        }
+
+        const { data: userProfile, error: userErr } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (userErr) throw userErr;
+
+        const userProfileRole = normalizeRole(userProfile?.role);
+        if (userProfileRole) {
+          setUserRole(userProfileRole);
         }
       } catch (err) {
         console.error('Error loading layout user data:', err);
@@ -65,7 +99,7 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
     };
 
     loadUserData();
-  }, [user?.id]);
+  }, [user?.id, role]);
 
   const handleLogout = async () => {
     await signOut();

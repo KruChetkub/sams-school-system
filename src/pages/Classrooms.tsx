@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getClassrooms, createClassroom, updateClassroom, deleteClassroom } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
+import { useAcademicYearStore } from '../store/academicYearStore'
 import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react'
 
 const classroomCardPalettes = [
@@ -23,7 +24,12 @@ const getClassroomPalette = (classroomKey: string) => {
 
 export default function Classrooms() {
   const queryClient = useQueryClient()
-  const { data: classrooms, isLoading } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
+  const { selectedYear } = useAcademicYearStore()
+  
+  const { data: classrooms, isLoading } = useQuery({ 
+    queryKey: ['classrooms', selectedYear?.id], 
+    queryFn: () => getClassrooms(selectedYear?.id) 
+  })
   const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)
@@ -88,7 +94,7 @@ export default function Classrooms() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const payload = {
+    const payload: any = {
       level: formData.level,
       room: formData.room,
       advisor_id: formData.advisor_id || '',
@@ -98,6 +104,9 @@ export default function Classrooms() {
     if (editId) {
       updateMutation.mutate({ id: editId, payload })
     } else {
+      if (selectedYear?.id) {
+        payload.academic_year_id = selectedYear.id
+      }
       createMutation.mutate(payload)
     }
   }

@@ -3,11 +3,62 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   User, Home, Calendar, ShieldAlert, Heart, Activity, FileText,
   ChevronLeft, Sparkles, MapPin, Phone, Users, CheckCircle2,
-  AlertTriangle, AlertCircle, Smile, HelpCircle, Eye, Mail, ArrowLeft, RefreshCw
+  AlertTriangle, AlertCircle, Smile, HelpCircle, Eye, Mail, ArrowLeft, RefreshCw,
+  Award, ExternalLink, Trash2, Plus, X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { getStudentPortfolios } from '../../services/portfolioService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Legend, BarChart, Bar, CartesianGrid } from 'recharts';
+import { useAuthStore } from '../../store/authStore';
+import { behaviorService } from '../../services/studentsupport/behaviorService';
+import type { BehaviorPoint } from '../../services/studentsupport/behaviorService';
+
+const pad = (value: number) => String(value).padStart(2, '0');
+
+const formatThaiBEEInputDate = (isoDate: string) => {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return '';
+  const [y, m, d] = parts;
+  const beYear = parseInt(y, 10) + 543;
+  return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${beYear}`;
+};
+
+const parseThaiBEInputDate = (input: string) => {
+  if (!input) return null;
+  const parts = input.split('/').map(part => part.trim());
+  if (parts.length !== 3) return null;
+  const [dayStr, monthStr, yearStr] = parts;
+  if (!/^[0-9]{1,2}$/.test(dayStr) || !/^[0-9]{1,2}$/.test(monthStr) || !/^[0-9]{4}$/.test(yearStr)) return null;
+  const day = Number(dayStr);
+  const month = Number(monthStr);
+  const beYear = Number(yearStr);
+  const year = beYear - 543;
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return `${year}-${pad(month)}-${pad(day)}`;
+};
+
+const formatThaiBuddhistDate = (isoDate: string) => {
+  if (!isoDate) return '';
+  try {
+    const date = new Date(`${isoDate}T00:00:00`);
+    return new Intl.DateTimeFormat('th-TH', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      calendar: 'buddhist'
+    }).format(date);
+  } catch (e) {
+    return isoDate;
+  }
+};
+
+const thaiWeekdays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 
 // V14: Helper functions
 const getSdqDimLevel = (
@@ -45,13 +96,113 @@ const generateSdqWeaknesses = (sdq: any, evalType: 'STUDENT' | 'TEACHER' | 'PARE
 export default function Student360() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [portfolios, setPortfolios] = useState<any[]>([]);
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'SDQ_EQ' | 'HOME_VISIT' | 'ATTENDANCE' | 'CASES'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'SDQ_EQ' | 'HOME_VISIT' | 'ATTENDANCE' | 'CASES' | 'PORTFOLIO' | 'BEHAVIOR'>('OVERVIEW');
   const [recalcEqLoading, setRecalcEqLoading] = useState(false);
+
+  // Behavior points state
+  const [behaviorPoints, setBehaviorPoints] = useState<BehaviorPoint[]>([]);
+  const [behaviorSummary, setBehaviorSummary] = useState({ plusSum: 0, minusSum: 0, netScore: 100 });
+  const [showBehaviorModal, setShowBehaviorModal] = useState(false);
+  const [submittingBehavior, setSubmittingBehavior] = useState(false);
+  const [behaviorForm, setBehaviorForm] = useState({
+    type: 'MINUS' as 'PLUS' | 'MINUS',
+    points: 5,
+    category: 'มาสาย/หนีเรียน',
+    description: '',
+    incident_date: new Date().toISOString().split('T')[0]
+  });
+
+  // Date Picker State for Behavior Modal (Thai B.E. calendar)
+  const [bDateInput, setBDateInput] = useState('');
+  const [bDateError, setBDateError] = useState('');
+  const [showBDatePicker, setShowBDatePicker] = useState(false);
+  const [bCalendarMonth, setBCalendarMonth] = useState(new Date().getMonth());
+  const [bCalendarYear, setBCalendarYear] = useState(new Date().getFullYear());
+
+  // State for Behavior Log Deletion Custom Modal
+  const [deletingBehaviorId, setDeletingBehaviorId] = useState<string | null>(null);
+  const [isDeletingBehavior, setIsDeletingBehavior] = useState(false);
+
+  // Click outside to close Behavior Date Picker
+  useEffect(() => {
+    if (!showBDatePicker) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.b-datepicker-container')) {
+        setShowBDatePicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showBDatePicker]);
+
+  const selectBCalendarDate = (day: number) => {
+    const date = new Date(bCalendarYear, bCalendarMonth, day);
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const isoDate = `${y}-${m}-${d}`;
+    setBehaviorForm(prev => ({ ...prev, incident_date: isoDate }));
+    setBDateInput(formatThaiBEEInputDate(isoDate));
+    setBDateError('');
+    setShowBDatePicker(false);
+  };
+
+  const bDaysInMonth = getDaysInMonth(bCalendarYear, bCalendarMonth);
+  const bFirstWeekday = new Date(bCalendarYear, bCalendarMonth, 1).getDay();
+  const bCalendarCells = Array(bFirstWeekday).fill(null).concat(Array.from({ length: bDaysInMonth }, (_, i) => i + 1));
+
+  const { user } = useAuthStore();
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTeacherId = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) {
+        setTeacherId(data.id);
+      }
+    };
+    fetchTeacherId();
+  }, [user?.id]);
+
+  const fetchBehaviorData = async () => {
+    if (!studentId) return;
+    try {
+      const pts = await behaviorService.getStudentBehaviorPoints(studentId, selectedYear?.id);
+      const summ = await behaviorService.getStudentBehaviorSummary(studentId, selectedYear?.id);
+      setBehaviorPoints(pts);
+      setBehaviorSummary(summ);
+    } catch (err) {
+      console.error('Error fetching behavior data:', err);
+    }
+  };
+
+  const refreshAllData = async () => {
+    if (!studentId) return;
+    try {
+      const data = await studentSupportService.getStudent360Profile(
+        studentId,
+        selectedYear?.id,
+        selectedSemester?.id
+      );
+      setProfile(data);
+      await fetchBehaviorData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (location.state && (location.state as any).activeTab) {
@@ -65,8 +216,15 @@ export default function Student360() {
       setLoading(true);
       setError(null);
       try {
-        const data = await studentSupportService.getStudent360Profile(studentId);
+        const data = await studentSupportService.getStudent360Profile(
+          studentId,
+          selectedYear?.id,
+          selectedSemester?.id
+        );
         setProfile(data);
+        const portfoliosData = await getStudentPortfolios(studentId);
+        setPortfolios(portfoliosData || []);
+        await fetchBehaviorData();
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -74,7 +232,7 @@ export default function Student360() {
       }
     };
     fetchProfileData();
-  }, [studentId]);
+  }, [studentId, selectedYear?.id, selectedSemester?.id]);
 
   if (loading) {
     return (
@@ -111,9 +269,13 @@ export default function Student360() {
   const attendanceRate = totalDays ? Math.round((attendanceSummary.present / totalDays) * 100) : 100;
 
   // V14: แยก SDQ ตามประเภทผู้ประเมิน
-  const teacherSdq: any = (sdq as any[])?.find((s: any) => s.evaluator_type === 'TEACHER') ?? null;
-  const studentSdq: any = (sdq as any[])?.find((s: any) => s.evaluator_type === 'STUDENT') ?? null;
-  const parentSdq:  any = (sdq as any[])?.find((s: any) => s.evaluator_type === 'PARENT')  ?? null;
+  const normalizedSdq = ((sdq as any[]) ?? []).map((s: any) => ({
+    ...s,
+    evaluator_type: String(s.evaluator_type || '').trim().toUpperCase()
+  }));
+  const teacherSdq: any = normalizedSdq.find((s: any) => s.evaluator_type === 'TEACHER') ?? null;
+  const studentSdq: any = normalizedSdq.find((s: any) => s.evaluator_type === 'STUDENT') ?? null;
+  const parentSdq:  any = normalizedSdq.find((s: any) => s.evaluator_type === 'PARENT')  ?? null;
   const primarySdq: any = teacherSdq ?? studentSdq ?? parentSdq ?? null;
   const primaryEvalType: 'STUDENT' | 'TEACHER' | 'PARENT' =
     teacherSdq ? 'TEACHER' : studentSdq ? 'STUDENT' : 'PARENT';
@@ -156,7 +318,7 @@ export default function Student360() {
 
   // V15.3: SDQ History Timeline Data
   const sdqTimeline = (() => {
-    const all = (sdq as any[]) ?? [];
+    const all = normalizedSdq;
     if (all.length < 2) return [];
     return all
       .filter((s: any) => s.total_difficulties_score != null && s.created_at)
@@ -199,13 +361,7 @@ export default function Student360() {
             
             {/* Back Button for Desktop (hidden on mobile, mobile has bottom bar) */}
             <button
-              onClick={() => {
-                if (window.history.state && window.history.state.idx > 0) {
-                  navigate(-1);
-                } else {
-                  navigate('/studentsupport');
-                }
-              }}
+              onClick={() => navigate('/studentsupport')}
               className="hidden md:flex p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all"
               title="ย้อนกลับ"
             >
@@ -237,7 +393,9 @@ export default function Student360() {
           {[
             { key: 'OVERVIEW', label: 'สรุปภาพรวม', icon: Activity },
             { key: 'SDQ_EQ', label: 'พฤติกรรม & อารมณ์ (SDQ/EQ)', icon: Smile },
+            { key: 'BEHAVIOR', label: 'คะแนนพฤติกรรม', icon: Heart },
             { key: 'ATTENDANCE', label: 'การเข้าเรียน & การลา', icon: Calendar },
+            { key: 'PORTFOLIO', label: 'ผลงาน & กิจกรรม', icon: Award },
             { key: 'CASES', label: 'เคสและการช่วยเหลือ', icon: ShieldAlert }
           ].map(tab => {
             const Icon = tab.icon;
@@ -313,7 +471,7 @@ export default function Student360() {
                   ปัจจัยการคัดกรองความเสี่ยงรอบทิศทาง
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {/* Factor 1: SDQ */}
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between items-center text-center">
                     <span className="text-[10px] text-gray-400 font-bold mb-2">พฤติกรรม (SDQ)</span>
@@ -354,6 +512,17 @@ export default function Student360() {
                           'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                       }`}>
                       ขาดเรียน: {attendanceSummary.absent} วัน
+                    </span>
+                  </div>
+
+                  {/* Factor 4: Behavior Points */}
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between items-center text-center">
+                    <span className="text-[10px] text-gray-400 font-bold mb-2">คะแนนพฤติกรรม</span>
+                    <span className={`px-2 py-1 rounded-full text-xxs font-black border ${behaviorSummary.netScore < 50 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
+                        behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      }`}>
+                      คะแนนสุทธิ: {behaviorSummary.netScore} คะแนน
                     </span>
                   </div>
                 </div>
@@ -558,7 +727,11 @@ export default function Student360() {
                       try {
                         await studentSupportService.recalculateAllEqScores();
                         // Reload profile data
-                        setProfile(await studentSupportService.getStudent360Profile(studentId!));
+                        setProfile(await studentSupportService.getStudent360Profile(
+                          studentId!,
+                          selectedYear?.id,
+                          selectedSemester?.id
+                        ));
                       } catch (e) { console.error(e); }
                       finally { setRecalcEqLoading(false); }
                     }}
@@ -839,6 +1012,66 @@ export default function Student360() {
         </div>
         )}
 
+        {/* TAB 4.5: PORTFOLIO */}
+        {activeTab === 'PORTFOLIO' && (
+          <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Award size={18} className="text-amber-400" />
+                <span>ผลงานและกิจกรรมที่บันทึกไว้ในระบบ (Student Portfolio)</span>
+              </h3>
+              <button
+                onClick={() => navigate(`/studentsupport/profile/${student.id}/portfolio`, { state: { from: `/studentsupport/profile/${student.id}` } })}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl text-xxs flex items-center gap-1.5 transition-all shadow-md"
+              >
+                จัดการผลงานสะสม
+              </button>
+            </div>
+
+            {portfolios.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 space-y-2">
+                <Award className="mx-auto text-gray-650" size={32} />
+                <p className="font-bold text-xs">ยังไม่มีการบันทึกประวัติผลงาน/กิจกรรมของนักเรียน</p>
+                <p className="text-[11px] text-gray-600">ครูที่ปรึกษาสามารถคลิก "จัดการผลงานสะสม" เพื่อบันทึกผลงานสะสมเพิ่มเติม</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {portfolios.map((item: any) => (
+                  <div key={item.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col justify-between gap-3 animate-in fade-in duration-200">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start text-[10px]">
+                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-2 py-0.5 rounded-full font-bold">
+                          {item.category === 'ACADEMIC' ? 'วิชาการ/ผลการเรียน' :
+                           item.category === 'ACTIVITY' ? 'กิจกรรม/จิตอาสา' :
+                           item.category === 'AWARD' ? 'รางวัล/การแข่งขัน' :
+                           item.category === 'SKILL' ? 'ทักษะพิเศษ' : 'อื่นๆ'}
+                        </span>
+                        <span className="text-gray-500 font-medium">ปี {item.academic_year || '-'}/{item.semester || '-'}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white leading-snug">{item.title}</h4>
+                      {item.description && (
+                        <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2">{item.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-[10px] text-gray-500 border-t border-white/5 pt-2 mt-1">
+                      <span>{item.date ? new Date(item.date).toLocaleDateString('th-TH') : '-'}</span>
+                      {item.certificate_url ? (
+                        <a href={item.certificate_url} target="_blank" rel="noreferrer" className="text-indigo-400 font-bold hover:underline flex items-center gap-0.5">
+                          <span>{item.certificate_label || 'ผลงาน'}</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span>ไม่มีหลักฐานแนบ</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 5: CASES */}
         {activeTab === 'CASES' && (
           <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in duration-300">
@@ -937,7 +1170,488 @@ export default function Student360() {
           </div>
         )}
 
+        {/* TAB 4.6: BEHAVIOR */}
+        {activeTab === 'BEHAVIOR' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header and Add Action */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Heart size={18} className="text-rose-400 fill-rose-400" />
+                    <span>คะแนนพฤติกรรมนักเรียน (Behavior Points Tracker)</span>
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    คะแนนเริ่มต้น 100 คะแนน ใช้ประเมินความเสี่ยงด้านวินัยและความประพฤติร่วมกับ Risk Intelligence Engine
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    setBehaviorForm({
+                      type: 'MINUS',
+                      points: 5,
+                      category: 'มาสาย/หนีเรียน',
+                      description: '',
+                      incident_date: todayStr
+                    });
+                    setBDateInput(formatThaiBEEInputDate(todayStr));
+                    setBDateError('');
+                    setShowBDatePicker(false);
+                    setBCalendarMonth(new Date().getMonth());
+                    setBCalendarYear(new Date().getFullYear());
+                    setShowBehaviorModal(true);
+                  }}
+                  className="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
+                >
+                  <Plus size={14} />
+                  <span>+ บันทึกพฤติกรรม</span>
+                </button>
+              </div>
+
+              {/* Behavior Metrics Summary Dashboard */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">คะแนนสุทธิปัจจุบัน</span>
+                  <div className="relative flex items-center justify-center">
+                    {/* Circle Score Display */}
+                    <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-black text-2xl shadow-inner ${
+                      behaviorSummary.netScore < 50 ? 'border-rose-500 text-rose-400 bg-rose-500/10' :
+                      behaviorSummary.netScore < 80 ? 'border-amber-500 text-amber-400 bg-amber-500/10' :
+                      'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                    }`}>
+                      {behaviorSummary.netScore}
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-bold mt-3 px-2 py-0.5 rounded-full border ${
+                    behaviorSummary.netScore < 50 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
+                    behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                    'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  }`}>
+                    {behaviorSummary.netScore < 50 ? 'มีปัญหา (PROBLEM)' :
+                     behaviorSummary.netScore < 80 ? 'กลุ่มเสี่ยง (RISK)' :
+                     'ปกติ (NORMAL)'}
+                  </span>
+                </div>
+
+                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">คะแนนความดีสะสม</span>
+                  <div className="text-3xl font-black text-emerald-400">+{behaviorSummary.plusSum}</div>
+                  <span className="text-[10px] text-gray-500 mt-2">คะแนนที่ได้รับบวกเพิ่ม</span>
+                </div>
+
+                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">คะแนนโดนตัดสะสม</span>
+                  <div className="text-3xl font-black text-rose-400">-{behaviorSummary.minusSum}</div>
+                  <span className="text-[10px] text-gray-500 mt-2">คะแนนที่ถูกหักเนื่องจากผิดวินัย</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Behavior Logs Timeline List */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+              <h3 className="text-sm font-bold text-white border-b border-white/10 pb-3">
+                ประวัติรายการพฤติกรรมของปีการศึกษานี้
+              </h3>
+
+              {behaviorPoints.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 space-y-2">
+                  <Activity className="mx-auto text-gray-650" size={32} />
+                  <p className="font-bold text-xs">ยังไม่มีบันทึกประวัติคะแนนพฤติกรรมในภาคเรียนนี้</p>
+                  <p className="text-[11px] text-gray-600">กดปุ่ม "+ บันทึกพฤติกรรม" เพื่อจดบันทึกความประพฤติใหม่</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {behaviorPoints.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:bg-white/[0.04] transition-all"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 mt-0.5 ${
+                          item.type === 'PLUS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {item.type === 'PLUS' ? '+' : '-'}{item.points}
+                        </span>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              item.type === 'PLUS' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                              'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            }`}>
+                              {item.category}
+                            </span>
+                            <span className="text-[10px] text-gray-500">
+                              วันที่เกิดเหตุ: {new Date(item.incident_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-gray-300 leading-relaxed font-medium">
+                              {item.description}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-gray-500">
+                            บันทึกโดย: ครู{item.teacher?.first_name || ''} {item.teacher?.last_name || 'ผู้ดูแลระบบ'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Delete button (only show for the teacher who recorded it or administrators) */}
+                      <button
+                        onClick={() => setDeletingBehaviorId(item.id!)}
+                        className="p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all self-end sm:self-center"
+                        title="ลบข้อมูลพฤติกรรม"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* ADD BEHAVIOR MODAL */}
+      {showBehaviorModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-white">
+            <div className="p-6 bg-gradient-to-r from-rose-500/20 to-indigo-500/20 border-b border-white/5 flex justify-between items-center">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Heart size={18} className="text-rose-400" />
+                <span>บันทึกคะแนนพฤติกรรมนักเรียน</span>
+              </h3>
+              <button
+                onClick={() => setShowBehaviorModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!studentId) return;
+                setSubmittingBehavior(true);
+                try {
+                  await behaviorService.addBehaviorPoint({
+                    student_id: studentId,
+                    academic_year_id: selectedYear?.id,
+                    semester_id: selectedSemester?.id,
+                    type: behaviorForm.type,
+                    points: Number(behaviorForm.points),
+                    category: behaviorForm.category,
+                    description: behaviorForm.description,
+                    incident_date: behaviorForm.incident_date,
+                    recorded_by: teacherId || undefined
+                  });
+                  await refreshAllData();
+                  setShowBehaviorModal(false);
+                } catch (err: any) {
+                  alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message);
+                } finally {
+                  setSubmittingBehavior(false);
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              {/* Type Selection */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">ประเภทพฤติกรรม *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setBehaviorForm(prev => ({ 
+                      ...prev, 
+                      type: 'PLUS', 
+                      category: 'ช่วยเหลือสังคม/จิตอาสา',
+                      points: 10
+                    }))}
+                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      behaviorForm.type === 'PLUS'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-500/5'
+                        : 'bg-white/0 border-white/10 text-gray-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>➕ เพิ่มคะแนนความดี</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBehaviorForm(prev => ({ 
+                      ...prev, 
+                      type: 'MINUS', 
+                      category: 'มาสาย/หนีเรียน',
+                      points: 5
+                    }))}
+                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      behaviorForm.type === 'MINUS'
+                        ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow-md shadow-rose-500/5'
+                        : 'bg-white/0 border-white/10 text-gray-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>➖ หักคะแนนความประพฤติ</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Points Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">คะแนน *</label>
+                  <select
+                    value={behaviorForm.points}
+                    onChange={(e) => setBehaviorForm(prev => ({ ...prev, points: Number(e.target.value) }))}
+                    className="w-full bg-[#0f172a] border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-900"
+                  >
+                    <option value="5">5 คะแนน</option>
+                    <option value="10">10 คะแนน</option>
+                    <option value="20">20 คะแนน</option>
+                    <option value="50">50 คะแนน</option>
+                  </select>
+                </div>
+
+                 {/* Date Picker Selection */}
+                <div className="relative b-datepicker-container">
+                  <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">วันที่เกิดเหตุ *</label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="วว/ดด/ปปปป"
+                      className="w-full bg-[#0f172a] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      value={bDateInput}
+                      onFocus={() => setShowBDatePicker(true)}
+                      onClick={() => setShowBDatePicker(true)}
+                      onChange={e => {
+                        const value = e.target.value;
+                        setBDateInput(value);
+                        const parsed = parseThaiBEInputDate(value);
+                        if (parsed) {
+                          setBehaviorForm(prev => ({ ...prev, incident_date: parsed }));
+                          setBDateError('');
+                          const parsedDate = new Date(`${parsed}T00:00:00`);
+                          setBCalendarMonth(parsedDate.getMonth());
+                          setBCalendarYear(parsedDate.getFullYear());
+                        } else {
+                          setBDateError('รูปแบบวันที่ไม่ถูกต้อง โปรดใช้ วว/ดด/ปปปป (พ.ศ.)');
+                        }
+                      }}
+                    />
+                  </div>
+                  {bDateError && (
+                    <p className="text-[10px] text-rose-500 mt-1 absolute z-10 bg-[#1e293b] px-2 py-0.5 rounded border border-rose-500/20">{bDateError}</p>
+                  )}
+
+                  {showBDatePicker && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 rounded-2xl border border-white/10 bg-[#1e293b] shadow-2xl p-4 text-white min-w-[260px]">
+                      {/* Calendar Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (bCalendarMonth === 0) {
+                              setBCalendarMonth(11);
+                              setBCalendarYear(prev => prev - 1);
+                            } else {
+                              setBCalendarMonth(prev => prev - 1);
+                            }
+                          }}
+                          className="rounded-lg p-1 text-gray-400 hover:bg-white/10 transition"
+                        >
+                          ‹
+                        </button>
+                        <div className="text-xs font-bold text-white">
+                          {thaiMonths[bCalendarMonth]} {bCalendarYear + 543}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (bCalendarMonth === 11) {
+                              setBCalendarMonth(0);
+                              setBCalendarYear(prev => prev + 1);
+                            } else {
+                              setBCalendarMonth(prev => prev + 1);
+                            }
+                          }}
+                          className="rounded-lg p-1 text-gray-400 hover:bg-white/10 transition"
+                        >
+                          ›
+                        </button>
+                      </div>
+
+                      {/* Days of Week */}
+                      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-2">
+                        {thaiWeekdays.map(day => <div key={day}>{day}</div>)}
+                      </div>
+
+                      {/* Calendar Cells */}
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {bCalendarCells.map((day, index) => {
+                          const isSelected = day &&
+                            day === new Date(`${behaviorForm.incident_date}T00:00:00`).getDate() &&
+                            bCalendarMonth === new Date(`${behaviorForm.incident_date}T00:00:00`).getMonth() &&
+                            bCalendarYear === new Date(`${behaviorForm.incident_date}T00:00:00`).getFullYear();
+
+                          return (
+                            <button
+                              key={`${bCalendarYear}-${bCalendarMonth}-${index}`}
+                              type="button"
+                              onClick={() => day && selectBCalendarDate(day)}
+                              className={`h-7 text-[11px] rounded-lg transition ${day
+                                ? isSelected
+                                  ? 'bg-rose-500 text-white font-bold'
+                                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                : 'pointer-events-none text-transparent'
+                                }`}
+                            >
+                              {day || ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="mt-3 pt-2 border-t border-white/5 flex justify-between items-center text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setShowBDatePicker(false)}
+                          className="text-gray-400 hover:text-white font-bold bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md"
+                        >
+                          ปิด
+                        </button>
+                        <span className="text-gray-500">ปฏิทินไทย (พ.ศ.)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Selection */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">หมวดหมู่พฤติกรรม *</label>
+                <select
+                  value={behaviorForm.category}
+                  onChange={(e) => setBehaviorForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full bg-[#0f172a] border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-900"
+                >
+                  {behaviorForm.type === 'PLUS' ? (
+                    <>
+                      <option value="ช่วยเหลือสังคม/จิตอาสา">ช่วยเหลือสังคม/จิตอาสา</option>
+                      <option value="มีคุณธรรม/ซื่อสัตย์">มีคุณธรรม/ซื่อสัตย์</option>
+                      <option value="แต่งกายเรียบร้อย">แต่งกายเรียบร้อย</option>
+                      <option value="พัฒนาโรงเรียน">พัฒนาโรงเรียน</option>
+                      <option value="อื่นๆ">อื่นๆ</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="มาสาย/หนีเรียน">มาสาย/หนีเรียน</option>
+                      <option value="ฝ่าฝืนกฎวินัย/การแต่งกาย">ฝ่าฝืนกฎวินัย/การแต่งกาย</option>
+                      <option value="ก้าวร้าว/ทะเลาะวิวาท">ก้าวร้าว/ทะเลาะวิวาท</option>
+                      <option value="สารเสพติด/อบายมุข">สารเสพติด/อบายมุข</option>
+                      <option value="ชู้สาว">ชู้สาว</option>
+                      <option value="อื่นๆ">อื่นๆ</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">รายละเอียดเพิ่มเติม</label>
+                <textarea
+                  placeholder="รายละเอียดเหตุการณ์หรือหมายเหตุ..."
+                  rows={3}
+                  value={behaviorForm.description}
+                  onChange={(e) => setBehaviorForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-[#0f172a] border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-500"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowBehaviorModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingBehavior || !!bDateError}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-lg disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  {submittingBehavior ? (
+                    <span>กำลังบันทึก...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      <span>บันทึกข้อมูล</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deletingBehaviorId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-white">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto text-rose-400">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-base font-black">ยืนยันการลบรายการพฤติกรรม?</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  คุณแน่ใจว่าต้องการลบรายการพฤติกรรมนี้ใช่หรือไม่? คะแนนของนักเรียนจะได้รับการคำนวณใหม่โดยอัตโนมัติ และไม่สามารถย้อนกลับการดำเนินการได้
+                </p>
+              </div>
+            </div>
+            <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingBehavior}
+                onClick={() => setDeletingBehaviorId(null)}
+                className="px-4 py-2 text-xs font-bold text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingBehavior}
+                onClick={async () => {
+                  if (!studentId || !deletingBehaviorId) return;
+                  setIsDeletingBehavior(true);
+                  try {
+                    await behaviorService.deleteBehaviorPoint(deletingBehaviorId, studentId, selectedYear?.id);
+                    await refreshAllData();
+                    setDeletingBehaviorId(null);
+                  } catch (err: any) {
+                    alert('ไม่สามารถลบรายการได้: ' + err.message);
+                  } finally {
+                    setIsDeletingBehavior(false);
+                  }
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition shadow-lg disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeletingBehavior ? 'กำลังลบ...' : 'ยืนยันการลบ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation Bar for Mobile (Line style with quick actions) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-white/10 py-3 px-2 flex justify-around items-center z-50 shadow-2xl safe-bottom">
@@ -971,6 +1685,16 @@ export default function Student360() {
           <span className="text-[10px] font-black">ผล SDQ/EQ</span>
         </button>
 
+        {/* 2.5. คะแนนพฤติกรรม */}
+        <button
+          onClick={() => setActiveTab('BEHAVIOR')}
+          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'BEHAVIOR' ? 'text-rose-400 scale-105' : 'text-gray-400 hover:text-white'
+            }`}
+        >
+          <Heart size={20} />
+          <span className="text-[10px] font-black">พฤติกรรม</span>
+        </button>
+
         {/* 3. เวลาเรียน */}
         <button
           onClick={() => setActiveTab('ATTENDANCE')}
@@ -979,6 +1703,16 @@ export default function Student360() {
         >
           <Calendar size={20} />
           <span className="text-[10px] font-black">เวลาเรียน</span>
+        </button>
+
+        {/* 3.5. ผลงาน */}
+        <button
+          onClick={() => setActiveTab('PORTFOLIO')}
+          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PORTFOLIO' ? 'text-amber-400 scale-105' : 'text-gray-400 hover:text-white'
+            }`}
+        >
+          <Award size={20} />
+          <span className="text-[10px] font-black">ผลงาน</span>
         </button>
 
         {/* 4. จัดการเคส */}

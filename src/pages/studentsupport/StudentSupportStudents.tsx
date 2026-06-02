@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 
 export default function StudentSupportStudents() {
   const navigate = useNavigate();
+  const { selectedYear } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,11 +51,13 @@ export default function StudentSupportStudents() {
         }
 
         // ดึงนักเรียนในห้องที่ครูดูแล
-        const data = await studentSupportService.getAdvisorStudents(user.id);
+        const data = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
         setStudents(data);
         
         if (data && data.length > 0 && data[0].classroom) {
           setClassroomInfo(`${data[0].classroom.level}/${data[0].classroom.room}`);
+        } else {
+          setClassroomInfo('');
         }
       } catch (err: any) {
         setError(err.message);
@@ -63,7 +67,7 @@ export default function StudentSupportStudents() {
     };
 
     loadStudentsData();
-  }, []);
+  }, [selectedYear]);
 
   const getRiskBadge = (level: string) => {
     switch (level) {

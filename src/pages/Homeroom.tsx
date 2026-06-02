@@ -4,6 +4,7 @@ import { getClassrooms } from '../services/classroomService'
 import { getCheckedHomeroomClassroomsByDate, getExistingHomeroomAttendance, getHomeroomClassroomSummaryByDate, getStudentsByClassroom, saveHomeroomAttendance } from '../services/homeroomService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { useAcademicYearStore } from '../store/academicYearStore'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -105,15 +106,20 @@ export default function Homeroom() {
   const [resultModalMessage, setResultModalMessage] = useState('')
   const pageSize = 10
 
-  const { data: classrooms } = useQuery({ queryKey: ['classrooms'], queryFn: getClassrooms })
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
+
+  const { data: classrooms } = useQuery({ 
+    queryKey: ['classrooms', selectedYear?.id], 
+    queryFn: () => getClassrooms(selectedYear?.id) 
+  })
   const { data: checkedClassrooms = [] } = useQuery({
-    queryKey: ['homeroom_checked_classrooms', attendanceDate],
-    queryFn: () => getCheckedHomeroomClassroomsByDate(attendanceDate),
+    queryKey: ['homeroom_checked_classrooms', attendanceDate, selectedYear?.id],
+    queryFn: () => getCheckedHomeroomClassroomsByDate(attendanceDate, selectedYear?.id),
     enabled: !!attendanceDate
   })
   const { data: classroomSummary = [] } = useQuery({
-    queryKey: ['homeroom_classroom_summary', attendanceDate],
-    queryFn: () => getHomeroomClassroomSummaryByDate(attendanceDate),
+    queryKey: ['homeroom_classroom_summary', attendanceDate, selectedYear?.id],
+    queryFn: () => getHomeroomClassroomSummaryByDate(attendanceDate, selectedYear?.id),
     enabled: !!attendanceDate,
   })
   
@@ -166,7 +172,7 @@ export default function Homeroom() {
         status: (attendanceState[s.id] || 'PRESENT') as any,
         checkin_time: new Date().toISOString()
       }))
-      return saveHomeroomAttendance(attendanceDate, records)
+      return saveHomeroomAttendance(attendanceDate, records, selectedYear?.id, selectedSemester?.id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['homeroom_checked_classrooms', attendanceDate] })

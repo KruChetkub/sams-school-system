@@ -7,22 +7,32 @@ export interface Subject {
   department: string
   credit: number
   teacher_id?: string
+  academic_year_id?: string
+  semester_id?: string
   teacher?: {
     first_name: string
     last_name: string
   }
 }
 
-export const getSubjects = async () => {
-  const { data, error } = await supabase
+export const getSubjects = async (academicYearId?: string, semesterId?: string) => {
+  let query = supabase
     .from('subjects')
     .select(`
-      id, subject_code, subject_name, department, credit, teacher_id,
+      id, subject_code, subject_name, department, credit, teacher_id, academic_year_id, semester_id,
       teacher:teacher_id (first_name, last_name)
     `)
-    .order('subject_code')
+
+  if (academicYearId) {
+    query = query.eq('academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
+  }
+
+  const { data, error } = await query.order('subject_code')
   if (error) throw error
-  return data as Subject[]
+  return data as unknown as Subject[]
 }
 
 export const createSubject = async (subject: Omit<Subject, 'id' | 'teacher'>) => {
