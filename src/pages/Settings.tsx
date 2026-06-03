@@ -54,7 +54,8 @@ const resolveHexForColorInput = (themeValue: string) => {
 
 export default function Settings() {
   const { role, user } = useAuthStore()
-  const isAdmin = role === 'ADMIN'
+  const isSuperAdmin = role === 'SUPER_ADMIN'
+  const hasSettingsAccess = role === 'ADMIN' || role === 'SUPER_ADMIN'
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance')
   const [lineToken, setLineToken] = useState('')
@@ -68,6 +69,8 @@ export default function Settings() {
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
   const [isThemeBgColumnSupported, setIsThemeBgColumnSupported] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmTarget, setConfirmTarget] = useState<{ userId: string; email: string; newRole: string } | null>(null)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -146,21 +149,25 @@ export default function Settings() {
   const { data: users, isLoading: isUsersLoading } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
-    enabled: isAdmin
+    enabled: hasSettingsAccess
   })
 
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string, role: string }) => updateUserRole(userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      alert('อัปเดตสิทธิ์สำเร็จ')
+      setResultModalType('success')
+      setResultModalMessage('อัปเดตสิทธิ์ผู้ใช้งานสำเร็จเรียบร้อยแล้ว')
+      setShowResultModal(true)
     },
     onError: (err: any) => {
-      alert('เกิดข้อผิดพลาด: ' + err.message)
+      setResultModalType('error')
+      setResultModalMessage('เกิดข้อผิดพลาด: ' + err.message)
+      setShowResultModal(true)
     }
   })
 
-  if (!isAdmin) {
+  if (!hasSettingsAccess) {
     return (
       <div className="p-8 max-w-4xl mx-auto">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800">
@@ -193,6 +200,47 @@ export default function Settings() {
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-rose-600 hover:bg-rose-700'
                 }`}
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmModal && confirmTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-205 bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-7">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 text-amber-500">
+                  <UserCog size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 font-sans">ยืนยันการเปลี่ยนสิทธิ์</h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-sans">โปรดยืนยันการดำเนินการแก้ไขข้อมูล</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-700 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 font-medium font-sans">
+                คุณต้องการเปลี่ยนสิทธิ์ของ <strong className="text-indigo-900">{confirmTarget.email}</strong> เป็น <strong className="text-indigo-900">{confirmTarget.newRole}</strong> ใช่หรือไม่?
+              </p>
+            </div>
+            <div className="flex gap-3 px-7 pb-7">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors font-sans text-sm"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateRoleMutation.mutate({ userId: confirmTarget.userId, role: confirmTarget.newRole })
+                  setShowConfirmModal(false)
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm font-sans text-sm"
               >
                 ตกลง
               </button>
@@ -331,11 +379,18 @@ export default function Settings() {
         </form>
       )}
 
-      {activeTab === 'users' && isAdmin && (
+      {activeTab === 'users' && hasSettingsAccess && (
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-purple-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-            <div className="bg-purple-100 p-2 rounded-lg"><UserCog className="text-purple-600" size={24} /></div>
-            <h2 className="text-xl font-bold text-gray-800">User Management & Roles</h2>
+          <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-100 p-2 rounded-lg"><UserCog className="text-purple-600" size={24} /></div>
+              <h2 className="text-xl font-bold text-gray-800">User Management & Roles</h2>
+            </div>
+            {!isSuperAdmin && (
+              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-lg border border-amber-200">
+                Read Only (สิทธิ์อ่านเท่านั้น)
+              </span>
+            )}
           </div>
           {isUsersLoading ? (
             <div className="text-center py-8 text-gray-500">กำลังโหลดข้อมูลผู้ใช้...</div>
@@ -356,15 +411,15 @@ export default function Settings() {
                       <td className="px-6 py-4">{u.role}</td>
                       <td className="px-6 py-4 text-center">
                         <select
-                          className="border border-gray-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-purple-500"
+                          className="border border-gray-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
                           value={u.role}
                           onChange={(e) => {
-                            if (window.confirm(`ต้องการเปลี่ยนสิทธิ์ของ ${u.email} เป็น ${e.target.value} ใช่หรือไม่?`)) {
-                              updateRoleMutation.mutate({ userId: u.id, role: e.target.value })
-                            }
+                            setConfirmTarget({ userId: u.id, email: u.email, newRole: e.target.value })
+                            setShowConfirmModal(true)
                           }}
-                          disabled={updateRoleMutation.isPending}
+                          disabled={!isSuperAdmin || updateRoleMutation.isPending}
                         >
+                          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                           <option value="ADMIN">ADMIN</option>
                           <option value="TEACHER">TEACHER</option>
                           <option value="ADVISOR">ADVISOR</option>

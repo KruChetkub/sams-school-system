@@ -48,19 +48,19 @@ export default function Students() {
   const { data: deletedStudents = [], isLoading: isLoadingDeleted } = useQuery({
     queryKey: ['deleted_students', selectedYear?.id],
     queryFn: () => getDeletedStudents(selectedYear?.id),
-    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER')
   })
 
   const { data: teachers = [] } = useQuery({
     queryKey: ['teachers'],
     queryFn: getTeachers,
-    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER')
   })
 
   const { data: usersList = [] } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
-    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER')
   })
   
   const [showForm, setShowForm] = useState(false)
@@ -513,6 +513,16 @@ export default function Students() {
   const currentMembers = groupCandidates.filter((s) => groupMemberIds.includes(s.id))
   const availableMembers = groupCandidates.filter((s) => !groupMemberIds.includes(s.id))
 
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800 font-semibold shadow-sm">
+          ไม่มีสิทธิ์เข้าถึงหน้าจัดการข้อมูลนักเรียน
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div id="students-page-top" className="p-8 pb-28 md:pb-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -588,7 +598,7 @@ export default function Students() {
         </button>
 
         {/* Tab 5: Deleted History */}
-        {(role === 'ADMIN' || role === 'TEACHER') && (
+        {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
           <button
             type="button"
             onClick={() => setActiveTab('deleted_history')}
@@ -646,7 +656,7 @@ export default function Students() {
         >
           <Plus size={18} /> วิชาเรียนรวม (ไม่ย้ายห้องหลัก)
         </button>
-        {(role === 'ADMIN' || role === 'TEACHER') && (
+        {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
           <button
             onClick={() => setActiveTab('deleted_history')}
             className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
@@ -1333,7 +1343,7 @@ export default function Students() {
         )
       )}
 
-      {activeTab === 'deleted_history' && (role === 'ADMIN' || role === 'TEACHER') && (
+      {activeTab === 'deleted_history' && (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
         isLoadingDeleted ? (
           <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูลประวัติการลบ...</div>
         ) : (

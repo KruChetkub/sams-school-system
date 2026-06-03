@@ -10,6 +10,7 @@ import {
   updateSemester 
 } from '../services/academicYearService'
 import { Plus, Trash2, Edit, CalendarRange, Check, AlertTriangle, Calendar, X, Settings } from 'lucide-react'
+import { useAuth } from '../store/authStore'
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -178,6 +179,7 @@ const ThaiDatePicker = ({
 
 export default function AcademicYears() {
   const queryClient = useQueryClient()
+  const { isSuperAdmin } = useAuth()
   
   // Queries
   const { data: academicYears, isLoading, error } = useQuery({
@@ -326,21 +328,30 @@ export default function AcademicYears() {
             <CalendarRange className="w-8 h-8 text-indigo-200" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-wide">จัดการปีการศึกษา (Academic Years)</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold tracking-wide">จัดการปีการศึกษา (Academic Years)</h1>
+              {!isSuperAdmin && (
+                <span className="bg-amber-500/30 text-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg border border-amber-500/20">
+                  Read Only (สิทธิ์อ่านเท่านั้น)
+                </span>
+              )}
+            </div>
             <p className="text-sm text-indigo-200 mt-1">ตั้งค่า ข้อมูลปีการศึกษา และ ภาคเรียนหลัก ที่ใช้ในการดึงข้อมูลเข้าระบบ</p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingYear(null)
-            resetYearForm()
-            setShowYearModal(true)
-          }}
-          className="bg-white text-indigo-900 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-indigo-50 transition shadow-md self-stretch sm:self-auto justify-center"
-        >
-          <Plus className="w-5 h-5" />
-          <span>เพิ่มปีการศึกษา</span>
-        </button>
+        {isSuperAdmin && (
+          <button
+            onClick={() => {
+              setEditingYear(null)
+              resetYearForm()
+              setShowYearModal(true)
+            }}
+            className="bg-white text-indigo-900 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-indigo-50 transition shadow-md self-stretch sm:self-auto justify-center"
+          >
+            <Plus className="w-5 h-5" />
+            <span>เพิ่มปีการศึกษา</span>
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -397,30 +408,32 @@ export default function AcademicYears() {
                 </div>
 
                 {/* Year Actions */}
-                <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
-                  {!year.is_active && (
+                {isSuperAdmin && (
+                  <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
+                    {!year.is_active && (
+                      <button
+                        onClick={() => activateYearMutation.mutate(year.id)}
+                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-medium transition shadow-sm"
+                      >
+                        ตั้งเป็นปีการศึกษาหลัก
+                      </button>
+                    )}
                     <button
-                      onClick={() => activateYearMutation.mutate(year.id)}
-                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-medium transition shadow-sm"
+                      onClick={() => openEditYear(year)}
+                      className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                      title="แก้ไขปีการศึกษา"
                     >
-                      ตั้งเป็นปีการศึกษาหลัก
+                      <Edit className="w-4.5 h-4.5" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => openEditYear(year)}
-                    className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                    title="แก้ไขปีการศึกษา"
-                  >
-                    <Edit className="w-4.5 h-4.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeletingYearId(year.id)}
-                    className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                    title="ลบปีการศึกษา"
-                  >
-                    <Trash2 className="w-4.5 h-4.5" />
-                  </button>
-                </div>
+                    <button
+                      onClick={() => setDeletingYearId(year.id)}
+                      className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                      title="ลบปีการศึกษา"
+                    >
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Semesters section */}
@@ -456,24 +469,28 @@ export default function AcademicYears() {
                             ภาคเรียนปัจจุบัน
                           </span>
                         ) : (
-                          <button
-                            onClick={() => activateSemesterMutation.mutate(sem.id)}
-                            className="text-[10px] bg-indigo-600 text-white font-semibold px-2 py-1 rounded hover:bg-indigo-700 transition"
-                          >
-                            เปิดใช้งาน
-                          </button>
+                          isSuperAdmin && (
+                            <button
+                              onClick={() => activateSemesterMutation.mutate(sem.id)}
+                              className="text-[10px] bg-indigo-600 text-white font-semibold px-2 py-1 rounded hover:bg-indigo-700 transition"
+                            >
+                              เปิดใช้งาน
+                            </button>
+                          )
                         )}
                       </div>
 
-                      <div className="flex justify-end border-t border-gray-100/70 pt-2">
-                        <button
-                          onClick={() => openEditSemester(sem)}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                          <span>ตั้งค่าช่วงเวลา</span>
-                        </button>
-                      </div>
+                      {isSuperAdmin && (
+                        <div className="flex justify-end border-t border-gray-100/70 pt-2">
+                          <button
+                            onClick={() => openEditSemester(sem)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                            <span>ตั้งค่าช่วงเวลา</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

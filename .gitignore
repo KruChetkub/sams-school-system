@@ -33,3 +33,11 @@ temp_map.geojson
 # Developer local scripts and data
 update_map.js
 exports/chiang-khong/
+
+# Large JSON and backup files
+A.json
+purple.json
+*.sql
+
+# Integrations and non-web directories
+google-apps-script/

@@ -34,3 +34,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, session: null, role: null })
   }
 }))
+
+export const useAuth = () => {
+  const { user, role, isLoading, signOut } = useAuthStore()
+  return {
+    user,
+    role,
+    isLoading,
+    signOut,
+    isSuperAdmin: role === 'SUPER_ADMIN',
+    isAdmin: role === 'ADMIN' || role === 'SUPER_ADMIN',
+    isTeacher: role === 'TEACHER' || role === 'ADVISOR',
+    isParent: role === 'PARENT',
+    isStudent: role === 'STUDENT'
+  }
+}

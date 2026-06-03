@@ -104,7 +104,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const loadTeacherName = async () => {
-      if (!user?.id || role === 'ADMIN') {
+      if (!user?.id) {
         setTeacherDisplayName('')
         return
       }
@@ -183,8 +183,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">SAMS</h2>
-            {role === 'ADMIN' ? (
-              <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">Admin Portal</p>
+            {role === 'ADMIN' || role === 'SUPER_ADMIN' ? (
+              <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-1">
+                {role === 'SUPER_ADMIN' ? 'Super Admin Portal' : 'Admin Portal'}
+              </p>
             ) : (
               <p className="text-xs text-gray-600 font-semibold mt-1">ยินดีต้อนรับ {userDisplayName}</p>
             )}
@@ -194,7 +196,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </button>
         </div>
         {/* Academic Year Selector (Premium Design) */}
-        {(role === 'ADMIN' || role === 'TEACHER') && (
+        {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
           <div className="px-5 py-4 border-b border-gray-150 bg-gradient-to-r from-pink-50/20 via-indigo-50/10 to-blue-50/20 space-y-2 shrink-0">
             <div className="flex items-center gap-1.5 text-xs text-gray-500 font-bold tracking-wide">
               <Filter className="w-3.5 h-3.5 text-indigo-500" />
@@ -246,7 +248,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <NavItem to="/" icon={Home} onClick={closeSidebar}>หน้าหลัก</NavItem>
 
           {/* เมนูใช้งานรายวัน (สำหรับครูและแอดมิน) */}
-          {(role === 'ADMIN' || role === 'TEACHER') && (
+          {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
             <>
               <NavItem to="/homeroom" icon={CheckSquare} onClick={closeSidebar}>เช็คชื่อเข้าแถว</NavItem>
               <NavItem to="/attendance" icon={ClipboardCheck} onClick={closeSidebar}>เช็คชื่อรายวิชา</NavItem>
@@ -254,25 +256,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           )}
 
           {/* เมนูจัดการข้อมูล (แยกหมวดหมู่) */}
-          {(role === 'ADMIN' || role === 'TEACHER') && (
+          {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
             <div className="pt-3 mt-3 border-t border-gray-100">
-              {role === 'ADMIN' && (
+              {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
                 <>
                   <NavItem to="/teachers" icon={Users} onClick={closeSidebar}>จัดการบุคลากร</NavItem>
                   <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
                   <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
+                  <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการข้อมูลนักเรียน</NavItem>
                 </>
               )}
-              <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการข้อมูลนักเรียน</NavItem>
               <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดการตารางเรียน</NavItem>
-              {role === 'ADMIN' && (
+              {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
                 <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการข้อมูลผู้ปกครอง</NavItem>
               )}
             </div>
           )}
 
           {/* ตั้งค่าระบบ */}
-          {role === 'ADMIN' && (
+          {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
             <div className="pt-3 mt-3 border-t border-gray-100">
               <NavItem to="/academic-years" icon={CalendarRange} onClick={closeSidebar}>ปีการศึกษา</NavItem>
               <NavItem to="/settings" icon={Settings} onClick={closeSidebar}>ตั้งค่าระบบ</NavItem>
@@ -280,7 +282,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           )}
 
           {/* รายงานสรุป — แสดงทั้ง ADMIN และ TEACHER ที่ล่างสุด */}
-          {(role === 'ADMIN' || role === 'TEACHER') && (
+          {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
             <div className="pt-3 mt-3 border-t border-gray-100">
               <NavItem to="/reports" icon={PieChart} onClick={closeSidebar}>รายงานสรุป</NavItem>
             </div>
@@ -332,7 +334,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
 const RootDashboard = () => {
   const { role } = useAuthStore()
-  if (role === 'ADMIN') return <Dashboard />
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') return <Dashboard />
   if (role === 'TEACHER' || role === 'ADVISOR') return <TeacherDashboard />
   if (role === 'PARENT') return <ParentDashboard />
   if (role === 'STUDENT') return <Navigate to="/studentscan" replace />
@@ -344,7 +346,7 @@ const RootDashboard = () => {
 }
 
 function App() {
-  const { user, setUser, fetchRole, isLoading } = useAuthStore()
+  const { user, role, setUser, fetchRole, isLoading } = useAuthStore()
 
   useEffect(() => {
     const applyTheme = async () => {
@@ -439,7 +441,7 @@ function App() {
         <Route path="/" element={user ? <DashboardLayout><RootDashboard /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/teachers" element={user ? <DashboardLayout><Teachers /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/classrooms" element={user ? <DashboardLayout><Classrooms /></DashboardLayout> : <Navigate to="/login" />} />
-        <Route path="/students" element={user ? <DashboardLayout><Students /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/students" element={user && (role === 'ADMIN' || role === 'SUPER_ADMIN') ? <DashboardLayout><Students /></DashboardLayout> : <Navigate to="/" />} />
         <Route path="/parents" element={user ? <DashboardLayout><Parents /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/subjects" element={user ? <DashboardLayout><Subjects /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/schedules" element={user ? <DashboardLayout><Schedules /></DashboardLayout> : <Navigate to="/login" />} />
