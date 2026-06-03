@@ -1,16 +1,35 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents } from '../services/studentService'
+import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents, getDeletedStudents, restoreStudent } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
 import { getSubjects } from '../services/subjectService'
 import { addMembership, getAllMemberships, getMembershipsByGroup, removeMembership } from '../services/studentGroupService'
+import { getTeachers } from '../services/teacherService'
+import { getUsers } from '../services/userService'
 import { useAcademicYearStore } from '../store/academicYearStore'
-import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
+import { supabase } from '../lib/supabase'
+import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info, RefreshCw } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Students() {
   const queryClient = useQueryClient()
   const { selectedYear, selectedSemester } = useAcademicYearStore()
+  const { user, role } = useAuthStore()
+
+  const { data: teacherProfile } = useQuery({
+    queryKey: ['current_teacher_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id || role !== 'TEACHER') return null
+      const { data } = await supabase
+        .from('teachers')
+        .select('id, first_name, last_name')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      return data
+    },
+    enabled: !!user?.id && role === 'TEACHER'
+  })
   
   const { data: students, isLoading } = useQuery({ 
     queryKey: ['students', selectedYear?.id], 
@@ -25,6 +44,24 @@ export default function Students() {
     queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id) 
   })
   const { data: allMemberships = [] } = useQuery({ queryKey: ['student_group_memberships_all'], queryFn: getAllMemberships })
+
+  const { data: deletedStudents = [], isLoading: isLoadingDeleted } = useQuery({
+    queryKey: ['deleted_students', selectedYear?.id],
+    queryFn: () => getDeletedStudents(selectedYear?.id),
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+  })
+
+  const { data: teachers = [] } = useQuery({
+    queryKey: ['teachers'],
+    queryFn: getTeachers,
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+  })
+
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    enabled: !!user?.id && (role === 'ADMIN' || role === 'TEACHER')
+  })
   
   const [showForm, setShowForm] = useState(false)
   const [filterClassroomId, setFilterClassroomId] = useState('')
@@ -35,7 +72,7 @@ export default function Students() {
   const [moveStudentId, setMoveStudentId] = useState('')
   const [promoteSourceClassroomId, setPromoteSourceClassroomId] = useState('')
   const [promoteTargetClassroomId, setPromoteTargetClassroomId] = useState('')
-  const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject'>('list')
+  const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject' | 'deleted_history'>('list')
   
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -127,11 +164,56 @@ export default function Students() {
     }
   })
 
+  const getDeleterInfo = () => {
+    return user?.id || ''
+  }
+
+  const formatDeleterName = (deletedBy: string | null | undefined) => {
+    if (!deletedBy) return 'ไม่ระบุผู้ลบ'
+
+    // 1. Check if deletedBy is a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(deletedBy)) {
+      // If it's not a UUID (legacy formats), display directly
+      return deletedBy
+    }
+
+    // 2. Try to find in teachers table (by user_id)
+    const teacher = teachers.find((t: any) => t.user_id === deletedBy)
+    if (teacher) {
+      return `ครู ${teacher.first_name} ${teacher.last_name}`
+    }
+
+    // 3. Fallback to users table
+    const dbUser = usersList.find((u: any) => u.id === deletedBy)
+    if (dbUser) {
+      if (dbUser.role === 'ADMIN') {
+        return `แอดมิน (${dbUser.email})`
+      }
+      return dbUser.email
+    }
+
+    return `ผู้ใช้งาน (${deletedBy.slice(0, 8)}...)`
+  }
+
   const deleteMutation = useMutation({
-    mutationFn: deleteStudent,
+    mutationFn: ({ id, deletedBy }: { id: string; deletedBy: string }) => deleteStudent(id, deletedBy),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['deleted_students'] })
       setShowModal(false)
+    }
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreStudent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['deleted_students'] })
+      openMessageModal('สำเร็จ', 'กู้คืนข้อมูลนักเรียนเรียบร้อยแล้ว')
+    },
+    onError: (err: any) => {
+      openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถกู้คืนข้อมูลนักเรียนได้')
     }
   })
 
@@ -504,6 +586,22 @@ export default function Students() {
           </div>
           <span className="text-[10px] mt-0.5 tracking-tight">วิชาเรียนรวม</span>
         </button>
+
+        {/* Tab 5: Deleted History */}
+        {(role === 'ADMIN' || role === 'TEACHER') && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('deleted_history')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              activeTab === 'deleted_history' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'deleted_history' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
+              <Trash2 size={20} />
+            </div>
+            <span className="text-[10px] mt-0.5 tracking-tight">ประวัติการลบ</span>
+          </button>
+        )}
       </div>
 
       {/* Desktop/Tablet Mode: Premium Horizontal Tab Selector */}
@@ -548,6 +646,18 @@ export default function Students() {
         >
           <Plus size={18} /> วิชาเรียนรวม (ไม่ย้ายห้องหลัก)
         </button>
+        {(role === 'ADMIN' || role === 'TEACHER') && (
+          <button
+            onClick={() => setActiveTab('deleted_history')}
+            className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
+              activeTab === 'deleted_history'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
+            }`}
+          >
+            <Trash2 size={18} /> ประวัติการลบและกู้คืน
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -1173,7 +1283,10 @@ export default function Students() {
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => deleteMutation.mutate(student.id))
+                                  openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => {
+                                    const deleterInfo = getDeleterInfo()
+                                    deleteMutation.mutate({ id: student.id, deletedBy: deleterInfo })
+                                  })
                                 }}
                                 className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
                                 title="ลบข้อมูล"
@@ -1213,6 +1326,119 @@ export default function Students() {
                       )}
                     </>
                   )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      )}
+
+      {activeTab === 'deleted_history' && (role === 'ADMIN' || role === 'TEACHER') && (
+        isLoadingDeleted ? (
+          <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูลประวัติการลบ...</div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-5 bg-gray-50/50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-bold text-gray-700 flex items-center gap-2">
+                  <Trash2 size={20} className="text-red-500" /> ประวัติการลบและกู้คืนข้อมูลนักเรียน
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">แสดงข้อมูลนักเรียนที่ถูกลบและเปิดให้ผู้ใช้สามารถกู้คืนข้อมูลกลับมาได้</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อ/รหัสที่ถูกลบ..."
+                  value={searchKeyword}
+                  onChange={e => setSearchKeyword(e.target.value)}
+                  className="border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white w-full sm:min-w-[240px] shadow-sm font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ผู้ลบข้อมูล</th>
+                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">วันที่ลบ</th>
+                    <th className="px-3 sm:px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(() => {
+                    const teacherClassroomIds = (classrooms || []).filter(c => c.advisor_id === teacherProfile?.id).map(c => c.id);
+                    const filteredDeleted = (deletedStudents || []).filter(s => {
+                      // 1. Role filter
+                      if (role === 'TEACHER') {
+                        if (!s.classroom_id || !teacherClassroomIds.includes(s.classroom_id)) {
+                          return false;
+                        }
+                      }
+                      // 2. Keyword filter
+                      if (searchKeyword.trim()) {
+                        const kw = searchKeyword.toLowerCase().trim();
+                        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase();
+                        const code = (s.student_code || '').toLowerCase();
+                        const nick = (s.nickname || '').toLowerCase();
+                        return fullName.includes(kw) || code.includes(kw) || nick.includes(kw);
+                      }
+                      return true;
+                    });
+
+                    if (filteredDeleted.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">
+                            ไม่พบประวัติการลบนักเรียน
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredDeleted.map(student => {
+                      const date = student.deleted_at ? new Date(student.deleted_at) : null;
+                      const thaiDate = date 
+                        ? `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'short' })} ${date.getFullYear() + 543} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} น.`
+                        : '-';
+
+                      return (
+                        <tr key={student.id} className="hover:bg-red-50/10 transition-colors">
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">
+                            {student.prefix || ''}{student.first_name} {student.last_name}
+                            {student.nickname && <span className="text-gray-400 font-normal text-xs ml-1">({student.nickname})</span>}
+                          </td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                            {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{formatDeleterName(student.deleted_by)}</td>
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{thaiDate}</td>
+                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => {
+                                openConfirmModal(
+                                  'ยืนยันการกู้คืนข้อมูล',
+                                  `คุณต้องการกู้คืนข้อมูลของ ${student.prefix || ''}${student.first_name} ${student.last_name} กลับเข้าชั้นเรียนใช่หรือไม่?`,
+                                  () => {
+                                    restoreMutation.mutate(student.id);
+                                    setShowModal(false);
+                                  }
+                                );
+                              }}
+                              className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                              title="กู้คืนข้อมูลนักเรียน"
+                            >
+                              <RefreshCw size={14} /> กู้คืนข้อมูล
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>

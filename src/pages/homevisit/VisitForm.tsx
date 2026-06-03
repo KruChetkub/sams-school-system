@@ -917,8 +917,8 @@ export default function VisitForm() {
                 selected={formData.help_received}
                 onChange={(val: any) => updateForm('help_received', val)}
                 otherLabel="อื่นๆ ระบุ"
-                otherValue={formData.left_with_other} // Reusing field just for temp mapping if needed, better to have dedicated field. 
-              // Wait, let's just use parent_concerns for 3.8
+                otherValue={formData.left_with_other}
+                onOtherChange={(val: string) => updateForm('left_with_other', val)}
               />
 
               <div>

@@ -10,6 +10,7 @@ export interface Student {
   gender?: string | null
   updated_at?: string
   deleted_at?: string
+  deleted_by?: string
   classroom_id?: string
   classroom?: {
     level: string
@@ -89,15 +90,59 @@ export const findStudentsByCodes = async (studentCodes: string[]) => {
   return (data || []) as Pick<Student, 'id' | 'student_code' | 'prefix' | 'first_name' | 'last_name' | 'deleted_at'>[]
 }
 
-export const deleteStudent = async (id: string) => {
+export const deleteStudent = async (id: string, deletedBy?: string) => {
   const { data, error } = await supabase
     .from('students')
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ 
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy || null
+    })
     .eq('id', id)
     .select()
     .single()
   if (error) throw error
   return data as Student
+}
+
+export const restoreStudent = async (id: string) => {
+  const { data, error } = await supabase
+    .from('students')
+    .update({ 
+      deleted_at: null,
+      deleted_by: null
+    })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as Student
+}
+
+export const getDeletedStudents = async (academicYearId?: string) => {
+  let selectStr = `
+    id, student_code, prefix, first_name, last_name, nickname, classroom_id, gender, deleted_at, deleted_by,
+    classroom:classroom_id (level, room, academic_year_id)
+  `
+  
+  if (academicYearId) {
+    selectStr = `
+      id, student_code, prefix, first_name, last_name, nickname, classroom_id, gender, deleted_at, deleted_by,
+      classroom:classroom_id!inner(level, room, academic_year_id)
+    `
+  }
+
+  let query = supabase
+    .from('students')
+    .select(selectStr)
+    .not('deleted_at', 'is', null)
+  
+  if (academicYearId) {
+    query = query.eq('classroom.academic_year_id', academicYearId)
+  }
+
+  const { data, error } = await query.order('student_code')
+  if (error) throw error
+  return data as Student[]
 }
 
 export const updateStudent = async (id: string, student: Omit<Student, 'id' | 'classroom'>) => {

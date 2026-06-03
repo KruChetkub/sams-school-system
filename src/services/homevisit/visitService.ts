@@ -164,10 +164,12 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
     .from('home_visits')
     .select(`
       *,
-      student:students(id, student_code, prefix, first_name, last_name, nickname),
+      student:students!inner(id, student_code, prefix, first_name, last_name, nickname, deleted_at),
       home_visit_assessments(risk_level)
-    `)
-    .order('visit_date', { ascending: false });
+    `);
+
+  // Filter out soft-deleted students
+  query = query.is('student.deleted_at', null);
 
   if (role !== 'ADMIN') {
     query = query.eq('teacher_id', teacherId);
@@ -177,7 +179,10 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
     query = query.eq('academic_year_id', academicYearId);
   }
 
+  query = query.order('visit_date', { ascending: false });
+
   const { data, error } = await query;
+  if (error) throw error;
   return data as HomeVisit[];
 };
 

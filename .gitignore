@@ -25,3 +25,11 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Temporary large data files (not needed for running website)
+temp.geojson
+temp_map.geojson
+
+# Developer local scripts and data
+update_map.js
+exports/chiang-khong/

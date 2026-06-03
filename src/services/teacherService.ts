@@ -8,6 +8,7 @@ export interface Teacher {
   phone: string
   email: string
   department: string
+  user_id?: string | null
 }
 
 export const getTeachers = async () => {
