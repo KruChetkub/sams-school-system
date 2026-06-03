@@ -9,6 +9,7 @@ interface ReportPrintViewProps {
   photos: HomeVisitPhoto[];
   liveFormData?: any;
   liveSignatures?: {
+    student?: string;
     parent?: string;
     teacher?: string;
     map?: string;
@@ -32,7 +33,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
   };
 
   const getPhoto = (desc: string) => photos.find(p => p.description === desc)?.photo_url;
-  const photoStudent = getPhoto('รูปถ่ายนักเรียน');
+  const photoStudent = liveSignatures?.student || getPhoto('รูปถ่ายนักเรียน');
   const signatureParent = liveSignatures?.parent || getPhoto('ลายเซ็นผู้ให้ข้อมูล');
   const signatureTeacher = liveSignatures?.teacher || getPhoto('ลายเซ็นครูที่ปรึกษา');
   const photoExterior = liveSignatures?.exterior || getPhoto('ภาพถ่ายสภาพบ้านภายนอก');

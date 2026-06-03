@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
-import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
+import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
 import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toJpeg } from 'html-to-image';
@@ -469,6 +469,24 @@ export default function VisitForm() {
       });
 
       // 3. Photos & Signature
+      // Handle explicit deletions of photos if they were removed in the UI
+      const hadStudentPhoto = existingData?.photos?.some((p: any) => p.description === 'รูปถ่ายนักเรียน');
+      if (hadStudentPhoto && !studentPhotoPreview) {
+        await deleteVisitPhoto(visitId!, 'รูปถ่ายนักเรียน');
+      }
+      const hadExteriorPhoto = existingData?.photos?.some((p: any) => p.description === 'ภาพถ่ายสภาพบ้านภายนอก');
+      if (hadExteriorPhoto && !photoExteriorPreview) {
+        await deleteVisitPhoto(visitId!, 'ภาพถ่ายสภาพบ้านภายนอก');
+      }
+      const hadInteriorPhoto = existingData?.photos?.some((p: any) => p.description === 'ภาพถ่ายภายในบ้าน');
+      if (hadInteriorPhoto && !photoInteriorPreview) {
+        await deleteVisitPhoto(visitId!, 'ภาพถ่ายภายในบ้าน');
+      }
+      const hadMapPhoto = existingData?.photos?.some((p: any) => p.description === 'แผนที่การเดินทาง');
+      if (hadMapPhoto && !mapPhotoPreview) {
+        await deleteVisitPhoto(visitId!, 'แผนที่การเดินทาง');
+      }
+
       if (studentPhotoFile) {
         await uploadVisitPhoto(visitId!, student!.student_code, studentPhotoFile, 'รูปถ่ายนักเรียน');
       }
@@ -1313,6 +1331,7 @@ export default function VisitForm() {
             photos={existingData?.photos || []}
             liveFormData={formData}
             liveSignatures={{
+              student: studentPhotoPreview || undefined,
               parent: signatureDataUrl || undefined,
               teacher: teacherSignatureDataUrl || undefined,
               map: mapPhotoPreview || undefined,
@@ -1357,6 +1376,7 @@ export default function VisitForm() {
           photos={existingData.photos || []}
           liveFormData={formData}
           liveSignatures={{
+            student: studentPhotoPreview || undefined,
             parent: signatureDataUrl || undefined,
             teacher: teacherSignatureDataUrl || undefined,
             map: mapPhotoPreview || undefined,

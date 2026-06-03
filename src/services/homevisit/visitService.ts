@@ -293,7 +293,50 @@ export const saveHomeVisitAssessment = async (assessmentData: Partial<HomeVisitA
   }
 };
 
+export const deleteVisitPhoto = async (visitId: string, description: string) => {
+  // 1. Find the existing photo record to get the URL and delete the file from Storage
+  const { data: photos, error: selectError } = await supabase
+    .from('home_visit_photos')
+    .select('photo_url')
+    .eq('visit_id', visitId)
+    .eq('description', description);
+
+  if (selectError) throw selectError;
+
+  if (photos && photos.length > 0) {
+    for (const photo of photos) {
+      try {
+        const urlParts = photo.photo_url.split('/home_visit_photos/');
+        if (urlParts.length > 1) {
+          const filePath = decodeURIComponent(urlParts[1]);
+          await supabase.storage.from('home_visit_photos').remove([filePath]);
+        }
+      } catch (storageErr) {
+        console.error('Failed to remove file from storage:', storageErr);
+      }
+    }
+  }
+
+  // 2. Delete from DB
+  const { error: dbError } = await supabase
+    .from('home_visit_photos')
+    .delete()
+    .eq('visit_id', visitId)
+    .eq('description', description);
+
+  if (dbError) throw dbError;
+};
+
 export const uploadVisitPhoto = async (visitId: string, studentCode: string, originalFile: File, description?: string) => {
+  // Clear any existing photo with the same description first to avoid duplicates
+  if (description) {
+    try {
+      await deleteVisitPhoto(visitId, description);
+    } catch (err) {
+      console.warn('Failed to delete old photo:', err);
+    }
+  }
+
   // 1. บีบอัดรูปภาพก่อนอัปโหลด (ถ้ารูปถ่ายนักเรียนให้ย่อไม่เกิน 102 x 126 px)
   let file;
   if (description === 'รูปถ่ายนักเรียน') {
