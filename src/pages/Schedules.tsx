@@ -6,7 +6,7 @@ import { getClassrooms } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
-import { Plus, Trash2, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil, Users, ClipboardCheck, AlertCircle, ArrowLeft } from 'lucide-react'
 
 const DAYS = [
   { value: 1, label: 'จันทร์' },
@@ -162,7 +162,7 @@ export default function Schedules() {
     queryKey: ['classrooms', selectedYear?.id], 
     queryFn: () => getClassrooms(selectedYear?.id) 
   })
-  const { data: teachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
+  const { data: teachers, isLoading: isLoadingTeachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
   
   const [showForm, setShowForm] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
@@ -186,6 +186,59 @@ export default function Schedules() {
     room_name: ''
   })
   const [extraClassroomIds, setExtraClassroomIds] = useState<string[]>([])
+
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedDept, setSelectedDept] = useState('')
+
+  const filteredTeachers = React.useMemo(() => {
+    if (!teachers) return []
+    return teachers.filter(t => {
+      const matchesSearch = `${t.first_name || ''} ${t.last_name || ''} ${t.teacher_code || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesDept = selectedDept ? t.department === selectedDept : true
+      return matchesSearch && matchesDept
+    })
+  }, [teachers, searchTerm, selectedDept])
+
+  const departments = React.useMemo(() => {
+    if (!teachers) return []
+    const depts = new Set(teachers.map(t => t.department).filter(Boolean))
+    return Array.from(depts)
+  }, [teachers])
+
+  const currentTeacher = React.useMemo(() => {
+    return teachers?.find(t => t.id === selectedTeacherId) || null
+  }, [teachers, selectedTeacherId])
+
+  const teacherSchedulesCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {}
+    if (schedules) {
+      for (const s of schedules) {
+        if (s.teacher_id) {
+          counts[s.teacher_id] = (counts[s.teacher_id] || 0) + 1
+        }
+      }
+    }
+    return counts
+  }, [schedules])
+
+  const stats = React.useMemo(() => {
+    if (!teachers) return { total: 0, scheduled: 0, pending: 0 }
+    let scheduledCount = 0
+    let pendingCount = 0
+    for (const t of teachers) {
+      const hasSched = (teacherSchedulesCounts[t.id] || 0) > 0
+      if (hasSched) scheduledCount++
+      else pendingCount++
+    }
+    return {
+      total: teachers.length,
+      scheduled: scheduledCount,
+      pending: pendingCount
+    }
+  }, [teachers, teacherSchedulesCounts])
+
+  const isPageLoading = isLoading || isLoadingTeachers
 
   const updateTimePart = (field: 'start_time' | 'end_time', part: 'hour' | 'minute', rawValue: string) => {
     const { hour, minute } = splitTime(formData[field])
@@ -254,7 +307,7 @@ export default function Schedules() {
   const resetFormState = () => {
     setFormData({
       subject_id: '',
-      teacher_id: '',
+      teacher_id: selectedTeacherId || '',
       classroom_id: '',
       day_of_week: '1',
       period: '1',
@@ -271,7 +324,7 @@ export default function Schedules() {
     setEditingScheduleId(null)
     setFormData({
       subject_id: '',
-      teacher_id: '',
+      teacher_id: selectedTeacherId || '',
       classroom_id: '',
       day_of_week: '1',
       period: '1',
@@ -320,7 +373,13 @@ export default function Schedules() {
     localStorage.setItem(SCHEDULE_THEME_STORAGE_KEY, calendarTheme)
   }, [calendarTheme])
 
-  const sortedSchedules = [...(schedules || [])].sort((a, b) => {
+  const teacherSchedules = React.useMemo(() => {
+    if (!schedules) return []
+    if (!selectedTeacherId) return []
+    return schedules.filter(s => s.teacher_id === selectedTeacherId)
+  }, [schedules, selectedTeacherId])
+
+  const sortedSchedules = [...teacherSchedules].sort((a, b) => {
     if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
     if ((a.start_time || '') !== (b.start_time || '')) return (a.start_time || '').localeCompare(b.start_time || '')
     return a.period - b.period
@@ -518,33 +577,187 @@ export default function Schedules() {
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">จัดการตารางเรียน (Schedules)</h1>
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              มุมมองตารางสอน
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              มุมมองรายการ
-            </button>
+      {selectedTeacherId === null ? (
+        isPageLoading ? (
+          <div className="text-center py-20 text-gray-500">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            กำลังโหลดข้อมูลครูและตารางสอน...
           </div>
-          <button
-            onClick={openCreateForm}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm"
-          >
-            <Plus size={20} /> จัดตารางเรียน
-          </button>
-        </div>
-      </div>
+        ) : (
+          <>
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between transition hover:shadow-md duration-300">
+                <div>
+                  <p className="text-sm font-semibold text-slate-500">ครูทั้งหมดในระบบ</p>
+                  <h3 className="text-3xl font-black text-slate-800 mt-1">{stats.total} คน</h3>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500">
+                  <Users size={24} className="text-slate-400" />
+                </div>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between transition hover:shadow-md duration-300">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-600">จัดตารางเรียนแล้ว</p>
+                  <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats.scheduled} คน</h3>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <ClipboardCheck size={24} />
+                </div>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between transition hover:shadow-md duration-300">
+                <div>
+                  <p className="text-sm font-semibold text-amber-600">ยังไม่ได้จัดตารางเรียน</p>
+                  <h3 className="text-3xl font-black text-amber-700 mt-1">{stats.pending} คน</h3>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                  <AlertCircle size={24} />
+                </div>
+              </div>
+            </div>
+
+            {/* Search & Filters */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full md:w-96">
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อครู หรือรหัส..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                />
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 w-full md:w-auto">
+                <select
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  className="w-full md:w-60 px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white cursor-pointer"
+                >
+                  <option value="">กลุ่มสาระฯ ทั้งหมด</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Teachers Cards Grid */}
+            {filteredTeachers.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">
+                ไม่พบข้อมูลคุณครูที่ตรงกับเงื่อนไขการค้นหา
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {filteredTeachers.map((teacher) => {
+                  const count = teacherSchedulesCounts[teacher.id] || 0
+                  const initials = `${teacher.first_name?.[0] || ''}${teacher.last_name?.[0] || ''}`
+                  return (
+                    <div
+                      key={teacher.id}
+                      onClick={() => setSelectedTeacherId(teacher.id)}
+                      className="group bg-white rounded-2xl border border-slate-200/85 p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 cursor-pointer flex flex-col justify-between h-[190px]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                              ครู{teacher.first_name} {teacher.last_name}
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-0.5">รหัส: {teacher.teacher_code || '-'}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-500">กลุ่มสาระฯ: {teacher.department || '-'}</p>
+                      </div>
+                      
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        {count > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                            จัดตารางแล้ว {count} คาบ
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            ยังไม่ได้จัดตาราง
+                          </span>
+                        )}
+                        
+                        <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5">
+                          จัดการตาราง &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )
+      ) : (
+        <>
+          {/* Selected Teacher Header */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTeacherId(null)
+                  setShowForm(false)
+                }}
+                className="p-2.5 rounded-xl border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center shrink-0"
+                title="ย้อนกลับ"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  ตารางสอนของ: ครู{currentTeacher?.first_name} {currentTeacher?.last_name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1 font-medium">
+                  <span>รหัส: {currentTeacher?.teacher_code || '-'}</span>
+                  <span>•</span>
+                  <span>กลุ่มสาระฯ: {currentTeacher?.department || '-'}</span>
+                  <span>•</span>
+                  <span className="text-blue-600">จัดตารางแล้ว {teacherSchedules.length} คาบ</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              <div className="rounded-lg border border-gray-200 bg-white p-1 shadow-sm shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  มุมมองตารางสอน
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  มุมมองรายการ
+                </button>
+              </div>
+              <button
+                onClick={openCreateForm}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm font-medium"
+              >
+                <Plus size={20} /> จัดตารางเรียน
+              </button>
+            </div>
+          </div>
 
       {showForm && (
         <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -769,7 +982,7 @@ export default function Schedules() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {schedules?.map(schedule => (
+              {teacherSchedules?.map(schedule => (
                 <tr key={schedule.id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     <div className="font-medium text-blue-600">{DAYS.find(d => d.value === schedule.day_of_week)?.label}</div>
@@ -808,12 +1021,14 @@ export default function Schedules() {
                   </td>
                 </tr>
               ))}
-              {schedules?.length === 0 && (
+              {teacherSchedules?.length === 0 && (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลตารางเรียนในระบบ</td></tr>
               )}
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   )
