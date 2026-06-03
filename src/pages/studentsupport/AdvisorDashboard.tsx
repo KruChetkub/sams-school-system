@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Sparkles, Activity, FileText, CheckCircle2,
-  AlertTriangle, ShieldAlert, Heart, Eye, ArrowRight, Smile, X, ClipboardList, GraduationCap
+  AlertTriangle, ShieldAlert, Heart, Eye, ArrowRight, Smile, X, ClipboardList, GraduationCap, ArrowLeft
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
@@ -12,7 +12,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
 
-export default function AdvisorDashboard() {
+interface AdvisorDashboardProps {
+  simulatedTeacherUserId?: string;
+  onBack?: () => void;
+}
+
+export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: AdvisorDashboardProps = {}) {
   const navigate = useNavigate();
   const { selectedYear } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
@@ -26,25 +31,29 @@ export default function AdvisorDashboard() {
     const loadAdvisorData = async () => {
       setLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setError('กรุณาเข้าสู่ระบบก่อนใช้งาน');
-          setLoading(false);
-          return;
+        let activeUserId = simulatedTeacherUserId;
+        if (!activeUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            setError('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+            setLoading(false);
+            return;
+          }
+          activeUserId = user.id;
         }
 
         // ดึงข้อมูลชื่อครูที่ปรึกษา
         let { data: teacher } = await supabase
           .from('teachers')
           .select('first_name, last_name')
-          .eq('user_id', user.id)
+          .eq('user_id', activeUserId)
           .maybeSingle();
 
         if (!teacher) {
           const { data: fallbackTeacher } = await supabase
             .from('teachers')
             .select('first_name, last_name')
-            .eq('id', user.id)
+            .eq('id', activeUserId)
             .maybeSingle();
           if (fallbackTeacher) teacher = fallbackTeacher;
         }
@@ -54,7 +63,7 @@ export default function AdvisorDashboard() {
         }
 
         // ดึงข้อมูลนักเรียนในห้องเรียน
-        const data = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
+        const data = await studentSupportService.getAdvisorStudents(activeUserId, selectedYear?.id);
         setStudents(data);
         
         if (data && data.length > 0 && data[0].classroom) {
@@ -70,7 +79,7 @@ export default function AdvisorDashboard() {
     };
 
     loadAdvisorData();
-  }, [selectedYear]);
+  }, [selectedYear, simulatedTeacherUserId]);
 
   // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง
   // *** ใช้วิธีคำนวณ real-time จากข้อมูล SDQ/EQ เหมือน Student360 ***
@@ -177,6 +186,39 @@ export default function AdvisorDashboard() {
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         
+        {onBack && (
+          <div className="flex justify-start">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all shadow-sm"
+            >
+              <ArrowLeft size={16} /> ย้อนกลับไปหน้าเลือกครูผู้สอน
+            </button>
+          </div>
+        )}
+
+        {simulatedTeacherUserId && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500/20 p-2.5 rounded-2xl text-amber-400 border border-amber-500/30">
+                <Users size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-amber-300 text-sm">กำลังทำหน้าที่แทนครูที่ปรึกษา (Simulation Mode)</h4>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  คุณกำลังเข้าถึงพอร์ทัลดูแลช่วยเหลือนักเรียนในฐานะ <span className="underline text-amber-200 font-bold">ครู{teacherName}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black transition-all shadow-lg shadow-amber-500/15 whitespace-nowrap"
+            >
+              ยกเลิกการจำลองตัวตน
+            </button>
+          </div>
+        )}
+
         {/* Header Block */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
           <div className="space-y-1.5">

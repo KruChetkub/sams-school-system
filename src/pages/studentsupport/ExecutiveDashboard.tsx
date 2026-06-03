@@ -19,7 +19,11 @@ const COLORS = {
   URGENT: '#f43f5e'    // แดง
 };
 
-export default function ExecutiveDashboard() {
+interface ExecutiveDashboardProps {
+  onBack?: () => void;
+}
+
+export default function ExecutiveDashboard({ onBack }: ExecutiveDashboardProps = {}) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
@@ -190,7 +194,7 @@ export default function ExecutiveDashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/studentsupport')}
+              onClick={onBack || (() => navigate('/portal'))}
               className="p-2.5 hover:bg-white/10 rounded-xl transition-all"
             >
               <ArrowLeft size={20} />

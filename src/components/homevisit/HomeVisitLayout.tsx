@@ -24,13 +24,13 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
   const { user, role, signOut } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [teacherDisplayName, setTeacherDisplayName] = useState('')
-  const userDisplayName = role === 'ADMIN' ? 'แอดมิน' : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'))
+  const userDisplayName = (role === 'ADMIN' || role === 'SUPER_ADMIN') ? 'แอดมิน' : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'))
   
   const closeSidebar = () => setIsSidebarOpen(false)
 
   useEffect(() => {
     const loadTeacherName = async () => {
-      if (!user?.id || role === 'ADMIN') {
+      if (!user?.id || role === 'ADMIN' || role === 'SUPER_ADMIN') {
         setTeacherDisplayName('')
         return
       }
