@@ -4,7 +4,7 @@ import { getAnalyticsData, getClassroomReport, getHomeroomClassroomDetailReport,
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
-import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle } from 'lucide-react'
+import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle, Search } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
@@ -28,7 +28,45 @@ export default function Reports() {
 
   const isTeacher = role === 'TEACHER' || role === 'ADVISOR'
   const isProfileLoaded = !isTeacher || !!teacherProfile
-  const teacherId = isTeacher ? teacherProfile?.id : undefined
+
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const [teacherSearch, setTeacherSearch] = useState('')
+  const [teacherDeptFilter, setTeacherDeptFilter] = useState('')
+
+  const { data: allTeachers } = useQuery({
+    queryKey: ['all_teachers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .order('first_name')
+      if (error) throw error
+      return data
+    },
+    enabled: role === 'ADMIN' || role === 'SUPER_ADMIN'
+  })
+
+  const selectedTeacher = React.useMemo(() => {
+    if (!allTeachers || !selectedTeacherId) return null
+    return allTeachers.find(t => t.id === selectedTeacherId) || null
+  }, [allTeachers, selectedTeacherId])
+
+  const teacherDepartments = React.useMemo(() => {
+    if (!allTeachers) return []
+    const depts = new Set(allTeachers.map(t => t.department).filter(Boolean))
+    return Array.from(depts)
+  }, [allTeachers])
+
+  const filteredTeachers = React.useMemo(() => {
+    if (!allTeachers) return []
+    return allTeachers.filter(t => {
+      const matchesSearch = `${t.first_name || ''} ${t.last_name || ''} ${t.teacher_code || ''}`.toLowerCase().includes(teacherSearch.toLowerCase())
+      const matchesDept = teacherDeptFilter ? t.department === teacherDeptFilter : true
+      return matchesSearch && matchesDept
+    })
+  }, [allTeachers, teacherSearch, teacherDeptFilter])
+
+  const teacherId = isTeacher ? teacherProfile?.id : (selectedTeacherId || undefined)
   const [activeTab, setActiveTab] = useState(() => {
     return window.location.hash.replace('#', '') || 'overview'
   })
@@ -305,6 +343,29 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Perspective Banner */}
+      {selectedTeacher && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className="bg-amber-100 p-3 rounded-2xl text-amber-700">
+              <Users size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-amber-800 text-base md:text-lg">กำลังจำลองมุมมองของครูผู้สอน</h4>
+              <p className="text-xs md:text-sm text-amber-700 font-medium mt-0.5">
+                คุณกำลังดูรายงานของ <span className="underline font-bold">ครู{selectedTeacher.first_name} {selectedTeacher.last_name}</span> ({selectedTeacher.department || 'ไม่ระบุแผนก'}) {selectedTeacher.teacher_code ? `[รหัส: ${selectedTeacher.teacher_code}]` : ''}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedTeacherId(null)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs md:text-sm font-bold transition-all shadow-md whitespace-nowrap"
+          >
+            กลับสู่ภาพรวมโรงเรียน
+          </button>
+        </div>
+      )}
+
       {/* Main Navigation Tabs */}
       <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex overflow-x-auto">
         <button 
@@ -337,6 +398,14 @@ export default function Reports() {
         >
           <Library size={18} /> รายวิชา
         </button>
+        {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
+          <button 
+            onClick={() => { setActiveTab('teacher-reports'); window.location.hash = 'teacher-reports' }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'teacher-reports' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            <Users size={18} /> รายงานรายครู
+          </button>
+        )}
         <button 
           onClick={() => { setActiveTab('export'); window.location.hash = 'export' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'export' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -1017,6 +1086,108 @@ export default function Reports() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'teacher-reports' ? (
+        <div className="space-y-6">
+          {/* Controls Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">เลือกครูผู้สอน</h2>
+              <p className="text-sm text-gray-500 mt-1">เลือกครูผู้สอนเพื่อดูสรุปการเข้าเรียน รายวิชา และนักเรียนในความดูแล</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+              {/* Search Input */}
+              <div className="relative flex-1 sm:w-64">
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อ หรือ รหัสครู..."
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Search size={18} />
+                </div>
+              </div>
+
+              {/* Department Filter */}
+              <select
+                value={teacherDeptFilter}
+                onChange={(e) => setTeacherDeptFilter(e.target.value)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white cursor-pointer"
+              >
+                <option value="">ทุกกลุ่มสาระ / แผนก</option>
+                {teacherDepartments.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Teacher Grid */}
+          {allTeachers === undefined ? (
+            <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 flex flex-col items-center justify-center text-gray-400">
+              <RefreshCw size={48} className="mb-4 animate-spin opacity-50" />
+              <p>กำลังโหลดรายชื่อครูผู้สอน...</p>
+            </div>
+          ) : filteredTeachers.length === 0 ? (
+            <div className="bg-white rounded-2xl p-16 shadow-sm border border-gray-100 text-center text-gray-400">
+              <AlertCircle size={48} className="mx-auto mb-3 opacity-40" />
+              <p className="font-medium">ไม่พบข้อมูลครูตามตัวเลือกที่ค้นหา</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredTeachers.map((teacher) => {
+                const initials = `${teacher.first_name?.[0] || ''}${teacher.last_name?.[0] || ''}`
+                return (
+                  <button
+                    key={teacher.id}
+                    onClick={() => {
+                      setSelectedTeacherId(teacher.id)
+                      setActiveTab('overview')
+                      window.location.hash = 'overview'
+                    }}
+                    className="group text-left bg-white rounded-2xl p-6 border border-gray-100 hover:border-indigo-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-52 relative overflow-hidden"
+                  >
+                    {/* Background Accent */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-bl-full transition-all group-hover:scale-125" />
+
+                    <div className="space-y-4">
+                      {/* Avatar */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-base transition-colors group-hover:bg-indigo-500 group-hover:text-white">
+                          {initials || <User size={20} />}
+                        </div>
+                        <div>
+                          <p className="text-xs font-mono text-gray-400 font-medium">
+                            {teacher.teacher_code || 'ไม่มีรหัสครู'}
+                          </p>
+                          <h3 className="font-bold text-gray-800 text-base line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                            ครู{teacher.first_name} {teacher.last_name}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Info lines */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                          <span className="px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100">
+                            {teacher.department || 'ไม่ระบุกลุ่มสาระ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-50 flex items-center justify-between text-xs font-bold text-indigo-500 group-hover:text-indigo-600">
+                      <span>ดูสรุปรายงาน</span>
+                      <span className="transform translate-x-0 group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
