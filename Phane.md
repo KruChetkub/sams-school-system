@@ -319,6 +319,9 @@ npm run lint      # ตรวจ code style
 | 3 มิ.ย. 2569 | ✅ | **SUPER_ADMIN Role Integration** — เพิ่มระดับสิทธิ์ SUPER_ADMIN ควบคุมการปรับแต่งสิทธิ์ผู้ใช้งานและปีการศึกษา ปิดกั้น ADMIN ทั่วไปให้เป็น Read Only ในหน้าตั้งค่าระบบ |
 | 3 มิ.ย. 2569 | ✅ | **Students Page Access Restrictions for TEACHER** — ซ่อนเมนูจัดการข้อมูลนักเรียนใน Sidebar และจำกัดสิทธิ์หน้าจอ /students ให้เข้าได้เฉพาะ ADMIN และ SUPER_ADMIN เท่านั้น (TEACHER จะถูกซ่อนและล็อกสิทธิ์) |
 | 3 มิ.ย. 2569 | ✅ | **Settings Custom Modal Overhaul** — ยกเลิกการใช้ alert/confirm ของบราวเซอร์ในหน้าตั้งค่าระบบ แล้วเปลี่ยนมาใช้ Premium React Modal ที่เป็นดีไซน์เดียวกันในระบบเพื่อยกระดับ UI/UX |
+| 3 มิ.ย. 2569 | ✅ | **Teacher Simulation Card Grid for Admins** — จัดทำหน้าเลือกการ์ดรายชื่อครูและจำลองสิทธิ์เป็นครูประจำวิชา/ที่ปรึกษาทั่วทั้งระบบ ได้แก่ ตารางสอน (`Schedules`), เช็คแถว (`Homeroom`), เช็ควิชา (`Attendance`), รายการเยี่ยมบ้าน (`StudentsList`) และระบบช่วยเหลือคัดกรองนักเรียน (`studentsupport/index.tsx`) เพื่อให้แอดมินและซูเปอร์แอดมินจำลองทำหน้าที่หรือดูรายงานแทนได้ |
+| 3 มิ.ย. 2569 | ✅ | **Admin/Super Admin Home Visit Form Access Fix** — ปรับปรุงใน `visitService.ts` เพื่อ bypass ตัวกรอง `teacher_id` สำหรับบทบาท ADMIN และ SUPER_ADMIN ช่วยให้แอดมินสามารถเปิดดูข้อมูลและบันทึกข้อมูลเยี่ยมบ้านแทนครูได้ทุกคนโดยไม่โหลดค้าง |
+| 3 มิ.ย. 2569 | ✅ | **React Reference & undefined supabase Bugs Fixed** — แก้ไขปัญหา `React is not defined` ในหน้า Attendance.tsx และบั๊ก `supabase is not defined` ใน StudentsList.tsx ซึ่งเคยส่งผลให้หน้าคัดเลือกครูของระบบค้างสถานะกำลังโหลดอยู่ตลอดเวลา |
 
 ---
 

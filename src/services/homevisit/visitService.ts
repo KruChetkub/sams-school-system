@@ -171,7 +171,7 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
   // Filter out soft-deleted students
   query = query.is('student.deleted_at', null);
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
     query = query.eq('teacher_id', teacherId);
   }
 
@@ -227,7 +227,7 @@ export const getHomeVisitByStudentAndTeacher = async (
     .select(`*`)
     .eq('student_id', studentId);
     
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
     query = query.eq('teacher_id', teacherId);
   }
 
