@@ -2,11 +2,33 @@ import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getAnalyticsData, getClassroomReport, getHomeroomClassroomDetailReport, getHomeroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
 import { useAcademicYearStore } from '../store/academicYearStore'
+import { useAuthStore } from '../store/authStore'
+import { supabase } from '../lib/supabase'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function Reports() {
   const { selectedYear, selectedSemester } = useAcademicYearStore()
+  const { user, role } = useAuthStore()
+
+  const { data: teacherProfile } = useQuery({
+    queryKey: ['teacher_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!user?.id && (role === 'TEACHER' || role === 'ADVISOR')
+  })
+
+  const isTeacher = role === 'TEACHER' || role === 'ADVISOR'
+  const isProfileLoaded = !isTeacher || !!teacherProfile
+  const teacherId = isTeacher ? teacherProfile?.id : undefined
   const [activeTab, setActiveTab] = useState(() => {
     return window.location.hash.replace('#', '') || 'overview'
   })
@@ -31,18 +53,19 @@ export default function Reports() {
   }, [])
 
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ['dashboard_analytics', activeTimeFilter, selectedYear?.id],
-    queryFn: () => getAnalyticsData(activeTimeFilter, selectedYear?.id)
+    queryKey: ['dashboard_analytics', activeTimeFilter, selectedYear?.id, teacherId],
+    queryFn: () => getAnalyticsData(activeTimeFilter, selectedYear?.id, teacherId),
+    enabled: isProfileLoaded
   })
   const { data: classroomRows = [], isLoading: loadingClassroom } = useQuery({
-    queryKey: ['report_classroom', activeTimeFilter, selectedYear?.id],
-    queryFn: () => getClassroomReport(activeTimeFilter, selectedYear?.id),
-    enabled: activeTab === 'classroom'
+    queryKey: ['report_classroom', activeTimeFilter, selectedYear?.id, teacherId],
+    queryFn: () => getClassroomReport(activeTimeFilter, selectedYear?.id, teacherId),
+    enabled: activeTab === 'classroom' && isProfileLoaded
   })
   const { data: homeroomRows = [], isLoading: loadingHomeroom } = useQuery({
-    queryKey: ['report_homeroom', activeTimeFilter, selectedYear?.id],
-    queryFn: () => getHomeroomReport(activeTimeFilter, selectedYear?.id),
-    enabled: activeTab === 'homeroom'
+    queryKey: ['report_homeroom', activeTimeFilter, selectedYear?.id, teacherId],
+    queryFn: () => getHomeroomReport(activeTimeFilter, selectedYear?.id, teacherId),
+    enabled: activeTab === 'homeroom' && isProfileLoaded
   })
   const { data: homeroomClassroomDetail, isLoading: loadingHomeroomClassroomDetail } = useQuery({
     queryKey: ['report_homeroom_classroom_detail', selectedHomeroomClassroomId, activeTimeFilter, selectedYear?.id, selectedSemester?.id],
@@ -50,9 +73,9 @@ export default function Reports() {
     enabled: activeTab === 'homeroom' && !!selectedHomeroomClassroomId
   })
   const { data: studentRows = [], isLoading: loadingStudent } = useQuery({
-    queryKey: ['report_student', activeTimeFilter, selectedYear?.id],
-    queryFn: () => getStudentReport(activeTimeFilter, undefined, selectedYear?.id),
-    enabled: activeTab === 'student'
+    queryKey: ['report_student', activeTimeFilter, selectedYear?.id, teacherId],
+    queryFn: () => getStudentReport(activeTimeFilter, undefined, selectedYear?.id, teacherId),
+    enabled: activeTab === 'student' && isProfileLoaded
   })
   const { data: studentDetail, isLoading: loadingStudentDetail } = useQuery({
     queryKey: ['report_student_detail', selectedStudentId, activeTimeFilter, selectedYear?.id, selectedSemester?.id],
@@ -60,9 +83,9 @@ export default function Reports() {
     enabled: activeTab === 'student' && !!selectedStudentId
   })
   const { data: subjectRows = [], isLoading: loadingSubject } = useQuery({
-    queryKey: ['report_subject', activeTimeFilter, selectedYear?.id, selectedSemester?.id],
-    queryFn: () => getSubjectReport(activeTimeFilter, selectedYear?.id, selectedSemester?.id),
-    enabled: activeTab === 'subject'
+    queryKey: ['report_subject', activeTimeFilter, selectedYear?.id, selectedSemester?.id, teacherId],
+    queryFn: () => getSubjectReport(activeTimeFilter, selectedYear?.id, selectedSemester?.id, teacherId),
+    enabled: activeTab === 'subject' && isProfileLoaded
   })
   const { data: subjectDetail, isLoading: loadingSubjectDetail } = useQuery({
     queryKey: ['report_subject_detail', selectedSubjectId, activeTimeFilter],

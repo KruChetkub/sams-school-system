@@ -18,6 +18,33 @@ export const getStartDate = (timeFilter: string): string => {
   return startDate.toISOString()
 }
 
+export const getTeacherClassroomIds = async (teacherId: string, academicYearId?: string): Promise<string[]> => {
+  // 1. Get advisor classrooms
+  let advisorQuery = supabase
+    .from('classrooms')
+    .select('id')
+    .eq('advisor_id', teacherId)
+  
+  if (academicYearId) {
+    advisorQuery = advisorQuery.eq('academic_year_id', academicYearId)
+  }
+  
+  const { data: advisorRooms } = await advisorQuery
+  const advisorRoomIds = (advisorRooms || []).map(r => r.id)
+
+  // 2. Get classrooms from teacher schedules
+  let scheduleQuery = supabase
+    .from('schedules')
+    .select('classroom_id')
+    .eq('teacher_id', teacherId)
+  
+  const { data: scheduleRooms } = await scheduleQuery
+  const scheduleRoomIds = (scheduleRooms || []).map(r => r.classroom_id).filter(Boolean) as string[]
+
+  // Combine and deduplicate
+  return Array.from(new Set([...advisorRoomIds, ...scheduleRoomIds]))
+}
+
 // ข้อมูลสรุปรายห้องเรียน
 export interface ClassroomReportRow {
   classroomId: string
@@ -61,18 +88,34 @@ export interface HomeroomClassroomDetailReport {
   students: HomeroomClassroomStudentRow[]
 }
 
-export const getHomeroomReport = async (timeFilter: string = 'month', academicYearId?: string): Promise<HomeroomReportRow[]> => {
+export const getHomeroomReport = async (
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  teacherId?: string
+): Promise<HomeroomReportRow[]> => {
   const startDate = getStartDate(timeFilter).split('T')[0]
+  let selectStr = `
+    status,
+    students ( classroom_id, classrooms(id, level, room) )
+  `
+  if (teacherId) {
+    selectStr = `
+      status,
+      students!inner ( classroom_id, classrooms!inner(id, level, room, advisor_id) )
+    `
+  }
+
   let query = supabase
     .from('homeroom_attendance')
-    .select(`
-      status,
-      students ( classroom_id, classrooms(id, level, room) )
-    `)
+    .select(selectStr)
     .gte('attendance_date', startDate)
 
   if (academicYearId) {
     query = query.eq('academic_year_id', academicYearId)
+  }
+
+  if (teacherId) {
+    query = query.eq('students.classrooms.advisor_id', teacherId)
   }
 
   const { data } = await query
@@ -178,16 +221,23 @@ export const getHomeroomClassroomDetailReport = async (
   }
 }
 
-export const getClassroomReport = async (timeFilter: string = 'month', academicYearId?: string): Promise<ClassroomReportRow[]> => {
+export const getClassroomReport = async (
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  teacherId?: string
+): Promise<ClassroomReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   let selectStr = `
     status,
     students ( classroom_id, classrooms(id, level, room) )
   `
-  if (academicYearId) {
+  if (teacherId || academicYearId) {
+    const classroomJoin = academicYearId 
+      ? `classrooms!inner(id, level, room, academic_year_id)`
+      : `classrooms(id, level, room)`
     selectStr = `
       status,
-      students ( classroom_id, classrooms!inner(id, level, room, academic_year_id) )
+      students!inner ( classroom_id, ${classroomJoin} )
     `
   }
 
@@ -198,6 +248,12 @@ export const getClassroomReport = async (timeFilter: string = 'month', academicY
 
   if (academicYearId) {
     query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  if (teacherId) {
+    const teacherClassroomIds = await getTeacherClassroomIds(teacherId, academicYearId)
+    if (teacherClassroomIds.length === 0) return []
+    query = query.in('students.classroom_id', teacherClassroomIds)
   }
 
   const { data } = await query
@@ -240,17 +296,21 @@ export interface StudentReportRow {
 export const getStudentReport = async (
   timeFilter: string = 'month',
   classroomId?: string,
-  academicYearId?: string
+  academicYearId?: string,
+  teacherId?: string
 ): Promise<StudentReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   let selectStr = `
     status,
     students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms(level, room) )
   `
-  if (academicYearId) {
+  if (teacherId || academicYearId) {
+    const classroomJoin = academicYearId
+      ? `classrooms!inner(level, room, academic_year_id)`
+      : `classrooms(level, room)`
     selectStr = `
       status,
-      students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms!inner(level, room, academic_year_id) )
+      students!inner ( id, student_code, prefix, first_name, last_name, classroom_id, ${classroomJoin} )
     `
   }
 
@@ -261,6 +321,12 @@ export const getStudentReport = async (
 
   if (academicYearId) {
     query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  if (teacherId) {
+    const teacherClassroomIds = await getTeacherClassroomIds(teacherId, academicYearId)
+    if (teacherClassroomIds.length === 0) return []
+    query = query.in('students.classroom_id', teacherClassroomIds)
   }
 
   const { data } = await query
@@ -535,7 +601,8 @@ export const getSubjectDetailReport = async (subjectId: string, timeFilter: stri
 export const getSubjectReport = async (
   timeFilter: string = 'month',
   academicYearId?: string,
-  semesterId?: string
+  semesterId?: string,
+  teacherId?: string
 ): Promise<SubjectReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   let selectStr = `
@@ -547,7 +614,17 @@ export const getSubjectReport = async (
       schedules(classroom_id, classrooms(level, room))
     )
   `
-  if (academicYearId || semesterId) {
+  if (teacherId) {
+    selectStr = `
+      status,
+      students ( id, student_code, prefix, first_name, last_name ),
+      attendance_sessions!inner (
+        subject_id,
+        subjects!inner(id, subject_code, subject_name, academic_year_id, semester_id),
+        schedules!inner(classroom_id, classrooms(level, room), teacher_id)
+      )
+    `
+  } else if (academicYearId || semesterId) {
     selectStr = `
       status,
       students ( id, student_code, prefix, first_name, last_name ),
@@ -569,6 +646,9 @@ export const getSubjectReport = async (
   }
   if (semesterId) {
     query = query.eq('attendance_sessions.subjects.semester_id', semesterId)
+  }
+  if (teacherId) {
+    query = query.eq('attendance_sessions.schedules.teacher_id', teacherId)
   }
 
   const { data } = await query
@@ -1118,7 +1198,11 @@ export const getPendingClassroomChecksToday = async (academicYearId?: string): P
   }
 }
 
-export const getAnalyticsData = async (timeFilter: string = 'month', academicYearId?: string) => {
+export const getAnalyticsData = async (
+  timeFilter: string = 'month',
+  academicYearId?: string,
+  teacherId?: string
+) => {
   // คำนวณวันที่เริ่มต้นตาม timeFilter
   const now = new Date()
   let startDate = new Date()
@@ -1140,7 +1224,20 @@ export const getAnalyticsData = async (timeFilter: string = 'month', academicYea
     students ( student_code, first_name, last_name, classrooms(level, room) ),
     attendance_sessions ( session_date, subjects(subject_name) )
   `
-  if (academicYearId) {
+  if (teacherId) {
+    selectStr = `
+      id, checkin_time, status,
+      students!inner ( student_code, first_name, last_name, classroom_id, classrooms(level, room) ),
+      attendance_sessions ( session_date, subjects(subject_name) )
+    `
+    if (academicYearId) {
+      selectStr = `
+        id, checkin_time, status,
+        students!inner ( student_code, first_name, last_name, classroom_id, classrooms(level, room) ),
+        attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id) )
+      `
+    }
+  } else if (academicYearId) {
     selectStr = `
       id, checkin_time, status,
       students ( student_code, first_name, last_name, classrooms(level, room) ),
@@ -1155,6 +1252,12 @@ export const getAnalyticsData = async (timeFilter: string = 'month', academicYea
 
   if (academicYearId) {
     query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  if (teacherId) {
+    const teacherClassroomIds = await getTeacherClassroomIds(teacherId, academicYearId)
+    if (teacherClassroomIds.length === 0) return { chartData: [], pieData: [], rawAttendance: [] }
+    query = query.in('students.classroom_id', teacherClassroomIds)
   }
 
   const { data: rawAttendance } = await query
