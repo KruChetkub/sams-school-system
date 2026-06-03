@@ -5,6 +5,7 @@ import { getCheckedHomeroomClassroomsByDate, getExistingHomeroomAttendance, getH
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useAcademicYearStore } from '../store/academicYearStore'
+import { supabase } from '../lib/supabase'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -90,7 +91,8 @@ const getClassroomPalette = (classroomKey: string) => {
 export default function Homeroom() {
   const topRef = useRef<HTMLDivElement | null>(null)
   const studentTableRef = useRef<HTMLDivElement | null>(null)
-  const { role } = useAuthStore()
+  const { user, role } = useAuthStore()
+  const isTeacherRole = role === 'TEACHER' || role === 'ADVISOR'
   const queryClient = useQueryClient()
   const [selectedClassroom, setSelectedClassroom] = useState('')
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
@@ -122,7 +124,50 @@ export default function Homeroom() {
     queryFn: () => getHomeroomClassroomSummaryByDate(attendanceDate, selectedYear?.id),
     enabled: !!attendanceDate,
   })
-  
+  const { data: teacherProfile } = useQuery({
+    queryKey: ['teacher_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!user?.id && isTeacherRole
+  })
+
+  const filteredClassrooms = React.useMemo(() => {
+    if (!classrooms) return []
+    if (isTeacherRole) {
+      if (!teacherProfile) return []
+      return classrooms.filter(c => c.advisor_id === teacherProfile.id)
+    }
+    return classrooms
+  }, [classrooms, isTeacherRole, teacherProfile])
+
+  const filteredClassroomSummary = React.useMemo(() => {
+    if (!classroomSummary) return []
+    if (isTeacherRole) {
+      if (!teacherProfile) return []
+      const advisedIds = new Set(filteredClassrooms.map(c => c.id))
+      return classroomSummary.filter(c => advisedIds.has(c.classroom_id))
+    }
+    return classroomSummary
+  }, [classroomSummary, isTeacherRole, filteredClassrooms])
+
+  const filteredCheckedClassrooms = React.useMemo(() => {
+    if (!checkedClassrooms) return []
+    if (isTeacherRole) {
+      if (!teacherProfile) return []
+      const advisedIds = new Set(filteredClassrooms.map(c => c.id))
+      return checkedClassrooms.filter(c => advisedIds.has(c.classroom_id))
+    }
+    return checkedClassrooms
+  }, [checkedClassrooms, isTeacherRole, filteredClassrooms])
+
   const { data: students, isLoading } = useQuery({
     queryKey: ['students', selectedClassroom],
     queryFn: () => getStudentsByClassroom(selectedClassroom),
@@ -132,13 +177,14 @@ export default function Homeroom() {
   const totalPages = Math.max(1, Math.ceil((students?.length || 0) / pageSize))
   const startIndex = (currentPage - 1) * pageSize
   const paginatedStudents = students?.slice(startIndex, startIndex + pageSize) || []
-  const isSelectedClassroomAlreadyChecked = !!selectedClassroom && checkedClassrooms.some((c) => c.classroom_id === selectedClassroom)
+  const isSelectedClassroomAlreadyChecked = !!selectedClassroom && filteredCheckedClassrooms.some((c) => c.classroom_id === selectedClassroom)
   const selectedDateObj = new Date(`${attendanceDate}T00:00:00`)
   const today = new Date()
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const selectedOnly = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
   const daysDiff = Math.floor((todayOnly.getTime() - selectedOnly.getTime()) / (1000 * 60 * 60 * 24))
-  const canEditPastDate = role === 'ADMIN' || (role === 'TEACHER' && daysDiff >= 0 && daysDiff <= 30)
+  const isAdminRole = role === 'ADMIN' || role === 'SUPER_ADMIN'
+  const canEditPastDate = isAdminRole || (isTeacherRole && daysDiff >= 0 && daysDiff <= 30)
 
   const openDatePicker = () => {
     const date = new Date(`${attendanceDate}T00:00:00`)
@@ -274,7 +320,7 @@ export default function Homeroom() {
             }}
           >
             <option value="">-- กรุณาเลือกห้องเรียน --</option>
-            {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+            {filteredClassrooms.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
           </select>
         </div>
         <div className="relative">
@@ -374,7 +420,7 @@ export default function Homeroom() {
       <div className="mb-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">สถานะห้องเรียนวันที่ {formatThaiBuddhistDate(attendanceDate)}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {classroomSummary.map((c) => {
+          {filteredClassroomSummary.map((c) => {
             const isChecked = c.checked_students > 0
             const isActive = selectedClassroom === c.classroom_id
             const palette = getClassroomPalette(`${c.classroom_id}-${c.classroom_label}`)
@@ -412,11 +458,11 @@ export default function Homeroom() {
           <AlertCircle size={18} className="mt-0.5 text-amber-600" />
           <div>
             <p className="font-semibold text-amber-800">สถานะการเช็คชื่อเข้าแถววันที่ {formatThaiBuddhistDate(attendanceDate)}</p>
-            {checkedClassrooms.length === 0 ? (
+            {filteredCheckedClassrooms.length === 0 ? (
               <p className="text-sm text-amber-700 mt-1">ยังไม่มีห้องที่เช็คชื่อเข้าแถวในวันนี้</p>
             ) : (
               <p className="text-sm text-amber-700 mt-1">
-                เช็คแล้ว {checkedClassrooms.length} ห้อง: {checkedClassrooms.map((c) => c.classroom_label).join(', ')}
+                เช็คแล้ว {filteredCheckedClassrooms.length} ห้อง: {filteredCheckedClassrooms.map((c) => c.classroom_label).join(', ')}
               </p>
             )}
           </div>

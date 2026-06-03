@@ -5,6 +5,7 @@ import { getSubjects } from '../services/subjectService'
 import { getClassrooms } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
+import { useAuthStore } from '../store/authStore'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 
 const DAYS = [
@@ -147,6 +148,7 @@ export default function Schedules() {
   const formRef = useRef<HTMLFormElement | null>(null)
   const queryClient = useQueryClient()
   const { selectedYear, selectedSemester } = useAcademicYearStore()
+  const { role } = useAuthStore()
 
   const { data: schedules, isLoading } = useQuery({ 
     queryKey: ['schedules', selectedYear?.id], 
@@ -426,6 +428,16 @@ export default function Schedules() {
       window.alert(error?.message || 'ไม่สามารถย้ายคาบเรียนได้')
     },
   })
+
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800 font-semibold shadow-sm">
+          ไม่มีสิทธิ์เข้าถึงหน้าจัดการตารางเรียน
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">

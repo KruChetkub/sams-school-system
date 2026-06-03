@@ -264,9 +264,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   <NavItem to="/classrooms" icon={BookOpen} onClick={closeSidebar}>จัดการห้องเรียน</NavItem>
                   <NavItem to="/subjects" icon={Library} onClick={closeSidebar}>จัดการวิชาเรียน</NavItem>
                   <NavItem to="/students" icon={GraduationCap} onClick={closeSidebar}>จัดการข้อมูลนักเรียน</NavItem>
+                  <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดการตารางเรียน</NavItem>
                 </>
               )}
-              <NavItem to="/schedules" icon={Calendar} onClick={closeSidebar}>จัดการตารางเรียน</NavItem>
               {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
                 <NavItem to="/parents" icon={HeartHandshake} onClick={closeSidebar}>จัดการข้อมูลผู้ปกครอง</NavItem>
               )}
@@ -444,7 +444,7 @@ function App() {
         <Route path="/students" element={user && (role === 'ADMIN' || role === 'SUPER_ADMIN') ? <DashboardLayout><Students /></DashboardLayout> : <Navigate to="/" />} />
         <Route path="/parents" element={user ? <DashboardLayout><Parents /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/subjects" element={user ? <DashboardLayout><Subjects /></DashboardLayout> : <Navigate to="/login" />} />
-        <Route path="/schedules" element={user ? <DashboardLayout><Schedules /></DashboardLayout> : <Navigate to="/login" />} />
+        <Route path="/schedules" element={user && (role === 'ADMIN' || role === 'SUPER_ADMIN') ? <DashboardLayout><Schedules /></DashboardLayout> : <Navigate to="/" />} />
         <Route path="/homeroom" element={user ? <DashboardLayout><Homeroom /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/attendance" element={user ? <DashboardLayout><Attendance /></DashboardLayout> : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? <DashboardLayout><Reports /></DashboardLayout> : <Navigate to="/login" />} />

@@ -179,6 +179,9 @@ export default function Attendance() {
   const calendarCells = Array(firstWeekday).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
   const calendarHeader = `${thaiMonths[calendarMonth]} ${calendarYear + 543}`
 
+  const isTeacherRole = role === 'TEACHER' || role === 'ADVISOR'
+  const isAdminRole = role === 'ADMIN' || role === 'SUPER_ADMIN'
+
   const { data: teacherProfile } = useQuery({
     queryKey: ['teacher_profile_by_user', user?.id],
     queryFn: async () => {
@@ -191,7 +194,7 @@ export default function Attendance() {
       if (error) throw error
       return data
     },
-    enabled: !!user?.id && role === 'TEACHER'
+    enabled: !!user?.id && isTeacherRole
   })
 
   const { selectedYear } = useAcademicYearStore()
@@ -199,8 +202,13 @@ export default function Attendance() {
   // ครูเห็นเฉพาะคาบของตัวเอง, แอดมินเห็นทั้งหมด
   const { data: schedules } = useQuery({
     queryKey: ['schedules', role, teacherProfile?.id || 'all', selectedYear?.id],
-    queryFn: () => getSchedules(undefined, role === 'TEACHER' ? teacherProfile?.id : undefined, selectedYear?.id),
-    enabled: role !== 'TEACHER' || !!teacherProfile?.id
+    queryFn: () => {
+      const teacherId = isTeacherRole 
+        ? (teacherProfile?.id || '00000000-0000-0000-0000-000000000000') 
+        : undefined
+      return getSchedules(undefined, teacherId, selectedYear?.id)
+    },
+    enabled: !isTeacherRole || teacherProfile !== undefined
   })
 
   const selectedDate = new Date(`${attendanceDate}T00:00:00`)
@@ -208,7 +216,7 @@ export default function Attendance() {
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const selectedOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
   const daysDiff = Math.floor((todayOnly.getTime() - selectedOnly.getTime()) / (1000 * 60 * 60 * 24))
-  const canEditPastDate = role === 'ADMIN' || (role === 'TEACHER' && daysDiff >= 0 && daysDiff <= 30)
+  const canEditPastDate = isAdminRole || (isTeacherRole && daysDiff >= 0 && daysDiff <= 30)
   const sortedSchedules = [...(schedules || [])].sort((a, b) => {
     if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
     if ((a.start_time || '') !== (b.start_time || '')) return (a.start_time || '').localeCompare(b.start_time || '')
