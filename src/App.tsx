@@ -388,14 +388,47 @@ function App() {
   }, [user?.id])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null, session)
-      if (session?.user) fetchRole(session.user.id)
-    })
+    let isMounted = true
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null, session)
-      if (session?.user) {
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Session retrieval error, signing out:', error)
+          await supabase.auth.signOut()
+          if (isMounted) setUser(null, null)
+          return
+        }
+        if (isMounted) {
+          setUser(session?.user ?? null, session)
+          if (session?.user) {
+            fetchRole(session.user.id)
+          } else {
+            setUser(null, null)
+          }
+        }
+      } catch (err) {
+        console.error('Auth initialization exception, signing out:', err)
+        try {
+          await supabase.auth.signOut()
+        } catch (_) {}
+        if (isMounted) setUser(null, null)
+      }
+    }
+
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        if (isMounted) {
+          setUser(null, null)
+          sessionStorage.removeItem('sams_logged_in_success')
+        }
+        return
+      }
+
+      if (isMounted) {
+        setUser(session.user, session)
         fetchRole(session.user.id)
         if (event === 'SIGNED_IN') {
           const hasLoggedSuccess = sessionStorage.getItem('sams_logged_in_success')
@@ -405,15 +438,16 @@ function App() {
               action: 'LOGIN_SUCCESS',
               user_id: session.user.id,
               user_email: session.user.email,
-            })
+            }).catch(console.error)
           }
         }
-      } else {
-        sessionStorage.removeItem('sams_logged_in_success')
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [setUser, fetchRole])
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>

@@ -19,18 +19,34 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   setUser: (user, session) => set({ user, session, isLoading: false }),
   fetchRole: async (userId) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle()
-    
-    if (data && !error) {
-      set({ role: data.role })
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      if (data && !error) {
+        set({ role: data.role })
+      } else {
+        console.warn('User role not found or error, signing out:', error)
+        set({ role: null, user: null, session: null })
+        await supabase.auth.signOut()
+      }
+    } catch (err) {
+      console.error('fetchRole exception, signing out:', err)
+      set({ role: null, user: null, session: null })
+      try {
+        await supabase.auth.signOut()
+      } catch (_) {}
     }
   },
   signOut: async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error during signOut:', err)
+    }
     set({ user: null, session: null, role: null })
   }
 }))
