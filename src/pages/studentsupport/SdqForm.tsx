@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar, GraduationCap, User, Users, CheckCircle2, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, AlertCircle, ArrowRight, ArrowLeft, Activity, FileText, Smile, Home, ShieldAlert, Calendar, GraduationCap, User, Users, CheckCircle2, Bell, QrCode, Copy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService, calculateSdqScores } from '../../services/studentsupport/studentSupportService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
+import { QRCodeSVG } from 'qrcode.react';
 
 const getSdqQuestions = (evaluatorType: 'STUDENT' | 'TEACHER' | 'PARENT') => {
   if (evaluatorType === 'STUDENT') {
@@ -94,21 +95,72 @@ const getSdqQuestions = (evaluatorType: 'STUDENT' | 'TEACHER' | 'PARENT') => {
   }
 };
 
-export default function SdqForm() {
+export default function SdqForm({ isPublic = false }: { isPublic?: boolean }) {
   const { studentId } = useParams<{ studentId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { selectedYear, selectedSemester } = useAcademicYearStore();
 
   // ดึง evaluator_type จาก query param, default เป็น 'TEACHER' สำหรับครูประจำชั้น
-  const [evaluatorTypeState, setEvaluatorTypeState] = useState<'STUDENT' | 'TEACHER' | 'PARENT'>('TEACHER');
+  const [evaluatorTypeState, setEvaluatorTypeState] = useState<'STUDENT' | 'TEACHER' | 'PARENT'>(
+    (searchParams.get('type') as 'STUDENT' | 'TEACHER' | 'PARENT') || 'TEACHER'
+  );
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
+  const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
+
+  useEffect(() => {
+    // 1. ตรวจสอบการหมดอายุของลิงก์ (24 ชั่วโมง)
+    if (isPublic) {
+      const tsParam = searchParams.get('timestamp');
+      if (tsParam) {
+        const timeDiff = Date.now() - Number(tsParam);
+        if (timeDiff > 24 * 60 * 60 * 1000) { // 24 ชั่วโมง
+          setIsExpired(true);
+        }
+      }
+    }
+  }, [isPublic, searchParams]);
+
+  useEffect(() => {
+    const checkExistingSubmission = async () => {
+      if (!isPublic || !studentId) return;
+      
+      const type = searchParams.get('type') as 'STUDENT' | 'PARENT';
+      const yearId = searchParams.get('yearId');
+      const semesterId = searchParams.get('semesterId');
+      
+      if (!type || !yearId || !semesterId) return;
+      
+      try {
+        const { data } = await supabase
+          .from('student_support_sdq')
+          .select('id')
+          .eq('student_id', studentId)
+          .eq('evaluator_type', type)
+          .eq('academic_year_id', yearId)
+          .eq('semester_id', semesterId)
+          .maybeSingle();
+          
+        if (data) {
+          setIsAlreadySubmitted(true);
+        }
+      } catch (err) {
+        console.error('Error checking existing submission:', err);
+      }
+    };
+    
+    checkExistingSubmission();
+  }, [isPublic, studentId, searchParams]);
 
   useEffect(() => {
     const type = searchParams.get('type') as 'STUDENT' | 'TEACHER' | 'PARENT';
     if (type && ['STUDENT', 'TEACHER', 'PARENT'].includes(type)) {
       setEvaluatorTypeState(type);
+    } else if (isPublic) {
+      setEvaluatorTypeState('STUDENT');
     }
-  }, [searchParams]);
+  }, [searchParams, isPublic]);
   
   const [student, setStudent] = useState<any>(null);
   const [answers, setAnswers] = useState<number[]>(Array(25).fill(-1));
@@ -135,16 +187,6 @@ export default function SdqForm() {
   const handleEvaluatorChange = (type: 'STUDENT' | 'TEACHER' | 'PARENT') => {
     setSearchParams({ type });
     setEvaluatorTypeState(type);
-    // V15.8: โหลด draft ของ type ใหม่จาก localStorage (ถ้ามี)
-    const draftKey = `sdq_draft_${studentId}_${type}`;
-    const saved = localStorage.getItem(draftKey);
-    setAnswers(saved ? JSON.parse(saved) : Array(25).fill(-1));
-    setCurrentIdx(0);
-    setStep(1);
-    setHasProblems(null);
-    setImpactAnswers({
-      distress: -1, home: -1, friends: -1, classroom: -1, leisure: -1,
-    });
   };
 
   // V15.8: บันทึก draft เมื่อ answers เปลี่ยน
@@ -154,25 +196,109 @@ export default function SdqForm() {
     localStorage.setItem(draftKey, JSON.stringify(answers));
   }, [answers, studentId, evaluatorTypeState]);
 
-  // V15.8: โหลด draft เมื่อ evaluatorType หรือ studentId เปลี่ยน
+  // โหลดข้อมูลแบบประเมินที่มีอยู่เดิมจากฐานข้อมูล (สำหรับครู) หรือ draft จาก localStorage
   useEffect(() => {
-    if (!studentId) return;
-    const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
-    const saved = localStorage.getItem(draftKey);
-    if (saved) {
-      const parsed: number[] = JSON.parse(saved);
-      if (parsed.length === 25) setAnswers(parsed);
-    }
-  }, [studentId, evaluatorTypeState]);
+    const loadSavedOrDraft = async () => {
+      if (!studentId) return;
+
+      // รีเซ็ตสถานะก่อนโหลดใหม่
+      setAnswers(Array(25).fill(-1));
+      setCurrentIdx(0);
+      setStep(1);
+      setHasProblems(null);
+      setImpactAnswers({
+        distress: -1, home: -1, friends: -1, classroom: -1, leisure: -1,
+      });
+
+      // ถ้าเป็นครู (ไม่ใช่ public) ให้ลองโหลดข้อมูลเดิมจากฐานข้อมูล
+      if (!isPublic) {
+        setLoading(true);
+        try {
+          const yearIdParam = searchParams.get('yearId') || selectedYear?.id;
+          const semesterIdParam = searchParams.get('semesterId') || selectedSemester?.id;
+
+          let query = supabase
+            .from('student_support_sdq')
+            .select('*')
+            .eq('student_id', studentId)
+            .eq('evaluator_type', evaluatorTypeState);
+
+          if (yearIdParam) {
+            query = query.eq('academic_year_id', yearIdParam);
+          }
+          if (semesterIdParam) {
+            query = query.eq('semester_id', semesterIdParam);
+          }
+
+          const { data } = await query.maybeSingle();
+
+          if (data) {
+            // โหลดคำตอบ 25 ข้อ
+            if (data.answers && data.answers.length === 25) {
+              setAnswers(data.answers);
+            }
+            // โหลดประเมินผลกระทบด้านหลัง
+            if (data.impact_answers) {
+              setHasProblems('LITTLE'); // เปิดตัวเลือกแสดงผลกระทบ
+              setImpactAnswers({
+                distress: data.impact_answers.distress ?? -1,
+                home: data.impact_answers.home ?? -1,
+                friends: data.impact_answers.friends ?? -1,
+                classroom: data.impact_answers.classroom ?? -1,
+                leisure: data.impact_answers.leisure ?? -1,
+              });
+            } else {
+              setHasProblems('NO');
+            }
+            setLoading(false);
+            return; // โหลดสำเร็จเรียบร้อย ไม่ต้องโหลด draft
+          }
+        } catch (err) {
+          console.error('Error loading existing SDQ:', err);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // ถ้าไม่มีข้อมูลในฐานข้อมูล หรือเป็นผู้ใช้สาธารณะ (public) ให้ใช้ draft ใน localStorage
+      const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed: number[] = JSON.parse(saved);
+        if (parsed.length === 25) setAnswers(parsed);
+      }
+    };
+
+    loadSavedOrDraft();
+  }, [studentId, evaluatorTypeState, isPublic, selectedYear?.id, selectedSemester?.id]);
 
   useEffect(() => {
+    const nameParam = searchParams.get('name');
+    const codeParam = searchParams.get('code');
+    const roomParam = searchParams.get('room');
+
+    if (isPublic && nameParam) {
+      const parts = nameParam.split(' ');
+      setStudent({
+        first_name: parts[0] || '',
+        last_name: parts.slice(1).join(' ') || '',
+        student_code: codeParam || '',
+        classroom: roomParam ? {
+          level: roomParam.split('/')[0] || '',
+          room: roomParam.split('/')[1] || ''
+        } : null
+      });
+      setLoading(false);
+      return;
+    }
+
     const fetchStudent = async () => {
       if (!studentId) return;
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from('students')
-          .select('first_name, last_name, student_code, classroom:classroom_id(level, room)')
+          .select('prefix, first_name, last_name, student_code, classroom:classroom_id(level, room)')
           .eq('id', studentId)
           .single();
         if (error) throw error;
@@ -184,7 +310,7 @@ export default function SdqForm() {
       }
     };
     fetchStudent();
-  }, [studentId]);
+  }, [studentId, isPublic, searchParams]);
 
   const handleAnswerSelect = (score: number) => {
     const updated = [...answers];
@@ -213,15 +339,24 @@ export default function SdqForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      let userId = null;
+      if (!isPublic) {
+        try {
+          const { data } = await supabase.auth.getUser();
+          userId = data?.user?.id || null;
+        } catch (_) {}
+      }
+
+      const yearIdParam = searchParams.get('yearId');
+      const semesterIdParam = searchParams.get('semesterId');
       
       const payload: any = {
         student_id: studentId,
         evaluator_type: evaluatorTypeState,
-        evaluator_id: user?.id || null,
+        evaluator_id: userId,
         answers: answers,
-        academic_year_id: selectedYear?.id || null,
-        semester_id: selectedSemester?.id || null
+        academic_year_id: yearIdParam || selectedYear?.id || null,
+        semester_id: semesterIdParam || selectedSemester?.id || null
       };
 
       // บันทึกคำตอบด้านผลกระทบด้านหลัง (ถ้าผู้เรียนระบุว่า มีปัญหา)
@@ -248,6 +383,15 @@ export default function SdqForm() {
             setCaseAlert({ studentName: `${student.first_name} ${student.last_name}`, level: 'PROBLEM' });
           }
         } catch (_) { /* ignore */ }
+      }
+
+      if (isPublic) {
+        setSuccessMessage('บันทึกแบบประเมิน SDQ เรียบร้อยแล้ว ขอบคุณที่ให้ความร่วมมือ!');
+        setTimeout(() => {
+          setSuccessMessage(null);
+          setIsSubmitted(true);
+        }, 1500);
+        return;
       }
 
       if (evaluatorTypeState === 'TEACHER') {
@@ -287,12 +431,80 @@ export default function SdqForm() {
     );
   }
 
+  if (isExpired) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white p-4 flex items-center justify-center relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative z-10 space-y-6 animate-in fade-in duration-300">
+          <div className="w-20 h-20 bg-rose-500/20 text-rose-400 border border-rose-500/35 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-rose-500/15">
+            <AlertCircle size={40} className="animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-white">ลิงก์หมดอายุการใช้งาน</h3>
+            <p className="text-sm text-gray-300 font-bold leading-relaxed">
+              ขออภัย ลิงก์สแกน QR Code นี้หมดอายุแล้ว (อายุการใช้งาน 24 ชั่วโมง)
+            </p>
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+              กรุณาขอรหัสสแกน QR Code ชุดใหม่จากคุณครูประจำชั้นเพื่อทำการประเมินอีกครั้ง
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAlreadySubmitted) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white p-4 flex items-center justify-center relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative z-10 space-y-6 animate-in fade-in duration-300">
+          <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 border border-emerald-500/35 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/15">
+            <CheckCircle2 size={40} className="animate-bounce" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-white">ประเมินเรียบร้อยแล้ว</h3>
+            <p className="text-sm text-gray-300 font-bold leading-relaxed">
+              แบบประเมิน SDQ ในภาคเรียนนี้ได้รับการบันทึกแล้ว
+            </p>
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+              ระบบตรวจสอบพบว่าคุณได้ทำแบบประเมินนี้เสร็จสิ้นแล้ว ไม่จำเป็นต้องส่งข้อมูลซ้ำ ขอขอบคุณสำหรับความร่วมมือ
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white p-4 flex items-center justify-center relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative z-10 space-y-6 animate-in fade-in duration-300">
+          <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 border border-emerald-500/35 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/15">
+            <CheckCircle2 size={40} className="animate-bounce" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-white">บันทึกแบบประเมินสำเร็จ</h3>
+            <p className="text-sm text-gray-300 font-bold leading-relaxed">
+              แบบประเมิน SDQ ได้รับการบันทึกเรียบร้อยแล้ว
+            </p>
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+              ขอบคุณสำหรับข้อมูลและการมีส่วนร่วมกับทางโรงเรียนเพื่อช่วยดูแลและพัฒนานักเรียนต่อไป
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 pb-24 md:pb-8 flex flex-col items-center justify-center relative overflow-hidden font-sans">
       
       {/* Premium Glassmorphic Success Toast */}
       {successMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-6 duration-300">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-6 duration-300">
           <div className="bg-[#0f172a]/95 backdrop-blur-2xl border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl shadow-emerald-500/15 flex items-center gap-3">
             <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
               <CheckCircle2 size={20} className="animate-bounce" />
@@ -341,20 +553,22 @@ export default function SdqForm() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Desktop Back Button — hidden on mobile (bottom nav handles it) */}
-      <div className="hidden md:flex items-center gap-3 w-full max-w-2xl mb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/25 font-bold text-sm transition-all"
-        >
-          <ChevronLeft size={16} />
-          ย้อนกลับ
-        </button>
-        {student && (
-          <span className="text-xs text-gray-500">
-            {student.prefix}{student.first_name} {student.last_name} — SDQ Assessment
-          </span>
-        )}
-      </div>
+      {!isPublic && (
+        <div className="hidden md:flex items-center gap-3 w-full max-w-2xl mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/25 font-bold text-sm transition-all"
+          >
+            <ChevronLeft size={16} />
+            ย้อนกลับ
+          </button>
+          {student && (
+            <span className="text-xs text-gray-500">
+              {student.prefix}{student.first_name} {student.last_name} — SDQ Assessment
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative z-10">
         
@@ -368,38 +582,55 @@ export default function SdqForm() {
                 <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-emerald-500/35 block w-fit">
                   SDQ Assessment
                 </span>
+                {evaluatorTypeState === 'STUDENT' && (
+                  <span className="px-3 py-1 bg-indigo-500/25 text-indigo-300 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 block w-fit">
+                    นักเรียนประเมินตนเอง
+                  </span>
+                )}
+                {evaluatorTypeState === 'PARENT' && (
+                  <span className="px-3 py-1 bg-amber-500/25 text-amber-300 text-xxs font-bold uppercase tracking-widest rounded-full border border-amber-500/35 block w-fit">
+                    ผู้ปกครองประเมิน
+                  </span>
+                )}
+                {evaluatorTypeState === 'TEACHER' && (
+                  <span className="px-3 py-1 bg-sky-500/25 text-sky-300 text-xxs font-bold uppercase tracking-widest rounded-full border border-sky-500/35 block w-fit">
+                    ครูประเมินนักเรียน
+                  </span>
+                )}
               </div>
 
               {/* V15.1: Step Progress Indicator */}
-              <div className="flex items-center gap-1.5 mt-2 w-full">
-                {([
-                  { key: 'TEACHER', label: 'ครูประเมิน', step: 1, color: 'sky' },
-                  { key: 'STUDENT', label: 'นักเรียน', step: 2, color: 'indigo' },
-                  { key: 'PARENT',  label: 'ผู้ปกครอง', step: 3, color: 'amber' },
-                ] as const).map(({ key, label, step: s, color }) => {
-                  const stepOrder: Record<string, number> = { TEACHER: 1, STUDENT: 2, PARENT: 3 };
-                  const curStep = stepOrder[evaluatorTypeState];
-                  const isActive = key === evaluatorTypeState;
-                  const isDone   = stepOrder[key] < curStep;
-                  const colorMap: Record<string, string> = {
-                    sky:    isDone ? 'bg-sky-600 text-white' : isActive ? 'bg-sky-500 text-white ring-2 ring-sky-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
-                    indigo: isDone ? 'bg-indigo-600 text-white' : isActive ? 'bg-indigo-500 text-white ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
-                    amber:  isDone ? 'bg-amber-600 text-white' : isActive ? 'bg-amber-500 text-white ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
-                  };
-                  return (
-                    <React.Fragment key={key}>
-                      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all ${colorMap[color]}`}>
-                        {isDone ? <Check size={10} /> : <span>{s}</span>}
-                        <span className="hidden md:inline">{label}</span>
-                      </div>
-                      {s < 3 && <div className={`flex-1 h-0.5 rounded-full transition-all ${isDone ? 'bg-emerald-500/60' : 'bg-white/10'}`} />}
-                    </React.Fragment>
-                  );
-                })}
-                <span className="text-[10px] text-gray-500 font-bold ml-1">
-                  ขั้นตอนที่ {evaluatorTypeState === 'TEACHER' ? 1 : evaluatorTypeState === 'STUDENT' ? 2 : 3}/3
-                </span>
-              </div>
+              {!isPublic && (
+                <div className="flex items-center gap-1.5 mt-2 w-full">
+                  {([
+                    { key: 'TEACHER', label: 'ครูประเมิน', step: 1, color: 'sky' },
+                    { key: 'STUDENT', label: 'นักเรียน', step: 2, color: 'indigo' },
+                    { key: 'PARENT',  label: 'ผู้ปกครอง', step: 3, color: 'amber' },
+                  ] as const).map(({ key, label, step: s, color }) => {
+                    const stepOrder: Record<string, number> = { TEACHER: 1, STUDENT: 2, PARENT: 3 };
+                    const curStep = stepOrder[evaluatorTypeState];
+                    const isActive = key === evaluatorTypeState;
+                    const isDone   = stepOrder[key] < curStep;
+                    const colorMap: Record<string, string> = {
+                      sky:    isDone ? 'bg-sky-600 text-white' : isActive ? 'bg-sky-500 text-white ring-2 ring-sky-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                      indigo: isDone ? 'bg-indigo-600 text-white' : isActive ? 'bg-indigo-500 text-white ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                      amber:  isDone ? 'bg-amber-600 text-white' : isActive ? 'bg-amber-500 text-white ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0f172a]' : 'bg-white/10 text-gray-500',
+                    };
+                    return (
+                      <React.Fragment key={key}>
+                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all ${colorMap[color]}`}>
+                          {isDone ? <Check size={10} /> : <span>{s}</span>}
+                          <span className="hidden md:inline">{label}</span>
+                        </div>
+                        {s < 3 && <div className={`flex-1 h-0.5 rounded-full transition-all ${isDone ? 'bg-emerald-500/60' : 'bg-white/10'}`} />}
+                      </React.Fragment>
+                    );
+                  })}
+                  <span className="text-[10px] text-gray-500 font-bold ml-1">
+                    ขั้นตอนที่ {evaluatorTypeState === 'TEACHER' ? 1 : evaluatorTypeState === 'STUDENT' ? 2 : 3}/3
+                  </span>
+                </div>
+              )}
 
               <h2 className="text-xl md:text-3xl font-black text-white leading-tight mt-1">
                 {student ? `${student.prefix || ''}${student.first_name} ${student.last_name}` : 'โหลดข้อมูล...'}
@@ -413,57 +644,119 @@ export default function SdqForm() {
           </div>
 
           {/* Evaluator Selector Tabs (Visible only in Step 1 before completing form) */}
-          {step === 1 && (
-            <div className="mt-5 p-1 bg-white/5 border border-white/10 rounded-2xl flex gap-1 w-full shadow-inner">
-              {[
-                { 
-                  key: 'TEACHER', 
-                  labelDesktop: 'ครูประเมินนักเรียน', 
-                  labelMobile: 'ครู', 
-                  color: 'bg-sky-600 text-white border-sky-500/30',
-                  icon: GraduationCap
-                },
-                { 
-                  key: 'STUDENT', 
-                  labelDesktop: 'นักเรียนประเมินตนเอง', 
-                  labelMobile: 'นักเรียน', 
-                  color: 'bg-indigo-600 text-white border-indigo-500/30',
-                  icon: User
-                },
-                { 
-                  key: 'PARENT', 
-                  labelDesktop: 'ผู้ปกครองประเมิน', 
-                  labelMobile: 'ผู้ปกครอง', 
-                  color: 'bg-amber-600 text-white border-amber-500/30',
-                  icon: Users
-                },
-              ].map(item => {
-                const IconComponent = item.icon;
-                return (
+          {step === 1 && !isPublic && (
+            <>
+              <div className="mt-5 p-1 bg-white/5 border border-white/10 rounded-2xl flex gap-1 w-full shadow-inner">
+                {[
+                  { 
+                    key: 'TEACHER', 
+                    labelDesktop: 'ครูประเมินนักเรียน', 
+                    labelMobile: 'ครู', 
+                    color: 'bg-sky-600 text-white border-sky-500/30',
+                    icon: GraduationCap
+                  },
+                  { 
+                    key: 'STUDENT', 
+                    labelDesktop: 'นักเรียนประเมินตนเอง', 
+                    labelMobile: 'นักเรียน', 
+                    color: 'bg-indigo-600 text-white border-indigo-500/30',
+                    icon: User
+                  },
+                  { 
+                    key: 'PARENT', 
+                    labelDesktop: 'ผู้ปกครองประเมิน', 
+                    labelMobile: 'ผู้ปกครอง', 
+                    color: 'bg-amber-600 text-white border-amber-500/30',
+                    icon: Users
+                  },
+                ].map(item => {
+                  const IconComponent = item.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => handleEvaluatorChange(item.key as any)}
+                      className={`flex-1 py-2.5 px-1.5 font-bold rounded-xl transition-all border flex items-center justify-center gap-1.5 ${
+                        evaluatorTypeState === item.key
+                          ? `${item.color} shadow-md scale-[1.01]`
+                          : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <IconComponent size={14} className="shrink-0" />
+                      
+                      {/* Desktop View Label */}
+                      <span className="hidden md:inline text-[11px] whitespace-nowrap">
+                        {item.labelDesktop}
+                      </span>
+                      
+                      {/* Mobile View Label */}
+                      <span className="md:hidden text-[10px] whitespace-nowrap">
+                        {item.labelMobile}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* QR Code Inline Panel for Student and Parent evaluations in Teacher View */}
+              {evaluatorTypeState !== 'TEACHER' && (
+                <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col items-center text-center space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-white leading-snug">
+                      สแกน QR Code เพื่อประเมิน ({evaluatorTypeState === 'STUDENT' ? 'นักเรียนประเมินตนเอง' : 'ผู้ปกครองประเมิน'})
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      สแกนด้วยโทรศัพท์เพื่อกรอกแบบประเมินบนอุปกรณ์ของตนเอง หรือกดคัดลอกลิงก์
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 bg-white rounded-xl shadow-inner inline-block">
+                    <QRCodeSVG 
+                      value={`${window.location.origin}/public/sdq/${studentId}?${new URLSearchParams({
+                        type: evaluatorTypeState,
+                        yearId: selectedYear?.id || '',
+                        semesterId: selectedSemester?.id || '',
+                        name: student ? `${student.prefix || ''}${student.first_name} ${student.last_name}` : '',
+                        code: student?.student_code || '',
+                        room: student?.classroom ? `${student.classroom.level}/${student.classroom.room}` : '',
+                        timestamp: Date.now().toString()
+                      }).toString()}`} 
+                      size={140} 
+                      level="H" 
+                      includeMargin={false} 
+                    />
+                  </div>
+
                   <button
-                    key={item.key}
-                    onClick={() => handleEvaluatorChange(item.key as any)}
-                    className={`flex-1 py-2.5 px-1.5 font-bold rounded-xl transition-all border flex items-center justify-center gap-1.5 ${
-                      evaluatorTypeState === item.key
-                        ? `${item.color} shadow-md scale-[1.01]`
-                        : 'bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-white/5'
-                    }`}
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const classroomInfo = student?.classroom ? `${student.classroom.level}/${student.classroom.room}` : '';
+                        const queryParams = new URLSearchParams({
+                          type: evaluatorTypeState,
+                          yearId: selectedYear?.id || '',
+                          semesterId: selectedSemester?.id || '',
+                          name: student ? `${student.prefix || ''}${student.first_name} ${student.last_name}` : '',
+                          code: student?.student_code || '',
+                          room: classroomInfo,
+                          timestamp: Date.now().toString()
+                        }).toString();
+                        const publicUrl = `${window.location.origin}/public/sdq/${studentId}?${queryParams}`;
+                        await navigator.clipboard.writeText(publicUrl);
+                        setSuccessMessage('คัดลอกลิงก์แบบประเมินเรียบร้อยแล้ว!');
+                        setTimeout(() => setSuccessMessage(null), 2500);
+                      } catch (_) {
+                        setError('ไม่สามารถคัดลอกลิงก์ได้');
+                        setTimeout(() => setError(null), 2500);
+                      }
+                    }}
+                    className="py-2 px-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md"
                   >
-                    <IconComponent size={14} className="shrink-0" />
-                    
-                    {/* Desktop View Label */}
-                    <span className="hidden md:inline text-[11px] whitespace-nowrap">
-                      {item.labelDesktop}
-                    </span>
-                    
-                    {/* Mobile View Label */}
-                    <span className="md:hidden text-[10px] whitespace-nowrap">
-                      {item.labelMobile}
-                    </span>
+                    <Copy size={13} />
+                    คัดลอกลิงก์แบบประเมิน
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
           
           <div className="mt-4 flex items-center justify-between gap-4">
@@ -764,53 +1057,55 @@ export default function SdqForm() {
       </div>
 
       {/* Bottom Navigation Bar for Mobile (Line style with quick actions) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-white/10 py-3 px-2 flex justify-around items-center z-50 shadow-2xl safe-bottom">
-        {/* 0. ย้อนกลับ */}
-        <button
-          onClick={() => navigate('/studentsupport')}
-          className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
-          title="กลับหน้าควบคุมที่ปรึกษา"
-        >
-          <ChevronLeft size={20} className="text-gray-400" />
-          <span className="text-[10px] font-black text-gray-400">ย้อนกลับ</span>
-        </button>
+      {!isPublic && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-white/10 py-3 px-2 flex justify-around items-center z-50 shadow-2xl safe-bottom">
+          {/* 0. ย้อนกลับ */}
+          <button
+            onClick={() => navigate('/studentsupport')}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
+            title="กลับหน้าควบคุมที่ปรึกษา"
+          >
+            <ChevronLeft size={20} className="text-gray-400" />
+            <span className="text-[10px] font-black text-gray-400">ย้อนกลับ</span>
+          </button>
 
-        {/* 1. ดู 360° */}
-        <button
-          onClick={() => navigate(`/studentsupport/profile/${studentId}`)}
-          className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
-        >
-          <Activity size={20} />
-          <span className="text-[10px] font-black">ดู 360°</span>
-        </button>
+          {/* 1. ดู 360° */}
+          <button
+            onClick={() => navigate(`/studentsupport/profile/${studentId}`)}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
+          >
+            <Activity size={20} />
+            <span className="text-[10px] font-black">ดู 360°</span>
+          </button>
 
-        {/* 2. SDQ/EQ */}
-        <button
-          onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'SDQ_EQ' } })}
-          className="flex flex-col items-center gap-1 text-violet-400 scale-105 transition-all font-black"
-        >
-          <Smile size={20} />
-          <span className="text-[10px] font-black">ผล SDQ/EQ</span>
-        </button>
+          {/* 2. SDQ/EQ */}
+          <button
+            onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'SDQ_EQ' } })}
+            className="flex flex-col items-center gap-1 text-violet-400 scale-105 transition-all font-black"
+          >
+            <Smile size={20} />
+            <span className="text-[10px] font-black">ผล SDQ/EQ</span>
+          </button>
 
-        {/* 3. เวลาเรียน */}
-        <button
-          onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'ATTENDANCE' } })}
-          className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
-        >
-          <Calendar size={20} />
-          <span className="text-[10px] font-black">เวลาเรียน</span>
-        </button>
+          {/* 3. เวลาเรียน */}
+          <button
+            onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'ATTENDANCE' } })}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
+          >
+            <Calendar size={20} />
+            <span className="text-[10px] font-black">เวลาเรียน</span>
+          </button>
 
-        {/* 4. จัดการเคส */}
-        <button
-          onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'CASES' } })}
-          className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
-        >
-          <ShieldAlert size={20} />
-          <span className="text-[10px] font-black">จัดการเคส</span>
-        </button>
-      </div>
+          {/* 4. จัดการเคส */}
+          <button
+            onClick={() => navigate(`/studentsupport/profile/${studentId}`, { state: { activeTab: 'CASES' } })}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-all hover:scale-105"
+          >
+            <ShieldAlert size={20} />
+            <span className="text-[10px] font-black">จัดการเคส</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

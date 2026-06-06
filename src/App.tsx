@@ -472,6 +472,9 @@ function App() {
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/portal" />} />
 
+        {/* Public Routes */}
+        <Route path="/public/sdq/:studentId" element={<SdqForm isPublic={true} />} />
+
         <Route path="/portal" element={user ? <Portal /> : <Navigate to="/login" />} />
         <Route path="/homevisit/dashboard" element={user ? <HomeVisitLayout><HomeVisitDashboard /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/students" element={user ? <HomeVisitLayout><HomeVisitStudents /></HomeVisitLayout> : <Navigate to="/login" />} />

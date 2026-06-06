@@ -4,7 +4,7 @@ import {
   User, Home, Calendar, ShieldAlert, Heart, Activity, FileText,
   ChevronLeft, Sparkles, MapPin, Phone, Users, CheckCircle2,
   AlertTriangle, AlertCircle, Smile, HelpCircle, Eye, Mail, ArrowLeft, RefreshCw,
-  Award, ExternalLink, Trash2, Plus, X
+  Award, ExternalLink, Trash2, Plus, X, QrCode, Copy
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
@@ -14,6 +14,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAx
 import { useAuthStore } from '../../store/authStore';
 import { behaviorService } from '../../services/studentsupport/behaviorService';
 import type { BehaviorPoint } from '../../services/studentsupport/behaviorService';
+import { QRCodeSVG } from 'qrcode.react';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -105,6 +106,16 @@ export default function Student360() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'SDQ_EQ' | 'HOME_VISIT' | 'ATTENDANCE' | 'CASES' | 'PORTFOLIO' | 'BEHAVIOR'>('OVERVIEW');
   const [recalcEqLoading, setRecalcEqLoading] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrModalData, setQrModalData] = useState<{
+    url: string;
+    title: string;
+    studentName: string;
+    classroom: string;
+    code: string;
+  } | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [toastError, setToastError] = useState<string | null>(null);
 
   // Behavior points state
   const [behaviorPoints, setBehaviorPoints] = useState<BehaviorPoint[]>([]);
@@ -347,6 +358,36 @@ export default function Student360() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 pb-24 md:pb-8 relative overflow-hidden font-sans">
 
+      {/* Premium Glassmorphic Success Toast */}
+      {successMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-6 duration-300">
+          <div className="bg-[#0f172a]/95 backdrop-blur-2xl border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl shadow-emerald-500/15 flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+              <CheckCircle2 size={20} className="animate-bounce" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-xs font-black">สำเร็จ!</p>
+              <p className="text-[10px] text-gray-300 font-medium mt-0.5">{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Glassmorphic Error Toast */}
+      {toastError && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-6 duration-300">
+          <div className="bg-[#0f172a]/95 backdrop-blur-2xl border border-rose-500/30 text-rose-300 px-4 py-3 rounded-2xl shadow-2xl shadow-rose-500/15 flex items-center gap-3">
+            <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+              <AlertCircle size={20} className="animate-pulse" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-xs font-black">เกิดข้อผิดพลาด!</p>
+              <p className="text-[10px] text-gray-300 font-medium mt-0.5">{toastError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Decorative Glow */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -580,31 +621,63 @@ export default function Student360() {
                   { type: 'STUDENT' as const, label: 'นักเรียนประเมินตนเอง',   data: studentSdq, icon: '🎒' },
                   { type: 'PARENT'  as const, label: 'ผู้ปกครองประเมิน',       data: parentSdq,  icon: '👨\u200d👩\u200d👧' },
                 ]).map(({ type, label, data, icon }) => (
-                  <div key={type} className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{icon}</span>
-                      <span className="text-xs font-bold text-gray-300">{label}</span>
+                  <div key={type} className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col justify-between gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{icon}</span>
+                        <span className="text-xs font-bold text-gray-300">{label}</span>
+                      </div>
+                      {data ? (
+                        <>
+                          <div className={`px-3 py-2 rounded-xl text-xs font-black text-center ${
+                            data.result_difficulties === 'PROBLEM' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25' :
+                            data.result_difficulties === 'RISK'    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' :
+                                                                     'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                          }`}>
+                            {data.result_difficulties === 'PROBLEM' ? '🔴 มีปัญหา' : data.result_difficulties === 'RISK' ? '🟡 กลุ่มเสี่ยง' : '🟢 ปกติ'}
+                          </div>
+                          <p className="text-[10px] text-gray-500 text-center">
+                            คะแนนรวม: <span className="text-white font-bold">{data.total_difficulties_score}</span>/40 • {new Date(data.created_at).toLocaleDateString('th-TH')}
+                          </p>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/studentsupport/sdq/${student.id}?type=${type}`)}
+                          className="w-full py-2.5 px-3 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-500 text-xs font-bold hover:bg-white/10 hover:text-white hover:border-white/30 transition-all flex items-center justify-center gap-2"
+                        >
+                          <AlertCircle size={14} />
+                          ยังไม่ได้ประเมิน — คลิกเพื่อเริ่ม
+                        </button>
+                      )}
                     </div>
-                    {data ? (
-                      <>
-                        <div className={`px-3 py-2 rounded-xl text-xs font-black text-center ${
-                          data.result_difficulties === 'PROBLEM' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25' :
-                          data.result_difficulties === 'RISK'    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' :
-                                                                   'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                        }`}>
-                          {data.result_difficulties === 'PROBLEM' ? '🔴 มีปัญหา' : data.result_difficulties === 'RISK' ? '🟡 กลุ่มเสี่ยง' : '🟢 ปกติ'}
-                        </div>
-                        <p className="text-[10px] text-gray-500 text-center">
-                          คะแนนรวม: <span className="text-white font-bold">{data.total_difficulties_score}</span>/40 • {new Date(data.created_at).toLocaleDateString('th-TH')}
-                        </p>
-                      </>
-                    ) : (
+                    {type !== 'TEACHER' && (
                       <button
-                        onClick={() => navigate(`/studentsupport/sdq/${student.id}?type=${type}`)}
-                        className="w-full py-2.5 px-3 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-500 text-xs font-bold hover:bg-white/10 hover:text-white hover:border-white/30 transition-all flex items-center justify-center gap-2"
+                        onClick={() => {
+                          const classroomInfo = student.classroom ? `${student.classroom.level}/${student.classroom.room}` : '';
+                          const queryParams = new URLSearchParams({
+                            type,
+                            yearId: selectedYear?.id || '',
+                            semesterId: selectedSemester?.id || '',
+                            name: `${student.prefix || ''}${student.first_name} ${student.last_name}`,
+                            code: student.student_code || '',
+                            room: classroomInfo,
+                            timestamp: Date.now().toString()
+                          }).toString();
+                          
+                          const publicUrl = `${window.location.origin}/public/sdq/${student.id}?${queryParams}`;
+                          setQrModalData({
+                            url: publicUrl,
+                            title: `QR Code แบบประเมิน SDQ (${label})`,
+                            studentName: `${student.prefix || ''}${student.first_name} ${student.last_name}`,
+                            classroom: classroomInfo,
+                            code: student.student_code || ''
+                          });
+                          setQrModalOpen(true);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
                       >
-                        <AlertCircle size={14} />
-                        ยังไม่ได้ประเมิน — คลิกเพื่อเริ่ม
+                        <QrCode size={14} />
+                        สแกน QR Code เพื่อประเมิน
                       </button>
                     )}
                   </div>
@@ -1725,6 +1798,54 @@ export default function Student360() {
           <span className="text-[10px] font-black">จัดการเคส</span>
         </button>
       </div>
+
+      {/* Premium Glassmorphic QR Code Modal */}
+      {qrModalOpen && qrModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setQrModalOpen(false)}></div>
+          <div className="bg-[#1e293b] border border-white/10 rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 flex flex-col items-center text-center space-y-4">
+              <h3 className="text-base font-black text-white leading-snug">{qrModalData.title}</h3>
+              <p className="text-xs text-gray-400 font-bold">
+                นักเรียน: {qrModalData.studentName} ({qrModalData.code})<br />
+                ชั้นเรียน: {qrModalData.classroom}
+              </p>
+              
+              <div className="p-4 bg-white rounded-2xl shadow-inner border border-white/10">
+                <QRCodeSVG value={qrModalData.url} size={200} level="H" includeMargin={false} />
+              </div>
+              
+              <p className="text-[10px] text-gray-500 max-w-[240px] leading-relaxed">
+                สแกนด้วยโทรศัพท์เพื่อกรอกแบบประเมิน SDQ ได้ทันที หน้านี้จะซ่อนเมนูระบบโดยอัตโนมัติ
+              </p>
+
+              <div className="flex w-full gap-2 pt-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(qrModalData.url);
+                      setSuccessMessage('คัดลอกลิงก์แบบประเมินเรียบร้อยแล้ว!');
+                      setTimeout(() => setSuccessMessage(null), 2500);
+                    } catch (_) {
+                      setToastError('ไม่สามารถคัดลอกลิงก์ได้');
+                      setTimeout(() => setToastError(null), 2500);
+                    }
+                  }}
+                  className="flex-1 py-2.5 bg-white/5 border border-white/10 text-gray-300 font-bold text-xs rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Copy size={14} /> คัดลอกลิงก์
+                </button>
+                <button
+                  onClick={() => setQrModalOpen(false)}
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl transition-all"
+                >
+                  ปิด
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
