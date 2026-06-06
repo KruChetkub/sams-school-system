@@ -394,8 +394,17 @@ function App() {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error) {
-          console.error('Session retrieval error, signing out:', error)
-          await supabase.auth.signOut()
+          console.warn('Session retrieval warning (signing out locally):', error.message)
+          try {
+            await supabase.auth.signOut({ scope: 'local' })
+          } catch (_) {}
+          // Clear any leftover localStorage keys starting with sb- to prevent future refresh token loops
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              localStorage.removeItem(key)
+            }
+          }
           if (isMounted) setUser(null, null)
           return
         }
@@ -407,11 +416,17 @@ function App() {
             setUser(null, null)
           }
         }
-      } catch (err) {
-        console.error('Auth initialization exception, signing out:', err)
+      } catch (err: any) {
+        console.warn('Auth initialization exception, signing out locally:', err?.message || err)
         try {
-          await supabase.auth.signOut()
+          await supabase.auth.signOut({ scope: 'local' })
         } catch (_) {}
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key)
+          }
+        }
         if (isMounted) setUser(null, null)
       }
     }
