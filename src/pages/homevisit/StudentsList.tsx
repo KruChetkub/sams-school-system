@@ -14,6 +14,7 @@ export default function StudentsList() {
   const { selectedYear } = useAcademicYearStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'card' | 'table'>('list');
 
   // 1. ดึงห้องเรียนทั้งหมด เพื่อหาว่าครูคนนี้ประจำชั้นห้องไหน
   const { data: classrooms = [], isLoading: isLoadingClassrooms } = useQuery({
@@ -353,15 +354,42 @@ export default function StudentsList() {
         </div>
 
         {(!role || role === 'TEACHER' || (role === 'ADMIN' && selectedClassroomId)) && (
-          <div className="relative w-full md:w-72">
-            <input
-              type="text"
-              placeholder="ค้นหาชื่อ, รหัสนักเรียน..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
-            />
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* View Mode Toggle (Desktop only) */}
+            <div className="hidden md:flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' : 'text-gray-500 hover:text-gray-800'}`}
+              >
+                <span>☰</span> รายการ
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${viewMode === 'card' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' : 'text-gray-500 hover:text-gray-800'}`}
+              >
+                <span>▦</span> การ์ด
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' : 'text-gray-500 hover:text-gray-800'}`}
+              >
+                <span>⊞</span> ตาราง
+              </button>
+            </div>
+
+            <div className="relative w-full md:w-72">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อ, รหัสนักเรียน..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
+              />
+              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+            </div>
           </div>
         )}
       </div>
@@ -425,50 +453,198 @@ export default function StudentsList() {
           })()}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredStudents.map(student => {
-            const vStatus = getVisitStatus(student.id);
-            const isCompleted = vStatus.status === 'COMPLETED';
-            const cardStyle = isCompleted
-              ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50'
-              : 'bg-white border-gray-200';
+        <div className="space-y-4">
+          {/* Mobile View: Always Cards/Grid */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {filteredStudents.map(student => {
+              const vStatus = getVisitStatus(student.id);
+              const isCompleted = vStatus.status === 'COMPLETED';
+              const cardStyle = isCompleted
+                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50'
+                : 'bg-white border-gray-200';
 
-            return (
-              <div key={student.id} className={`${cardStyle} rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex gap-2 items-center mb-2">
-                      <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{student.student_code}</span>
-                      {student.classroom && (
-                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
-                          {student.classroom.level}/{student.classroom.room}
-                        </span>
-                      )}
+              return (
+                <div key={student.id} className={`${cardStyle} rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex gap-2 items-center mb-2">
+                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{student.student_code}</span>
+                        {student.classroom && (
+                          <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                            {student.classroom.level}/{student.classroom.room}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className={`font-bold mt-2 text-lg truncate ${isCompleted ? 'text-emerald-900' : 'text-gray-900'}`}>
+                        {student.prefix}{student.first_name} {student.last_name}
+                      </h3>
                     </div>
-                    <h3 className={`font-bold mt-2 text-lg truncate ${isCompleted ? 'text-emerald-900' : 'text-gray-900'}`}>
-                      {student.prefix}{student.first_name} {student.last_name}
-                    </h3>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${vStatus.color}`}>
+                      {vStatus.label}
+                    </span>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${vStatus.color}`}>
-                    {vStatus.label}
-                  </span>
-                </div>
 
-                <Link
-                  to={`/homevisit/visit/${student.id}`}
-                  className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
-                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
-                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}
-                >
-                  {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
-                </Link>
-              </div>
-            );
-          })}
+                  <Link
+                    to={`/homevisit/visit/${student.id}`}
+                    className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                      }`}
+                  >
+                    {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop View Mode: List (Default) */}
+          {viewMode === 'list' && (
+            <div className="hidden md:flex flex-col gap-3">
+              {filteredStudents.map(student => {
+                const vStatus = getVisitStatus(student.id);
+                const isCompleted = vStatus.status === 'COMPLETED';
+                const cardStyle = isCompleted
+                  ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50'
+                  : 'bg-white border-gray-200';
+
+                return (
+                  <div key={student.id} className={`${cardStyle} rounded-2xl p-4 border shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-6`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                        {student.first_name?.[0] || <User size={16} />}
+                      </div>
+                      <div>
+                        <h3 className={`font-bold text-base ${isCompleted ? 'text-emerald-900' : 'text-gray-900'}`}>
+                          {student.prefix}{student.first_name} {student.last_name}
+                        </h3>
+                        <div className="flex gap-2 items-center mt-1">
+                          <span className="text-xs text-gray-500 font-semibold">รหัส: {student.student_code}</span>
+                          {student.classroom && (
+                            <span className="text-xs text-gray-500 font-semibold">• ชั้น {student.classroom.level}/{student.classroom.room}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${vStatus.color}`}>
+                        {vStatus.label}
+                      </span>
+                      <Link
+                        to={`/homevisit/visit/${student.id}`}
+                        className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${isCompleted
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}
+                      >
+                        {isCompleted ? <><MapPin size={14} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={14} /> บันทึกการเยี่ยมบ้าน</>}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Desktop View Mode: Card */}
+          {viewMode === 'card' && (
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredStudents.map(student => {
+                const vStatus = getVisitStatus(student.id);
+                const isCompleted = vStatus.status === 'COMPLETED';
+                const cardStyle = isCompleted
+                  ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-emerald-100/50'
+                  : 'bg-white border-gray-200';
+
+                return (
+                  <div key={student.id} className={`${cardStyle} rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex gap-2 items-center mb-2">
+                          <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{student.student_code}</span>
+                          {student.classroom && (
+                            <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                              {student.classroom.level}/{student.classroom.room}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className={`font-bold mt-2 text-lg truncate ${isCompleted ? 'text-emerald-900' : 'text-gray-900'}`}>
+                          {student.prefix}{student.first_name} {student.last_name}
+                        </h3>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${vStatus.color}`}>
+                        {vStatus.label}
+                      </span>
+                    </div>
+
+                    <Link
+                      to={`/homevisit/visit/${student.id}`}
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }`}
+                    >
+                      {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Desktop View Mode: Table */}
+          {viewMode === 'table' && (
+            <div className="hidden md:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm text-gray-600">
+                <thead className="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4">รหัสนักเรียน</th>
+                    <th className="px-6 py-4">ชื่อ - นามสกุล</th>
+                    <th className="px-6 py-4">ชั้น/ห้อง</th>
+                    <th className="px-6 py-4 text-center">สถานะ</th>
+                    <th className="px-6 py-4 text-center">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredStudents.map(student => {
+                    const vStatus = getVisitStatus(student.id);
+                    const isCompleted = vStatus.status === 'COMPLETED';
+                    return (
+                      <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 font-mono font-medium text-gray-500">{student.student_code}</td>
+                        <td className="px-6 py-4 font-bold text-gray-900">
+                          {student.prefix}{student.first_name} {student.last_name}
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-gray-600">
+                          {student.classroom ? `${student.classroom.level}/${student.classroom.room}` : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${vStatus.color}`}>
+                            {vStatus.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Link
+                            to={`/homevisit/visit/${student.id}`}
+                            className={`inline-flex items-center gap-1.5 font-bold py-2 px-4 rounded-xl text-xs transition-all ${isCompleted
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                              }`}
+                          >
+                            {isCompleted ? <><MapPin size={12} /> ตรวจสอบ</> : <><MapPin size={12} /> บันทึก</>}
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {filteredStudents.length === 0 && (
-            <div className="col-span-full text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-400">
               ไม่พบรายชื่อนักเรียนที่ค้นหา
             </div>
           )}
