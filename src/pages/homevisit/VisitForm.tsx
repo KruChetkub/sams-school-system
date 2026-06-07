@@ -203,6 +203,8 @@ export default function VisitForm() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [distanceToSchoolAuto, setDistanceToSchoolAuto] = useState<number | null>(null);
+  const [gpsInput, setGpsInput] = useState<string>('');
+  const [gpsInputError, setGpsInputError] = useState<string | null>(null);
   const [riskLevel, setRiskLevel] = useState<'NORMAL' | 'WATCH' | 'URGENT'>('NORMAL');
 
   const [photoExteriorFile, setPhotoExteriorFile] = useState<File | null>(null);
@@ -358,6 +360,71 @@ export default function VisitForm() {
     }
   }, [existingData]);
 
+  // Sync coordinates to input string
+  useEffect(() => {
+    if (latitude !== null && longitude !== null) {
+      const parts = gpsInput.split(',');
+      if (parts.length === 2) {
+        const parsedLat = parseFloat(parts[0]);
+        const parsedLng = parseFloat(parts[1]);
+        if (parsedLat === latitude && parsedLng === longitude) {
+          return;
+        }
+      }
+      setGpsInput(`${latitude.toFixed(6)},${longitude.toFixed(6)}`);
+      setGpsInputError(null);
+    } else {
+      setGpsInput('');
+    }
+  }, [latitude, longitude]);
+
+  const updateLocationAndDistance = async (lat: number, lng: number) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    try {
+      const SCHOOL_LAT = 20.2445000;
+      const SCHOOL_LNG = 100.4125000;
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${SCHOOL_LNG},${SCHOOL_LAT};${lng},${lat}?overview=false`);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        const distanceKm = +(data.routes[0].distance / 1000).toFixed(2);
+        setDistanceToSchoolAuto(distanceKm);
+      } else {
+        setDistanceToSchoolAuto(null);
+      }
+    } catch (err) {
+      console.error('Error calculating distance:', err);
+    }
+  };
+
+  const handleGpsInputChange = (val: string) => {
+    setGpsInput(val);
+    if (!val.trim()) {
+      setLatitude(null);
+      setLongitude(null);
+      setDistanceToSchoolAuto(null);
+      setGpsInputError(null);
+      return;
+    }
+
+    const parts = val.split(',');
+    if (parts.length === 2) {
+      const latStr = parts[0].trim();
+      const lngStr = parts[1].trim();
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          setGpsInputError(null);
+          updateLocationAndDistance(lat, lng);
+          return;
+        }
+      }
+    }
+    setGpsInputError('รูปแบบพิกัดไม่ถูกต้อง (ตัวอย่าง: 20.229939,100.407324)');
+  };
+
   const handleGetLocation = () => {
     setShowGpsConfirmModal(true);
   };
@@ -370,21 +437,7 @@ export default function VisitForm() {
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          setLatitude(lat);
-          setLongitude(lng);
-
-          try {
-            const SCHOOL_LAT = 20.2445000;
-            const SCHOOL_LNG = 100.4125000;
-            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${SCHOOL_LNG},${SCHOOL_LAT};${lng},${lat}?overview=false`);
-            const data = await res.json();
-            if (data.routes && data.routes.length > 0) {
-              const distanceKm = +(data.routes[0].distance / 1000).toFixed(2);
-              setDistanceToSchoolAuto(distanceKm);
-            }
-          } catch (err) {
-            console.error('Error calculating distance:', err);
-          }
+          await updateLocationAndDistance(lat, lng);
           setGpsLoading(false);
         },
         (error) => {
@@ -635,24 +688,43 @@ export default function VisitForm() {
             <hr className="my-6 border-gray-100" />
 
             <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><MapPin className="text-emerald-500 w-4 h-4" /> พิกัดที่อยู่อาศัย (GPS)</h4>
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
-              <button
-                type="button"
-                onClick={handleGetLocation}
-                disabled={gpsLoading}
-                className="w-full sm:w-auto bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors shrink-0"
-              >
-                {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
-                กดเพื่อดึงพิกัดปัจจุบัน
-              </button>
+            <div className="space-y-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center w-full">
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={gpsLoading}
+                  className="w-full sm:w-auto bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors shrink-0"
+                >
+                  {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                  กดเพื่อดึงพิกัดปัจจุบัน
+                </button>
+                
+                <div className="flex-1 min-w-[240px]">
+                  <input
+                    type="text"
+                    value={gpsInput}
+                    onChange={(e) => handleGpsInputChange(e.target.value)}
+                    placeholder="กรอกพิกัดด้วยตัวเอง (เช่น 20.229939,100.407324)"
+                    className={`w-full border ${gpsInputError && gpsInput.length > 5 ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-xl p-3 outline-none focus:ring-2 text-sm bg-white transition-colors`}
+                  />
+                  {gpsInputError && gpsInput.length > 5 && (
+                    <p className="text-xs text-rose-500 mt-1 font-medium">{gpsInputError}</p>
+                  )}
+                </div>
+              </div>
+
               {latitude && longitude && (
-                <div className="flex flex-col gap-2 w-full sm:w-auto">
-                  <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-center sm:text-left block w-full sm:w-auto break-words whitespace-normal">
-                    Lat: {latitude.toFixed(6)}, Lng: {longitude.toFixed(6)}
+                <div className="flex flex-wrap gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    ละติจูด: {latitude.toFixed(6)}
                   </span>
-                  {distanceToSchoolAuto && (
-                    <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 block w-full sm:w-max max-w-full text-center sm:text-left break-words whitespace-normal">
-                      ระยะทาง (GPS ถึงโรงเรียน): {distanceToSchoolAuto} กม.
+                  <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    ลองจิจูด: {longitude.toFixed(6)}
+                  </span>
+                  {distanceToSchoolAuto !== null && distanceToSchoolAuto !== undefined && (
+                    <span className="text-sm font-black text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm">
+                      🛣️ ระยะทางจากโรงเรียน: {distanceToSchoolAuto} กม.
                     </span>
                   )}
                 </div>

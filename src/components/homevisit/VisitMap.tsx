@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Polyline, useMap, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import geojsonData from '../../../exports/geojson/chiang_khong_district.geojson?url';
 import { updateHomeVisit } from '../../services/homevisit/visitService';
@@ -35,6 +35,20 @@ const icons = {
   DEFAULT: createIcon('blue')
 };
 
+// Helper component to recenter the map dynamically to fit both the school and the active student coordinates.
+function MapRecenter({ schoolCoords, studentCoords }: { schoolCoords: [number, number]; studentCoords: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (studentCoords && studentCoords[0] && studentCoords[1]) {
+      const bounds = L.latLngBounds([schoolCoords, studentCoords]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+    } else {
+      map.setView(schoolCoords, 13);
+    }
+  }, [schoolCoords, studentCoords]);
+  return null;
+}
+
 interface VisitMapProps {
   visits: HomeVisit[];
   externalRouteTargetId?: string | null;
@@ -48,6 +62,11 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
   const [routeDistance, setRouteDistance] = useState<string | null>(null);
   const [isRouting, setIsRouting] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
+
+  const activeVisit = visits.find(v => v.id === (selectedVisitId || externalRouteTargetId)) || (visits.length === 1 ? visits[0] : null);
+  const studentCoords: [number, number] | null = activeVisit && activeVisit.latitude && activeVisit.longitude
+    ? [activeVisit.latitude, activeVisit.longitude]
+    : null;
 
   useEffect(() => {
     if (externalRouteTargetId) {
@@ -148,33 +167,13 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
       setIsRouting(false);
     }
   };
-
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-gray-200 shadow-sm relative z-0">
-      
-      {/* Floating Distance Overlay */}
-      {routeDistance && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-indigo-100 flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-            🛣️
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-bold">ระยะทางจากบ้านนักเรียนถึงโรงเรียน</p>
-            <p className="text-lg font-black text-indigo-700 leading-tight">
-              {routeDistance} <span className="text-sm font-medium text-gray-500">กิโลเมตร</span>
-            </p>
-          </div>
-        </div>
-      )}
 
-      {isRouting && !routeDistance && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-amber-100 flex items-center gap-3">
-          <div className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin"></div>
-          <p className="text-sm font-bold text-amber-700">กำลังคำนวณเส้นทางและระยะทาง...</p>
-        </div>
-      )}
+
 
       <MapContainer center={center} zoom={11} scrollWheelZoom={false} className="w-full h-full z-0">
+        <MapRecenter schoolCoords={[SCHOOL_LAT, SCHOOL_LNG]} studentCoords={studentCoords} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -192,6 +191,9 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
             <strong className="text-base text-violet-800">🏫 โรงเรียนเชียงของวิทยาคม</strong>
             <p className="text-xs text-gray-500 mt-1">จุดศูนย์กลางการคำนวณระยะทาง</p>
           </Popup>
+          <Tooltip permanent direction="top" offset={[0, -40]} className="font-sans font-bold text-xs bg-white text-violet-800 px-2 py-1 rounded shadow border border-violet-200">
+            🏫 โรงเรียนเชียงของวิทยาคม
+          </Tooltip>
         </Marker>
 
         {routeCoords && (
@@ -233,6 +235,9 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
                     )}
                   </div>
                 </Popup>
+                <Tooltip permanent direction="top" offset={[0, -40]} className="font-sans font-bold text-xs bg-white text-emerald-800 px-2 py-1 rounded shadow border border-emerald-200">
+                  🏠 {visit.student?.first_name} {visit.student?.last_name}
+                </Tooltip>
               </Marker>
             );
           }
