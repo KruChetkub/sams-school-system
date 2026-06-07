@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
-import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud } from 'lucide-react';
+import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud, Compass } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toJpeg } from 'html-to-image';
 import ReportPrintView from '../../components/homevisit/ReportPrintView';
@@ -613,17 +613,22 @@ export default function VisitForm() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex flex-wrap gap-2 mb-8 bg-gray-100 p-2 rounded-2xl">
+      <div
+        className="flex flex-nowrap md:flex-wrap gap-1.5 md:gap-2 mb-8 bg-gray-100 p-1.5 rounded-2xl overflow-x-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {[1, 2, 3, 4, 5].map(tab => {
-          const tabNames = ['หน้า 1 (ข้อมูลเบื้องต้น)', 'หน้า 2 (พฤติกรรม)', 'หน้า 3 (ภาพถ่าย)', 'หน้า 4 (แผนที่)', 'หน้า 5 (แสดงรายงาน)'];
+          const tabNamesDesktop = ['หน้า 1 (ข้อมูลเบื้องต้น)', 'หน้า 2 (พฤติกรรม)', 'หน้า 3 (ภาพถ่าย)', 'หน้า 4 (แผนที่)', 'หน้า 5 (แสดงรายงาน)'];
+          const tabNamesMobile = ['🪪 ข้อมูล', '📝 พฤติกรรม', '📷 ภาพถ่าย', '📍 พิกัด', '📊 รายงาน'];
           return (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 px-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+              className={`flex-1 shrink-0 py-3 px-1.5 md:px-3 rounded-xl font-bold text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
             >
-              {tabNames[tab - 1]}
+              <span className="md:hidden">{tabNamesMobile[tab - 1]}</span>
+              <span className="hidden md:inline">{tabNamesDesktop[tab - 1]}</span>
             </button>
           )
         })}
@@ -687,30 +692,41 @@ export default function VisitForm() {
 
             <hr className="my-6 border-gray-100" />
 
-            <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><MapPin className="text-emerald-500 w-4 h-4" /> พิกัดที่อยู่อาศัย (GPS)</h4>
             <div className="space-y-4 w-full">
-              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center w-full">
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={gpsLoading}
-                  className="w-full sm:w-auto bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors shrink-0"
-                >
-                  {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
-                  กดเพื่อดึงพิกัดปัจจุบัน
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+                {/* Column 1: Automatic GPS */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="text-emerald-500 w-4 h-4" /> พิกัดที่อยู่อาศัย (GPS)
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={gpsLoading}
+                    className="w-full bg-emerald-50 text-emerald-700 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
+                  >
+                    {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                    กดเพื่อดึงพิกัดปัจจุบัน
+                  </button>
+                </div>
 
-                <div className="flex-1 min-w-[240px]">
-                  <input
-                    type="text"
-                    value={gpsInput}
-                    onChange={(e) => handleGpsInputChange(e.target.value)}
-                    placeholder="กรอกพิกัดด้วยตัวเอง (เช่น 20.229939,100.407324)"
-                    className={`w-full border ${gpsInputError && gpsInput.length > 5 ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-xl p-3 outline-none focus:ring-2 text-sm bg-white transition-colors`}
-                  />
-                  {gpsInputError && gpsInput.length > 5 && (
-                    <p className="text-xs text-rose-500 mt-1 font-medium">{gpsInputError}</p>
-                  )}
+                {/* Column 2: Manual GPS */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Compass className="text-emerald-500 w-4 h-4" /> กรอกพิกัดที่อยู่อาศัย (GPS)
+                  </h4>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={gpsInput}
+                      onChange={(e) => handleGpsInputChange(e.target.value)}
+                      placeholder="กรอกพิกัดด้วยตัวเอง (เช่น 20.229939,100.407324)"
+                      className={`w-full border ${gpsInputError && gpsInput.length > 5 ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-xl p-3 outline-none focus:ring-2 text-sm bg-white transition-colors`}
+                    />
+                    {gpsInputError && gpsInput.length > 5 && (
+                      <p className="text-xs text-rose-500 mt-1 font-medium">{gpsInputError}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
