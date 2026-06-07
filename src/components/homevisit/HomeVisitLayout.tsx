@@ -22,6 +22,8 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
 
 export default function HomeVisitLayout({ children }: { children: React.ReactNode }) {
   const { user, role, signOut } = useAuthStore()
+  const location = useLocation()
+  const isFormPage = location.pathname.includes('/homevisit/visit/')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [teacherDisplayName, setTeacherDisplayName] = useState('')
   const userDisplayName = (role === 'ADMIN' || role === 'SUPER_ADMIN') ? 'แอดมิน' : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'))
@@ -91,12 +93,14 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden bg-white shadow-sm border-b border-gray-100 p-4 flex items-center gap-3 z-30 shrink-0">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-colors">
-            <Menu size={26} />
-          </button>
-          <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Home Visit</h2>
-        </header>
+        {!isFormPage && (
+          <header className="lg:hidden bg-white shadow-sm border-b border-gray-100 p-4 flex items-center gap-3 z-30 shrink-0">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-colors">
+              <Menu size={26} />
+            </button>
+            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Home Visit</h2>
+          </header>
+        )}
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto bg-gray-50/50 p-4 md:p-8">

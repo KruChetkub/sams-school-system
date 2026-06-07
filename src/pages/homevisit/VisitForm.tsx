@@ -180,9 +180,9 @@ export default function VisitForm() {
   const queryClient = useQueryClient();
 
   const { selectedYear } = useAcademicYearStore();
-  const { data: students, isPending: isLoadingStudents, isError: isErrorStudents } = useQuery({ 
-    queryKey: ['students', selectedYear?.id], 
-    queryFn: () => getStudents(selectedYear?.id) 
+  const { data: students, isPending: isLoadingStudents, isError: isErrorStudents } = useQuery({
+    queryKey: ['students', selectedYear?.id],
+    queryFn: () => getStudents(selectedYear?.id)
   });
   const student = students?.find(s => s.id === studentId);
 
@@ -413,7 +413,7 @@ export default function VisitForm() {
       const lngStr = parts[1].trim();
       const lat = parseFloat(latStr);
       const lng = parseFloat(lngStr);
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           setGpsInputError(null);
@@ -600,7 +600,7 @@ export default function VisitForm() {
   if (!student) return <div className="p-8 text-center text-gray-500">ไม่พบข้อมูลนักเรียน</div>;
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 px-4">
+    <div className="max-w-4xl mx-auto pb-28 sm:pb-12 px-4">
       <div className="flex justify-between items-center mb-6">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-emerald-600 font-semibold transition-colors">
           <ArrowLeft size={20} /> กลับไปรายชื่อนักเรียน
@@ -699,7 +699,7 @@ export default function VisitForm() {
                   {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
                   กดเพื่อดึงพิกัดปัจจุบัน
                 </button>
-                
+
                 <div className="flex-1 min-w-[240px]">
                   <input
                     type="text"
@@ -890,7 +890,7 @@ export default function VisitForm() {
                 <div className="block md:hidden space-y-3">
                   {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map((member) => {
                     const selectedVal = (formData.relation_with_members as any)?.[member];
-                    
+
                     // Style badges based on selection value
                     const badgeStyles: Record<string, string> = {
                       'สนิทสนม': 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -925,9 +925,8 @@ export default function VisitForm() {
                           <button
                             type="button"
                             onClick={() => setActiveMobileMember(member)}
-                            className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shrink-0 select-none ${
-                              selectedVal ? badgeStyles[selectedVal] : defaultBadgeStyle
-                            }`}
+                            className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shrink-0 select-none ${selectedVal ? badgeStyles[selectedVal] : defaultBadgeStyle
+                              }`}
                           >
                             {selectedVal || 'แตะเพื่อเลือก +'}
                           </button>
@@ -1415,8 +1414,8 @@ export default function VisitForm() {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 mt-8 border-t border-gray-200">
-          <div className="flex w-full sm:w-auto gap-3">
+        <div className="fixed bottom-4 left-4 right-4 rounded-3xl z-50 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-emerald-50/80 p-4 mt-0 flex flex-row justify-between items-center gap-3 sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:w-auto sm:max-w-none sm:rounded-none sm:border-0 sm:border-t sm:border-gray-200 sm:bg-transparent sm:backdrop-blur-none sm:shadow-none sm:pt-6 sm:mt-8 sm:p-0">
+          <div className="flex flex-1 sm:flex-initial sm:w-auto gap-3">
             {activeTab > 1 && (
               <button type="button" onClick={() => { setActiveTab(activeTab - 1); window.scrollTo(0, 0); }} className="flex-1 sm:flex-none px-6 py-4 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition-colors">
                 ย้อนกลับ
@@ -1427,11 +1426,21 @@ export default function VisitForm() {
                 ถัดไป
               </button>
             )}
+            {activeTab < 5 && (
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 sm:hidden px-4 py-4 rounded-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex justify-center items-center gap-2"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                บันทึก
+              </button>
+            )}
           </div>
           <button
             type="submit"
-            disabled={isLoading || activeTab !== 5}
-            className={`w-full sm:w-auto px-10 py-4 rounded-2xl font-black text-lg transition-all flex justify-center items-center gap-3 ${activeTab === 5 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            disabled={isLoading}
+            className={`w-full flex-1 sm:flex-initial sm:w-auto px-6 sm:px-10 py-4 rounded-2xl font-black text-base sm:text-lg transition-all flex justify-center items-center gap-3 ${activeTab === 5 ? 'flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]' : 'hidden sm:flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]'}`}
           >
             {isLoading ? <><Loader2 className="animate-spin" /> กำลังบันทึก...</> : existingData ? <><Save size={24} /> บันทึกการแก้ไขข้อมูล</> : <><Save size={24} /> บันทึกข้อมูลการเยี่ยมบ้าน</>}
           </button>
@@ -1483,7 +1492,7 @@ export default function VisitForm() {
             <div className="p-6 space-y-3 overflow-y-auto">
               {['สนิทสนม', 'เฉยๆ', 'ห่างเหิน', 'ขัดแย้ง', 'ไม่มี'].map(level => {
                 const isSelected = (formData.relation_with_members as any)?.[activeMobileMember] === level;
-                
+
                 // Active/Inactive Tailwind style classes
                 const colors: Record<string, string> = {
                   'สนิทสนม': 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/20 text-gray-700',
@@ -1492,7 +1501,7 @@ export default function VisitForm() {
                   'ขัดแย้ง': 'border-gray-200 hover:border-rose-200 hover:bg-rose-50/20 text-gray-700',
                   'ไม่มี': 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50 text-gray-600'
                 };
-                
+
                 const activeColors: Record<string, string> = {
                   'สนิทสนม': 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20',
                   'เฉยๆ': 'border-sky-500 bg-sky-50 text-sky-700 ring-2 ring-sky-500/20',
@@ -1511,14 +1520,12 @@ export default function VisitForm() {
                       updateForm('relation_with_members', newRelations);
                       setActiveMobileMember(null); // Auto close
                     }}
-                    className={`w-full text-left p-4.5 rounded-2xl border-2 transition-all flex items-center justify-between font-bold text-sm cursor-pointer ${
-                      isSelected ? activeColors[level] : colors[level]
-                    }`}
+                    className={`w-full text-left p-4.5 rounded-2xl border-2 transition-all flex items-center justify-between font-bold text-sm cursor-pointer ${isSelected ? activeColors[level] : colors[level]
+                      }`}
                   >
                     <span>{level}</span>
-                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isSelected ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
-                    }`}>
+                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                      }`}>
                       {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </span>
                   </button>
