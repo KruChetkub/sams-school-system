@@ -169,3 +169,12 @@ export const promoteClassroomStudents = async (sourceClassroomId: string, target
   if (error) throw error
   return data
 }
+
+export const hardDeleteStudent = async (id: string) => {
+  const { data, error } = await supabase.rpc('admin_hard_delete_student', {
+    s_id: id
+  })
+  if (error) throw error
+  return data
+}
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents, getDeletedStudents, restoreStudent } from '../services/studentService'
+import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents, getDeletedStudents, restoreStudent, hardDeleteStudent } from '../services/studentService'
 import { getClassrooms } from '../services/classroomService'
 import { getSubjects } from '../services/subjectService'
 import { addMembership, getAllMemberships, getMembershipsByGroup, removeMembership } from '../services/studentGroupService'
@@ -216,6 +216,19 @@ export default function Students() {
       openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถกู้คืนข้อมูลนักเรียนได้')
     }
   })
+
+  const hardDeleteMutation = useMutation({
+    mutationFn: hardDeleteStudent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['deleted_students'] })
+      openMessageModal('สำเร็จ', 'ลบข้อมูลนักเรียนออกจากระบบถาวรเรียบร้อยแล้ว')
+    },
+    onError: (err: any) => {
+      openMessageModal('ข้อผิดพลาด', err?.message || 'ไม่สามารถลบข้อมูลนักเรียนถาวรได้')
+    }
+  })
+
 
   const updateMutation = useMutation({
     mutationFn: ({ id, student }: { id: string, student: Omit<typeof formData, 'classroom_id'> & { classroom_id?: string } }) => updateStudent(id, student),
@@ -1428,22 +1441,42 @@ export default function Students() {
                           <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{formatDeleterName(student.deleted_by)}</td>
                           <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{thaiDate}</td>
                           <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
-                            <button
-                              onClick={() => {
-                                openConfirmModal(
-                                  'ยืนยันการกู้คืนข้อมูล',
-                                  `คุณต้องการกู้คืนข้อมูลของ ${student.prefix || ''}${student.first_name} ${student.last_name} กลับเข้าชั้นเรียนใช่หรือไม่?`,
-                                  () => {
-                                    restoreMutation.mutate(student.id);
-                                    setShowModal(false);
-                                  }
-                                );
-                              }}
-                              className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm inline-flex items-center gap-1.5"
-                              title="กู้คืนข้อมูลนักเรียน"
-                            >
-                              <RefreshCw size={14} /> กู้คืนข้อมูล
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  openConfirmModal(
+                                    'ยืนยันการกู้คืนข้อมูล',
+                                    `คุณต้องการกู้คืนข้อมูลของ ${student.prefix || ''}${student.first_name} ${student.last_name} กลับเข้าชั้นเรียนใช่หรือไม่?`,
+                                    () => {
+                                      restoreMutation.mutate(student.id);
+                                      setShowModal(false);
+                                    }
+                                  );
+                                }}
+                                className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                                title="กู้คืนข้อมูลนักเรียน"
+                              >
+                                <RefreshCw size={14} /> กู้คืนข้อมูล
+                              </button>
+                              {role === 'SUPER_ADMIN' && (
+                                <button
+                                  onClick={() => {
+                                    openConfirmModal(
+                                      'ยืนยันการลบนักเรียนถาวร',
+                                      `คุณต้องการลบข้อมูลของ ${student.prefix || ''}${student.first_name} ${student.last_name} ออกจากระบบอย่างถาวรใช่หรือไม่?\n\n(การดำเนินการนี้จะลบประวัติ บัญชีผู้ใช้ล็อกอินใน Supabase และคะแนนพฤติกรรม/ข้อมูลทั้งหมดของนักเรียนออกถาวรและไม่สามารถกู้คืนได้)`,
+                                      () => {
+                                        hardDeleteMutation.mutate(student.id);
+                                        setShowModal(false);
+                                      }
+                                    );
+                                  }}
+                                  className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                                  title="ลบข้อมูลถาวรออกจากระบบ"
+                                >
+                                  <Trash2 size={14} /> ลบถาวร
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

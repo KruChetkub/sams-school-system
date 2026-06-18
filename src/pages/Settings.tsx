@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, Bell, Shield, Smartphone, UserCog, Palette } from 'lucide-react'
-import { getUsers, updateUserRole } from '../services/userService'
+import { Save, Bell, Shield, Smartphone, UserCog, Palette, Plus, Edit, Trash2 } from 'lucide-react'
+import { getUsers, adminCreateUser, adminUpdateUser, adminDeleteUser } from '../services/userService'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
 
@@ -69,8 +69,25 @@ export default function Settings() {
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
   const [isThemeBgColumnSupported, setIsThemeBgColumnSupported] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [confirmTarget, setConfirmTarget] = useState<{ userId: string; email: string; newRole: string } | null>(null)
+
+  // Create User modal state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createEmail, setCreateEmail] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [createRole, setCreateRole] = useState('TEACHER')
+  const [createAdminAllowed, setCreateAdminAllowed] = useState(false)
+
+  // Edit User modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<{ id: string; email: string; role: string; is_admin_allowed?: boolean } | null>(null)
+  const [editEmail, setEditEmail] = useState('')
+  const [editPassword, setEditPassword] = useState('')
+  const [editRole, setEditRole] = useState('TEACHER')
+  const [editAdminAllowed, setEditAdminAllowed] = useState(false)
+
+  // Delete User modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -123,10 +140,11 @@ export default function Settings() {
       setResultModalType('success')
       setResultModalMessage('บันทึกธีมเรียบร้อย')
       setShowResultModal(true)
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error
       setIsSavingAppearance(false)
       setResultModalType('error')
-      setResultModalMessage(error?.message || 'ไม่สามารถบันทึกธีมได้')
+      setResultModalMessage(err?.message || 'ไม่สามารถบันทึกธีมได้')
       setShowResultModal(true)
     }
   }
@@ -152,15 +170,56 @@ export default function Settings() {
     enabled: hasSettingsAccess
   })
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string, role: string }) => updateUserRole(userId, role),
+  const createUserMutation = useMutation({
+    mutationFn: ({ email, password, role, isAdminAllowed }: { email: string; password: string; role: string; isAdminAllowed: boolean }) =>
+      adminCreateUser(email, password, role, isAdminAllowed),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setResultModalType('success')
-      setResultModalMessage('อัปเดตสิทธิ์ผู้ใช้งานสำเร็จเรียบร้อยแล้ว')
+      setResultModalMessage('สร้างบัญชีผู้ใช้งานใหม่สำเร็จแล้ว')
       setShowResultModal(true)
+      setShowCreateModal(false)
+      setCreateEmail('')
+      setCreatePassword('')
+      setCreateRole('TEACHER')
+      setCreateAdminAllowed(false)
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
+      setResultModalType('error')
+      setResultModalMessage('เกิดข้อผิดพลาด: ' + err.message)
+      setShowResultModal(true)
+    }
+  })
+
+  const updateUserMutation = useMutation({
+    mutationFn: ({ userId, email, password, role, isAdminAllowed }: { userId: string; email: string; password?: string | null; role: string; isAdminAllowed: boolean }) =>
+      adminUpdateUser(userId, email, password, role, isAdminAllowed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setResultModalType('success')
+      setResultModalMessage('แก้ไขข้อมูลผู้ใช้งานสำเร็จเรียบร้อยแล้ว')
+      setShowResultModal(true)
+      setShowEditModal(false)
+      setEditTarget(null)
+    },
+    onError: (err: Error) => {
+      setResultModalType('error')
+      setResultModalMessage('เกิดข้อผิดพลาด: ' + err.message)
+      setShowResultModal(true)
+    }
+  })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => adminDeleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setResultModalType('success')
+      setResultModalMessage('ลบผู้ใช้งานสำเร็จเรียบร้อยแล้ว')
+      setShowResultModal(true)
+      setShowDeleteModal(false)
+      setDeleteTarget(null)
+    },
+    onError: (err: Error) => {
       setResultModalType('error')
       setResultModalMessage('เกิดข้อผิดพลาด: ' + err.message)
       setShowResultModal(true)
@@ -208,41 +267,257 @@ export default function Settings() {
         </div>
       )}
 
-      {showConfirmModal && confirmTarget && (
+
+
+      {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)} />
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-205 bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="h-1.5 w-full bg-purple-600" />
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!createEmail || !createPassword) return;
+              createUserMutation.mutate({ email: createEmail, password: createPassword, role: createRole, isAdminAllowed: createAdminAllowed });
+            }}>
+              <div className="p-7">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 text-purple-600">
+                    <Plus size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 font-sans">เพิ่มผู้ใช้งานใหม่</h3>
+                    <p className="text-xs text-slate-500 mt-0.5 font-sans">สร้างบัญชีผู้ใช้งานในระบบและ Supabase Auth</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 font-sans">อีเมล (Email)</label>
+                    <input
+                      type="email"
+                      required
+                      value={createEmail}
+                      onChange={(e) => setCreateEmail(e.target.value)}
+                      placeholder="user@school.ac.th"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 font-sans">รหัสผ่าน (Password)</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.value)}
+                      placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 font-sans">บทบาท (Role)</label>
+                    <select
+                      value={createRole}
+                      onChange={(e) => setCreateRole(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 font-sans"
+                    >
+                      <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="TEACHER">TEACHER</option>
+                      <option value="ADVISOR">ADVISOR</option>
+                      <option value="STUDENT">STUDENT</option>
+                      <option value="PARENT">PARENT</option>
+                    </select>
+                  </div>
+
+                  {createRole !== 'ADMIN' && createRole !== 'SUPER_ADMIN' && (
+                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+                      <input
+                        type="checkbox"
+                        id="createAdminAllowed"
+                        checked={createAdminAllowed}
+                        onChange={(e) => setCreateAdminAllowed(e.target.checked)}
+                        className="h-4.5 w-4.5 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                      />
+                      <label htmlFor="createAdminAllowed" className="text-xs font-semibold text-slate-700 cursor-pointer select-none font-sans">
+                        อนุญาตสิทธิ์ผู้ดูแลระบบเสริม (Admin Access เสริม)
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-3 px-7 pb-7">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors font-sans text-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={createUserMutation.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors shadow-sm font-sans text-sm disabled:opacity-50"
+                >
+                  {createUserMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="h-1.5 w-full bg-indigo-600" />
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateUserMutation.mutate({
+                userId: editTarget.id,
+                email: editEmail,
+                password: editPassword || null,
+                role: editRole,
+                isAdminAllowed: editAdminAllowed
+              });
+            }}>
+              <div className="p-7">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 text-indigo-600">
+                    <Edit size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 font-sans">แก้ไขข้อมูลผู้ใช้งาน</h3>
+                    <p className="text-xs text-slate-500 mt-0.5 font-sans">อัปเดตอีเมล บทบาท หรือเปลี่ยนรหัสผ่านใน Supabase</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 font-sans">อีเมล (Email)</label>
+                    <input
+                      type="email"
+                      required
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="user@school.ac.th"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-slate-600 font-sans">รหัสผ่านใหม่ (Password)</label>
+                      <span className="text-[10px] text-slate-400 font-sans font-medium">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</span>
+                    </div>
+                    <input
+                      type="password"
+                      minLength={6}
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="ป้อนรหัสผ่านใหม่เพื่อทำการรีเซ็ต"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-slate-600 font-sans">บทบาท (Role)</label>
+                      {editTarget.id === user?.id && (
+                        <span className="text-[10px] text-amber-600 font-sans font-medium">ไม่สามารถเปลี่ยนบทบาทของตัวเองได้</span>
+                      )}
+                    </div>
+                    <select
+                      disabled={editTarget.id === user?.id}
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-sans disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    >
+                      <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="TEACHER">TEACHER</option>
+                      <option value="ADVISOR">ADVISOR</option>
+                      <option value="STUDENT">STUDENT</option>
+                      <option value="PARENT">PARENT</option>
+                    </select>
+                  </div>
+
+                  {editRole !== 'ADMIN' && editRole !== 'SUPER_ADMIN' && (
+                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+                      <input
+                        type="checkbox"
+                        id="editAdminAllowed"
+                        checked={editAdminAllowed}
+                        onChange={(e) => setEditAdminAllowed(e.target.checked)}
+                        className="h-4.5 w-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <label htmlFor="editAdminAllowed" className="text-xs font-semibold text-slate-700 cursor-pointer select-none font-sans">
+                        อนุญาตสิทธิ์ผู้ดูแลระบบเสริม (Admin Access เสริม)
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 px-7 pb-7">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors font-sans text-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateUserMutation.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm font-sans text-sm disabled:opacity-50"
+                >
+                  {updateUserMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="h-1.5 w-full bg-rose-600" />
             <div className="p-7">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 text-amber-500">
-                  <UserCog size={24} />
+                <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0 text-rose-500">
+                  <Trash2 size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 font-sans">ยืนยันการเปลี่ยนสิทธิ์</h3>
-                  <p className="text-xs text-slate-500 mt-0.5 font-sans">โปรดยืนยันการดำเนินการแก้ไขข้อมูล</p>
+                  <h3 className="text-lg font-bold text-slate-800 font-sans">ยืนยันการลบผู้ใช้งาน</h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-sans">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
                 </div>
               </div>
               <p className="text-sm text-slate-700 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 font-medium font-sans">
-                คุณต้องการเปลี่ยนสิทธิ์ของ <strong className="text-indigo-900">{confirmTarget.email}</strong> เป็น <strong className="text-indigo-900">{confirmTarget.newRole}</strong> ใช่หรือไม่?
+                คุณต้องการลบผู้ใช้ <strong className="text-rose-950">{deleteTarget.email}</strong> ออกจากระบบและ Supabase Auth ใช่หรือไม่?
               </p>
             </div>
             <div className="flex gap-3 px-7 pb-7">
               <button
                 type="button"
-                onClick={() => setShowConfirmModal(false)}
+                onClick={() => setShowDeleteModal(false)}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors font-sans text-sm"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  updateRoleMutation.mutate({ userId: confirmTarget.userId, role: confirmTarget.newRole })
-                  setShowConfirmModal(false)
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm font-sans text-sm"
+                disabled={deleteUserMutation.isPending}
+                onClick={() => deleteUserMutation.mutate(deleteTarget.id)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors shadow-sm font-sans text-sm disabled:opacity-50"
               >
-                ตกลง
+                {deleteUserMutation.isPending ? 'กำลังลบ...' : 'ตกลง'}
               </button>
             </div>
           </div>
@@ -386,11 +661,28 @@ export default function Settings() {
               <div className="bg-purple-100 p-2 rounded-lg"><UserCog className="text-purple-600" size={24} /></div>
               <h2 className="text-xl font-bold text-gray-800">User Management & Roles</h2>
             </div>
-            {!isSuperAdmin && (
-              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-lg border border-amber-200">
-                Read Only (สิทธิ์อ่านเท่านั้น)
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {!isSuperAdmin && (
+                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-lg border border-amber-200">
+                  Read Only (สิทธิ์อ่านเท่านั้น)
+                </span>
+              )}
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateEmail('')
+                    setCreatePassword('')
+                    setCreateRole('TEACHER')
+                    setShowCreateModal(true)
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 shadow-sm font-sans"
+                >
+                  <Plus size={16} />
+                  เพิ่มผู้ใช้งาน
+                </button>
+              )}
+            </div>
           </div>
           {isUsersLoading ? (
             <div className="text-center py-8 text-gray-500">กำลังโหลดข้อมูลผู้ใช้...</div>
@@ -401,31 +693,66 @@ export default function Settings() {
                   <tr>
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Role</th>
-                    <th className="px-6 py-4 text-center">Change Role</th>
+                    <th className="px-6 py-4 text-center">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {users?.map(u => (
                     <tr key={u.id} className="hover:bg-purple-50/30 transition-colors">
                       <td className="px-6 py-4 font-medium">{u.email}</td>
-                      <td className="px-6 py-4">{u.role}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            u.role === 'SUPER_ADMIN' ? 'bg-red-100 text-red-800 border border-red-200' :
+                            u.role === 'ADMIN' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            u.role === 'TEACHER' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                            u.role === 'ADVISOR' ? 'bg-teal-100 text-teal-800 border border-teal-200' :
+                            u.role === 'STUDENT' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}>
+                            {u.role}
+                          </span>
+                          {u.is_admin_allowed && (
+                            <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-indigo-200" title="ได้รับสิทธิ์ผู้ดูแลระบบเสริม">
+                              + Admin
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-center">
-                        <select
-                          className="border border-gray-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                          value={u.role}
-                          onChange={(e) => {
-                            setConfirmTarget({ userId: u.id, email: u.email, newRole: e.target.value })
-                            setShowConfirmModal(true)
-                          }}
-                          disabled={!isSuperAdmin || updateRoleMutation.isPending}
-                        >
-                          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                          <option value="ADMIN">ADMIN</option>
-                          <option value="TEACHER">TEACHER</option>
-                          <option value="ADVISOR">ADVISOR</option>
-                          <option value="STUDENT">STUDENT</option>
-                          <option value="PARENT">PARENT</option>
-                        </select>
+                        {isSuperAdmin ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditTarget({ id: u.id, email: u.email, role: u.role, is_admin_allowed: u.is_admin_allowed })
+                                setEditEmail(u.email)
+                                setEditRole(u.role)
+                                setEditAdminAllowed(!!u.is_admin_allowed)
+                                setEditPassword('')
+                                setShowEditModal(true)
+                              }}
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors hover:text-indigo-600"
+                              title="แก้ไขผู้ใช้งาน"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={u.id === user?.id}
+                              onClick={() => {
+                                setDeleteTarget({ id: u.id, email: u.email })
+                                setShowDeleteModal(true)
+                              }}
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors hover:text-rose-600 disabled:opacity-40 disabled:hover:text-slate-600 disabled:cursor-not-allowed"
+                              title="ลบผู้ใช้งาน"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-medium">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}

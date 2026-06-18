@@ -1,30 +1,39 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getTeachers, createTeacher, deleteTeacher, updateTeacher } from '../services/teacherService'
-import { Plus, Trash2, AlertTriangle, Edit2, X } from 'lucide-react'
+import { getTeachersAndUsers, createTeacherProfile, deleteTeacher, updateTeacher } from '../services/teacherService'
+import type { MergedTeacherUser } from '../services/teacherService'
+import { Trash2, AlertTriangle, Edit2, X } from 'lucide-react'
 
 export default function Teachers() {
   const queryClient = useQueryClient()
-  const { data: teachers, isLoading } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
+  const { data: teachers, isLoading } = useQuery({ queryKey: ['teachers'], queryFn: getTeachersAndUsers })
   
-  const [showForm, setShowForm] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
+
+  const [editingTarget, setEditingTarget] = useState<MergedTeacherUser | null>(null)
+  const [editFormData, setEditFormData] = useState({
     teacher_code: '',
     first_name: '',
     last_name: '',
     phone: '',
     email: '',
     department: '',
-    password: ''
+    user_id: ''
   })
 
-  const createMutation = useMutation({
-    mutationFn: createTeacher,
+  const createProfileMutation = useMutation({
+    mutationFn: createTeacherProfile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
-      setShowForm(false)
-      setFormData({ teacher_code: '', first_name: '', last_name: '', phone: '', email: '', department: '', password: '' })
+      setEditingTarget(null)
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: Parameters<typeof updateTeacher>[1] }) => updateTeacher(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+      setEditingTarget(null)
     }
   })
 
@@ -36,81 +45,58 @@ export default function Teachers() {
     }
   })
 
-  const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null)
-  const [editFormData, setEditFormData] = useState({
-    teacher_code: '',
-    first_name: '',
-    last_name: '',
-    phone: '',
-    email: '',
-    department: ''
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => updateTeacher(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teachers'] })
-      setEditingTeacherId(null)
-    }
-  })
-
-  const handleEditClick = (teacher: any) => {
+  const handleEditClick = (teacher: MergedTeacherUser) => {
     setEditFormData({
-      teacher_code: teacher.teacher_code,
-      first_name: teacher.first_name,
-      last_name: teacher.last_name,
+      teacher_code: teacher.teacher_code || '',
+      first_name: teacher.first_name || '',
+      last_name: teacher.last_name || '',
       phone: teacher.phone || '',
       email: teacher.email || '',
-      department: teacher.department || ''
+      department: teacher.department || '',
+      user_id: teacher.user_id
     })
-    setEditingTeacherId(teacher.id)
+    setEditingTarget(teacher)
   }
 
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editingTeacherId) return
-    const { email, ...updates } = editFormData // Remove email from updates
-    updateMutation.mutate({ id: editingTeacherId, data: updates })
-  }
+    if (!editingTarget) return
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate(formData)
+    if (editingTarget.hasProfile && editingTarget.teacher_id) {
+      updateMutation.mutate({
+        id: editingTarget.teacher_id,
+        data: {
+          teacher_code: editFormData.teacher_code,
+          first_name: editFormData.first_name,
+          last_name: editFormData.last_name,
+          phone: editFormData.phone,
+          department: editFormData.department
+        }
+      })
+    } else {
+      createProfileMutation.mutate({
+        teacher_code: editFormData.teacher_code,
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        phone: editFormData.phone,
+        email: editFormData.email,
+        department: editFormData.department,
+        user_id: editFormData.user_id
+      })
+    }
   }
 
   // หาข้อมูลครูที่กำลังจะลบ
-  const teacherToDelete = teachers?.find(t => t.id === confirmDeleteId)
+  const teacherToDelete = teachers?.find(t => t.teacher_id === confirmDeleteId)
   const teacherToDeleteName = teacherToDelete 
-    ? `${teacherToDelete.first_name} ${teacherToDelete.last_name}`
+    ? (teacherToDelete.first_name ? `${teacherToDelete.first_name} ${teacherToDelete.last_name}` : teacherToDelete.email)
     : ''
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการบุคลากร (Teachers)</h1>
-        <button 
-          onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm font-semibold"
-        >
-          <Plus size={20} /> เพิ่มบุคลากร
-        </button>
       </div>
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700">รหัสครู</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.teacher_code} onChange={e => setFormData({...formData, teacher_code: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อ</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">แผนก/หมวดวิชา</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">อีเมล (ใช้สำหรับล็อกอิน)</label><input type="email" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ตั้งรหัสผ่านชั่วคราว</label><input type="password" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" placeholder="กรุณาตั้งรหัสผ่าน (ขั้นต่ำ 6 ตัวอักษร)" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} /></div>
-          <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">บันทึกข้อมูล</button>
-          </div>
-        </form>
-      )}
 
       {isLoading ? (
         <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
@@ -119,26 +105,40 @@ export default function Teachers() {
           {/* Mobile Card View */}
           <div className="block md:hidden divide-y divide-gray-100">
             {teachers?.map(teacher => (
-              <div key={teacher.id} className="p-4 hover:bg-indigo-50/40 transition-colors flex justify-between items-center gap-4">
+              <div key={teacher.user_id} className="p-4 hover:bg-indigo-50/40 transition-colors flex justify-between items-center gap-4">
                 <div className="flex flex-col gap-1">
-                  <div className="font-semibold text-gray-800">{teacher.first_name} {teacher.last_name}</div>
+                  <div className="font-semibold text-gray-800 flex items-center gap-2">
+                    {teacher.hasProfile ? `${teacher.first_name} ${teacher.last_name}` : teacher.email}
+                    {!teacher.hasProfile && (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                        รอเพิ่มประวัติ
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-500 flex gap-3">
-                    <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600">{teacher.teacher_code}</span>
-                    <span>{teacher.department || '-'}</span>
+                    {teacher.hasProfile ? (
+                      <>
+                        <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600">{teacher.teacher_code}</span>
+                        <span>{teacher.department || '-'}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">ยังไม่มีข้อมูลประวัติในระบบ</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => handleEditClick(teacher)}
                     className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0"
-                    title="แก้ไขข้อมูล"
+                    title={teacher.hasProfile ? "แก้ไขข้อมูล" : "กรอกข้อมูลประวัติ"}
                   >
                     <Edit2 size={18} />
                   </button>
                   <button 
-                    onClick={() => setConfirmDeleteId(teacher.id)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                    title="ลบข้อมูล"
+                    disabled={!teacher.hasProfile}
+                    onClick={() => setConfirmDeleteId(teacher.teacher_id)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="ลบประวัติ"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -163,22 +163,37 @@ export default function Teachers() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {teachers?.map(teacher => (
-                  <tr key={teacher.id} className="hover:bg-indigo-50/40 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{teacher.teacher_code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">{teacher.first_name} {teacher.last_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{teacher.department || '-'}</td>
+                  <tr key={teacher.user_id} className="hover:bg-indigo-50/40 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">
+                      {teacher.hasProfile ? (
+                        teacher.teacher_code
+                      ) : (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1 rounded-lg border border-amber-200">
+                          รอเพิ่มประวัติ
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">
+                      {teacher.hasProfile ? `${teacher.first_name} ${teacher.last_name}` : (
+                        <span className="text-gray-400 font-normal">{teacher.email}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                      {teacher.hasProfile ? (teacher.department || '-') : '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button 
                         onClick={() => handleEditClick(teacher)}
                         className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors inline-flex justify-center mr-2"
-                        title="แก้ไขข้อมูล"
+                        title={teacher.hasProfile ? "แก้ไขข้อมูล" : "กรอกข้อมูลประวัติ"}
                       >
                         <Edit2 size={18} />
                       </button>
                       <button 
-                        onClick={() => setConfirmDeleteId(teacher.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
-                        title="ลบข้อมูล"
+                        disabled={!teacher.hasProfile}
+                        onClick={() => setConfirmDeleteId(teacher.teacher_id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="ลบประวัติ"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -195,13 +210,15 @@ export default function Teachers() {
       )}
 
       {/* Edit Modal */}
-      {editingTeacherId && (
+      {editingTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setEditingTeacherId(null)} />
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setEditingTarget(null)} />
           <div className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-800">แก้ไขข้อมูลบุคลากร</h3>
-              <button onClick={() => setEditingTeacherId(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <h3 className="text-xl font-bold text-gray-800">
+                {editingTarget.hasProfile ? 'แก้ไขข้อมูลบุคลากร' : 'กรอกข้อมูลประวัติบุคลากร'}
+              </h3>
+              <button onClick={() => setEditingTarget(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -213,8 +230,10 @@ export default function Teachers() {
               <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={editFormData.phone} onChange={e => setEditFormData({...editFormData, phone: e.target.value})} /></div>
               <div><label className="block text-sm font-medium text-gray-700 flex justify-between"><span>อีเมล</span> <span className="text-xs text-red-500 font-normal">*ไม่สามารถแก้ไขได้</span></label><input type="email" disabled className="mt-1 w-full border border-gray-200 bg-gray-50 text-gray-500 rounded-lg p-2.5 outline-none cursor-not-allowed" value={editFormData.email} /></div>
               <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setEditingTeacherId(null)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                <button type="submit" disabled={updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">{updateMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}</button>
+                <button type="button" onClick={() => setEditingTarget(null)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                <button type="submit" disabled={updateMutation.isPending || createProfileMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">
+                  {updateMutation.isPending || createProfileMutation.isPending ? 'กำลังบันทึก...' : editingTarget.hasProfile ? 'บันทึกการแก้ไข' : 'บันทึกประวัติ'}
+                </button>
               </div>
             </form>
           </div>

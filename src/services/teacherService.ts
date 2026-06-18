@@ -52,3 +52,70 @@ export const updateTeacher = async (id: string, updates: Partial<Omit<Teacher, '
   if (error) throw error
   return data as Teacher
 }
+
+export interface MergedTeacherUser {
+  user_id: string
+  email: string
+  role: string
+  teacher_id: string | null
+  teacher_code: string
+  first_name: string
+  last_name: string
+  phone: string
+  department: string
+  hasProfile: boolean
+}
+
+export const getTeachersAndUsers = async (): Promise<MergedTeacherUser[]> => {
+  const { data: users, error: usersError } = await supabase
+    .from('users')
+    .select('id, email, role')
+    .in('role', ['TEACHER', 'ADVISOR', 'ADMIN', 'SUPER_ADMIN'])
+    
+  if (usersError) throw usersError
+
+  const { data: teachers, error: teachersError } = await supabase
+    .from('teachers')
+    .select('*')
+    
+  if (teachersError) throw teachersError
+
+  const merged = (users || []).map((u: { id: string; email: string; role: string }) => {
+    const profile = (teachers || []).find((t: Teacher) => t.user_id === u.id || t.email === u.email)
+    return {
+      user_id: u.id,
+      email: u.email,
+      role: u.role,
+      teacher_id: profile?.id || null,
+      teacher_code: profile?.teacher_code || '',
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      phone: profile?.phone || '',
+      department: profile?.department || '',
+      hasProfile: !!profile
+    }
+  })
+
+  merged.sort((a, b) => {
+    if (a.first_name && b.first_name) {
+      return a.first_name.localeCompare(b.first_name)
+    }
+    if (a.first_name) return -1
+    if (b.first_name) return 1
+    return a.email.localeCompare(b.email)
+  })
+
+  return merged
+}
+
+export const createTeacherProfile = async (profile: Omit<Teacher, 'id'>) => {
+  const { data, error } = await supabase
+    .from('teachers')
+    .insert(profile)
+    .select()
+    .single()
+    
+  if (error) throw error
+  return data as Teacher
+}
+
