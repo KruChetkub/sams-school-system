@@ -164,7 +164,7 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
     .from('home_visits')
     .select(`
       *,
-      student:students!inner(id, student_code, prefix, first_name, last_name, nickname, deleted_at),
+      student:students!inner(id, student_code, prefix, first_name, last_name, nickname, deleted_at, classroom_id),
       home_visit_assessments(risk_level)
     `);
 
@@ -172,7 +172,28 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
   query = query.is('student.deleted_at', null);
 
   if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
-    query = query.eq('teacher_id', teacherId);
+    // ดึง classrooms ของครูเพื่อดึงประวัติเยี่ยมบ้านของห้องที่ครูเป็นที่ปรึกษา (ทั้งคนที่ 1 และคนที่ 2)
+    const { data: teacherProfile } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', teacherId)
+      .maybeSingle();
+
+    if (teacherProfile) {
+      const { data: advisorClassrooms } = await supabase
+        .from('classrooms')
+        .select('id')
+        .or(`advisor_id.eq.${teacherProfile.id},advisor2_id.eq.${teacherProfile.id}`);
+      
+      const classroomIds = (advisorClassrooms || []).map(c => c.id);
+      if (classroomIds.length > 0) {
+        query = query.in('student.classroom_id', classroomIds);
+      } else {
+        query = query.eq('teacher_id', teacherId);
+      }
+    } else {
+      query = query.eq('teacher_id', teacherId);
+    }
   }
 
   if (academicYearId) {
@@ -228,7 +249,31 @@ export const getHomeVisitByStudentAndTeacher = async (
     .eq('student_id', studentId);
     
   if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
-    query = query.eq('teacher_id', teacherId);
+    // ตรวจสอบว่าครูคนนี้เป็นครูประจำชั้นคนที่ 1 หรือ 2 ของเด็กคนนี้หรือไม่
+    const { data: teacherProfile } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', teacherId)
+      .maybeSingle();
+
+    if (teacherProfile) {
+      const { data: student } = await supabase
+        .from('students')
+        .select(`
+          classroom:classroom_id (id, advisor_id, advisor2_id)
+        `)
+        .eq('id', studentId)
+        .maybeSingle();
+
+      const classroom = student?.classroom as any;
+      const isAdvisor = classroom && (classroom.advisor_id === teacherProfile.id || classroom.advisor2_id === teacherProfile.id);
+
+      if (!isAdvisor) {
+        query = query.eq('teacher_id', teacherId);
+      }
+    } else {
+      query = query.eq('teacher_id', teacherId);
+    }
   }
 
   if (academicYearId) {

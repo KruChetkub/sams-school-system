@@ -1393,7 +1393,7 @@ export default function Students() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {(() => {
-                    const teacherClassroomIds = (classrooms || []).filter(c => c.advisor_id === teacherProfile?.id).map(c => c.id);
+                    const teacherClassroomIds = (classrooms || []).filter(c => c.advisor_id === teacherProfile?.id || c.advisor2_id === teacherProfile?.id).map(c => c.id);
                     const filteredDeleted = (deletedStudents || []).filter(s => {
                       // 1. Role filter
                       if (role === 'TEACHER') {

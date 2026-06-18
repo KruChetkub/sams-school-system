@@ -40,12 +40,13 @@ export default function Classrooms() {
     level: '',
     room: '',
     advisor_id: '',
+    advisor2_id: '',
     subject_teacher_id: ''
   })
 
   const openAddForm = () => {
     setEditId(null)
-    setFormData({ level: '', room: '', advisor_id: '', subject_teacher_id: '' })
+    setFormData({ level: '', room: '', advisor_id: '', advisor2_id: '', subject_teacher_id: '' })
     setShowForm(true)
     setTimeout(() => {
       topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -58,6 +59,7 @@ export default function Classrooms() {
       level: classroom.level, 
       room: classroom.room, 
       advisor_id: classroom.advisor_id || '',
+      advisor2_id: classroom.advisor2_id || '',
       subject_teacher_id: classroom.subject_teacher_id || ''
     })
     setShowForm(true)
@@ -71,7 +73,7 @@ export default function Classrooms() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classrooms'] })
       setShowForm(false)
-      setFormData({ level: '', room: '', advisor_id: '' })
+      setFormData({ level: '', room: '', advisor_id: '', advisor2_id: '', subject_teacher_id: '' })
     }
   })
 
@@ -98,6 +100,7 @@ export default function Classrooms() {
       level: formData.level,
       room: formData.room,
       advisor_id: formData.advisor_id || '',
+      advisor2_id: formData.advisor2_id || '',
       subject_teacher_id: formData.subject_teacher_id || ''
     }
 
@@ -130,7 +133,7 @@ export default function Classrooms() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">ระดับชั้น (เช่น ม.1)</label>
             <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})} placeholder="ม.1" />
@@ -140,11 +143,24 @@ export default function Classrooms() {
             <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} placeholder="1" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษา</label>
+            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 1</label>
             <select 
               className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
               value={formData.advisor_id}
               onChange={e => setFormData({...formData, advisor_id: e.target.value})}
+            >
+              <option value="">-- ไม่ระบุ --</option>
+              {teachers?.map(t => (
+                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 2</label>
+            <select 
+              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
+              value={formData.advisor2_id}
+              onChange={e => setFormData({...formData, advisor2_id: e.target.value})}
             >
               <option value="">-- ไม่ระบุ --</option>
               {teachers?.map(t => (
@@ -166,7 +182,7 @@ export default function Classrooms() {
             </select>
           </div>
           
-          <div className="col-span-1 md:col-span-3 flex justify-end gap-3 mt-4">
+          <div className="col-span-1 md:col-span-5 flex justify-end gap-3 mt-4">
             <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
             <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm">
               {editId ? 'บันทึกการแก้ไข' : 'เพิ่มห้องเรียน'}
@@ -188,7 +204,8 @@ export default function Classrooms() {
                   <div className="flex flex-col gap-1">
                     <div className={`font-bold text-xl ${palette.title}`}>{classroom.level}/{classroom.room}</div>
                     <div className={`text-sm mt-1 font-medium ${palette.meta}`}>
-                      <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษา:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}</div>
+                      <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษาคนที่ 1:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}</div>
+                      <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษาคนที่ 2:</span> {classroom.advisor2 ? `${classroom.advisor2.first_name} ${classroom.advisor2.last_name}` : '-'}</div>
                       <div><span className="opacity-80">ประจำวิชา:</span> {classroom.subject_teacher ? `${classroom.subject_teacher.first_name} ${classroom.subject_teacher.last_name}` : '-'}</div>
                     </div>
                   </div>
@@ -223,7 +240,8 @@ export default function Classrooms() {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ระดับชั้น</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้อง</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษา</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษาคนที่ 1</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษาคนที่ 2</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูประจำวิชา</th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
                 </tr>
@@ -235,6 +253,9 @@ export default function Classrooms() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{classroom.room}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {classroom.advisor2 ? `${classroom.advisor2.first_name} ${classroom.advisor2.last_name}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {classroom.subject_teacher ? `${classroom.subject_teacher.first_name} ${classroom.subject_teacher.last_name}` : '-'}
@@ -260,7 +281,7 @@ export default function Classrooms() {
                   </tr>
                 ))}
                 {classrooms?.length === 0 && (
-                  <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
                 )}
               </tbody>
             </table>

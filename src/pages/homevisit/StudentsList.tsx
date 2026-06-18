@@ -65,6 +65,26 @@ export default function StudentsList() {
     });
   }, [allTeachers, teacherSearch, teacherDeptFilter]);
 
+  // ดึงโปรไฟล์ครูที่ล็อกอินอยู่ เพื่อดึง id (teachers.id)
+  const { data: teacherProfile } = useQuery({
+    queryKey: ['teacher_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id, user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && role === 'TEACHER'
+  });
+
+  const activeTeacherId = role === 'TEACHER'
+    ? teacherProfile?.id
+    : (selectedTeacher ? selectedTeacher.id : undefined);
+
   const activeTeacherUserId = role === 'TEACHER'
     ? user?.id
     : (selectedTeacher ? selectedTeacher.user_id : undefined);
@@ -87,9 +107,9 @@ export default function StudentsList() {
   const isLoading = isLoadingStudents || isLoadingVisits || isLoadingClassrooms;
 
   const activeTeacherClassroomIds = React.useMemo(() => {
-    if (!activeTeacherUserId) return [];
-    return classrooms.filter(c => c.advisor_id === activeTeacherUserId).map(c => c.id);
-  }, [classrooms, activeTeacherUserId]);
+    if (!activeTeacherId) return [];
+    return classrooms.filter(c => c.advisor_id === activeTeacherId || c.advisor2_id === activeTeacherId).map(c => c.id);
+  }, [classrooms, activeTeacherId]);
 
   // กรองนักเรียน
   const filteredStudents = students.filter(s => {
@@ -237,7 +257,7 @@ export default function StudentsList() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredTeachers.map((teacher) => {
               const initials = `${teacher.first_name?.[0] || ''}${teacher.last_name?.[0] || ''}`
-              const advisorRoomsCount = classrooms?.filter(c => c.advisor_id === teacher.user_id).length || 0;
+              const advisorRoomsCount = classrooms?.filter(c => c.advisor_id === teacher.id || c.advisor2_id === teacher.id).length || 0;
               return (
                 <button
                   key={teacher.id}
@@ -399,8 +419,8 @@ export default function StudentsList() {
       ) : role === 'ADMIN' && !selectedClassroomId ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {(() => {
-            const list = activeTeacherUserId
-              ? classrooms.filter(c => c.advisor_id === activeTeacherUserId)
+            const list = activeTeacherId
+              ? classrooms.filter(c => c.advisor_id === activeTeacherId || c.advisor2_id === activeTeacherId)
               : classrooms;
             return list.map(cls => {
               const studentCount = students.filter(s => s.classroom_id === cls.id).length;
@@ -408,10 +428,10 @@ export default function StudentsList() {
                 <div
                   key={cls.id}
                   onClick={() => setSelectedClassroomId(cls.id)}
-                  className={`${getCardStyle(cls.advisor_id)} rounded-2xl p-5 border hover:-translate-y-1 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden`}
+                  className={`${getCardStyle(cls.advisor_id || cls.advisor2_id)} rounded-2xl p-5 border hover:-translate-y-1 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden`}
                 >
                   {/* Decorative element for gradient cards */}
-                  {cls.advisor_id && (
+                  {(cls.advisor_id || cls.advisor2_id) && (
                     <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/40 rounded-full blur-2xl group-hover:bg-white/60 transition-all"></div>
                   )}
 
@@ -423,8 +443,9 @@ export default function StudentsList() {
                       <div className="text-xs text-gray-600 font-medium flex items-center gap-1 mb-1">
                         <Users size={12} /> ครูที่ปรึกษา
                       </div>
-                      <div className="font-bold text-gray-900 text-lg drop-shadow-sm">
+                      <div className="font-bold text-gray-900 text-sm drop-shadow-sm leading-tight">
                         {cls.advisor ? `${cls.advisor.first_name} ${cls.advisor.last_name}` : <span className="text-gray-400 italic">ยังไม่ระบุ</span>}
+                        {cls.advisor2 && <div className="text-xs text-gray-500 font-normal mt-0.5">ร่วมกับ: {cls.advisor2.first_name} {cls.advisor2.last_name}</div>}
                       </div>
                     </div>
                   </div>
@@ -442,8 +463,8 @@ export default function StudentsList() {
             });
           })()}
           {(() => {
-            const list = activeTeacherUserId
-              ? classrooms.filter(c => c.advisor_id === activeTeacherUserId)
+            const list = activeTeacherId
+              ? classrooms.filter(c => c.advisor_id === activeTeacherId || c.advisor2_id === activeTeacherId)
               : classrooms;
             return list.length === 0 && (
               <div className="col-span-full text-center py-12 text-gray-400">

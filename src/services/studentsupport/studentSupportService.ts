@@ -334,7 +334,7 @@ export const studentSupportService = {
       let classQuery = supabase
         .from('classrooms')
         .select('id')
-        .eq('advisor_id', teacher.id);
+        .or(`advisor_id.eq.${teacher.id},advisor2_id.eq.${teacher.id}`);
       
       if (academicYearId) {
         classQuery = classQuery.eq('academic_year_id', academicYearId);
@@ -612,7 +612,7 @@ export const studentSupportService = {
         .from('students')
         .select(`
           *,
-          classroom:classroom_id (id, level, room, advisor_id),
+          classroom:classroom_id (id, level, room, advisor_id, advisor2_id),
           parent:parent_id (*)
         `)
         .eq('id', studentId)
@@ -1032,7 +1032,7 @@ export const studentSupportService = {
         *,
         student:student_id (
           id, first_name, last_name, student_code,
-          classroom:classroom_id (id, level, room, advisor_id, academic_year_id)
+          classroom:classroom_id (id, level, room, advisor_id, advisor2_id, academic_year_id)
         ),
         teacher:opened_by (first_name, last_name)
       `
@@ -1041,7 +1041,7 @@ export const studentSupportService = {
           *,
           student:student_id!inner (
             id, first_name, last_name, student_code,
-            classroom:classroom_id!inner (id, level, room, advisor_id, academic_year_id)
+            classroom:classroom_id!inner (id, level, room, advisor_id, advisor2_id, academic_year_id)
           ),
           teacher:opened_by (first_name, last_name)
         `
@@ -1092,7 +1092,7 @@ export const studentSupportService = {
         *,
         student:student_id (
           id, first_name, last_name, student_code,
-          classroom:classroom_id (id, level, room, advisor_id, academic_year_id)
+          classroom:classroom_id (id, level, room, advisor_id, advisor2_id, academic_year_id)
         ),
         teacher:opened_by (first_name, last_name)
       `
@@ -1101,7 +1101,7 @@ export const studentSupportService = {
           *,
           student:student_id!inner (
             id, first_name, last_name, student_code,
-            classroom:classroom_id!inner (id, level, room, advisor_id, academic_year_id)
+            classroom:classroom_id!inner (id, level, room, advisor_id, advisor2_id, academic_year_id)
           ),
           teacher:opened_by (first_name, last_name)
         `
@@ -1121,7 +1121,7 @@ export const studentSupportService = {
       
       // กรองเฉพาะเด็กนักเรียนที่อยู่ในห้องที่ครูท่านนี้ดูแล
       const filteredCases = (data || []).filter((c: any) => {
-        return c.student && c.student.classroom && c.student.classroom.advisor_id === teacher.id;
+        return c.student && c.student.classroom && (c.student.classroom.advisor_id === teacher.id || c.student.classroom.advisor2_id === teacher.id);
       });
 
       return filteredCases;

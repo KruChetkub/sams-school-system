@@ -23,7 +23,7 @@ export const getTeacherClassroomIds = async (teacherId: string, academicYearId?:
   let advisorQuery = supabase
     .from('classrooms')
     .select('id')
-    .eq('advisor_id', teacherId)
+    .or(`advisor_id.eq.${teacherId},advisor2_id.eq.${teacherId}`)
   
   if (academicYearId) {
     advisorQuery = advisorQuery.eq('academic_year_id', academicYearId)
@@ -101,7 +101,7 @@ export const getHomeroomReport = async (
   if (teacherId) {
     selectStr = `
       status,
-      students!inner ( classroom_id, classrooms!inner(id, level, room, advisor_id) )
+      students!inner ( classroom_id, classrooms!inner(id, level, room, advisor_id, advisor2_id) )
     `
   }
 
@@ -115,7 +115,7 @@ export const getHomeroomReport = async (
   }
 
   if (teacherId) {
-    query = query.eq('students.classrooms.advisor_id', teacherId)
+    query = query.or(`advisor_id.eq.${teacherId},advisor2_id.eq.${teacherId}`, { foreignTable: 'students.classrooms' })
   }
 
   const { data } = await query

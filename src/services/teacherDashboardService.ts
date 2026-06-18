@@ -33,7 +33,7 @@ export const getTeacherClassrooms = async (teacherId: string, academicYearId?: s
   let query = supabase
     .from('classrooms')
     .select('*')
-    .eq('advisor_id', teacherId)
+    .or(`advisor_id.eq.${teacherId},advisor2_id.eq.${teacherId}`)
   
   if (academicYearId) {
     query = query.eq('academic_year_id', academicYearId)

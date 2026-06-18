@@ -183,7 +183,7 @@ export default function Homeroom() {
   const filteredClassrooms = React.useMemo(() => {
     if (!classrooms) return []
     if (activeTeacherId) {
-      return classrooms.filter(c => c.advisor_id === activeTeacherId)
+      return classrooms.filter(c => c.advisor_id === activeTeacherId || c.advisor2_id === activeTeacherId)
     }
     return classrooms
   }, [classrooms, activeTeacherId])
@@ -402,7 +402,7 @@ export default function Homeroom() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredTeachers.map((teacher) => {
               const initials = `${teacher.first_name?.[0] || ''}${teacher.last_name?.[0] || ''}`
-              const advisorRoomsCount = classrooms?.filter(c => c.advisor_id === teacher.id).length || 0
+              const advisorRoomsCount = classrooms?.filter(c => c.advisor_id === teacher.id || c.advisor2_id === teacher.id).length || 0
               return (
                 <button
                   key={teacher.id}

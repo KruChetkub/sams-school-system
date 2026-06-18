@@ -271,31 +271,36 @@ export default function VisitForm() {
     queryFn: async () => {
       if (!student?.classroom_id) return null;
 
-      // 1. ดึง advisor_id จากตาราง classrooms
+      // 1. ดึง advisor_id และ advisor2_id จากตาราง classrooms
       const { data: classroomData, error: classroomError } = await supabase
         .from('classrooms')
-        .select('advisor_id')
+        .select('advisor_id, advisor2_id')
         .eq('id', student.classroom_id)
         .maybeSingle();
 
       if (classroomError) throw classroomError;
-      if (!classroomData?.advisor_id) return null;
+      if (!classroomData) return null;
 
-      // 2. ดึงข้อมูลของครูประจำชั้นคนนั้น
-      const { data: teacherData, error: teacherError } = await supabase
+      const ids = [classroomData.advisor_id, classroomData.advisor2_id].filter(Boolean) as string[];
+      if (ids.length === 0) return null;
+
+      // 2. ดึงข้อมูลของครูประจำชั้นทุกคน
+      const { data: teachersData, error: teacherError } = await supabase
         .from('teachers')
         .select('first_name, last_name')
-        .eq('user_id', classroomData.advisor_id)
-        .maybeSingle();
+        .in('id', ids);
 
       if (teacherError) throw teacherError;
-      return teacherData;
+      return teachersData;
     },
     enabled: !!student?.classroom_id
   });
 
-  const advisorFullName = advisorProfile
-    ? `${advisorProfile.first_name || ''} ${advisorProfile.last_name || ''}`.trim()
+  const advisorFullName = advisorProfile && Array.isArray(advisorProfile)
+    ? advisorProfile.map(t => {
+        const name = `${t.first_name || ''} ${t.last_name || ''}`.trim();
+        return name.startsWith('ครู') ? name : `ครู${name}`;
+      }).join(', ')
     : '';
 
   // ดึงโปรไฟล์ของครูที่กำลังเข้าใช้งานระบบอยู่ขณะนี้ (Logged-in Teacher)
@@ -315,7 +320,10 @@ export default function VisitForm() {
   });
 
   const currentUserFullName = role === 'ADMIN' ? 'แอดมิน' : (currentUserProfile
-    ? `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim()
+    ? (() => {
+        const name = `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim();
+        return name.startsWith('ครู') ? name : `ครู${name}`;
+      })()
     : '');
 
   useEffect(() => {
@@ -1304,7 +1312,7 @@ export default function VisitForm() {
                     <span className="border-b border-dotted border-gray-400 w-48 inline-block"></span>
                   </div>
                   <div className="mt-2 text-sm text-gray-600 font-medium">
-                    ({currentUserFullName || '......................................................'})
+                    ({advisorFullName || currentUserFullName || '......................................................'})
                   </div>
                   <div className="mt-1 text-sm text-gray-600">ตำแหน่ง ครูที่ปรึกษา</div>
                   <div className="mt-2 text-sm text-gray-600">
@@ -1426,7 +1434,7 @@ export default function VisitForm() {
               interior: photoInteriorPreview || undefined
             }}
             isPreviewMode={true}
-            teacherName={currentUserFullName}
+            teacherName={advisorFullName || currentUserFullName}
           />
         </div>
 
@@ -1480,7 +1488,7 @@ export default function VisitForm() {
             exterior: photoExteriorPreview || undefined,
             interior: photoInteriorPreview || undefined
           }}
-          teacherName={currentUserFullName}
+          teacherName={advisorFullName || currentUserFullName}
         />,
         document.body
       )}
