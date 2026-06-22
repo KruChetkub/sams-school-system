@@ -80,7 +80,7 @@ export default function StudentSupportPortal() {
           .maybeSingle();
 
         if (userErr) throw userErr;
-        
+
         const userRole = normalizeRole(userProfile?.role);
         if (userRole) {
           setRole(userRole);
@@ -152,7 +152,7 @@ export default function StudentSupportPortal() {
           <div className="absolute top-[-20px] left-1/2 -translate-x-1/2 p-3 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-2xl">
             <ShieldAlert size={28} />
           </div>
-          
+
           <h2 className="text-lg font-black pt-4">สิทธิ์การเข้าใช้งานจำกัด</h2>
           <p className="text-xs text-gray-400 leading-relaxed">
             {error}
@@ -178,7 +178,7 @@ export default function StudentSupportPortal() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto space-y-6 relative z-10">
-          
+
           {/* Header Block */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden min-h-[140px] flex items-center">
             <div className="relative z-10 space-y-1.5">
@@ -229,7 +229,7 @@ export default function StudentSupportPortal() {
               <h2 className="text-lg font-bold text-white">รายชื่อครูผู้สอนในระบบ</h2>
               <p className="text-xs text-gray-400 mt-1">ค้นหาครูและคลิกเพื่อเปิดพอร์ทัลดูแลช่วยเหลือในบทบาทของครูท่านนั้น</p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
               {/* Search Input */}
               <div className="relative flex-1 sm:w-64">
@@ -295,7 +295,7 @@ export default function StudentSupportPortal() {
                             {teacher.teacher_code || 'ไม่มีรหัสครู'}
                           </p>
                           <h3 className="font-bold text-white text-sm line-clamp-1 group-hover:text-indigo-400 transition-colors">
-                            ครู{teacher.first_name} {teacher.last_name}
+                            {teacher.first_name} {teacher.last_name}
                           </h3>
                         </div>
                       </div>

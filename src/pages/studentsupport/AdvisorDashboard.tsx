@@ -65,7 +65,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
         // ดึงข้อมูลนักเรียนในห้องเรียน
         const data = await studentSupportService.getAdvisorStudents(activeUserId, selectedYear?.id);
         setStudents(data);
-        
+
         if (data && data.length > 0 && data[0].classroom) {
           setClassroomInfo(`${data[0].classroom.level}/${data[0].classroom.room}`);
         } else {
@@ -86,7 +86,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
   // ไม่พึ่ง student_support_risk_analysis table เพื่อความถูกต้องทันที
   const computeStudentRisk = (s: any): 'NORMAL' | 'MONITOR' | 'RISK' | 'URGENT' | null => {
     const sdqList = (s.student_support_sdq as any[]) ?? [];
-    const eqList  = (s.student_support_eq  as any[]) ?? [];
+    const eqList = (s.student_support_eq as any[]) ?? [];
 
     // ถ้าไม่มี SDQ เลย ถือว่ายังไม่ได้คัดกรอง (null)
     if (sdqList.length === 0) return null;
@@ -94,7 +94,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
     const teacherSdq = sdqList.find((x: any) => x.evaluator_type === 'TEACHER');
     const studentSdq = sdqList.find((x: any) => x.evaluator_type === 'STUDENT');
     const primarySdq = teacherSdq ?? studentSdq ?? sdqList[0];
-    const latestEq   = eqList[0] ?? null;
+    const latestEq = eqList[0] ?? null;
 
     // คะแนนถ่วงน้ำหนักปัจจัยเสี่ยง (ตรงกับ Student360.getOverallRisk)
     let score = 0;
@@ -108,37 +108,37 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
     return 'NORMAL';
   };
 
-  const totalCount      = students.length;
-  const normalStudents  = students.filter(s => computeStudentRisk(s) === 'NORMAL');
+  const totalCount = students.length;
+  const normalStudents = students.filter(s => computeStudentRisk(s) === 'NORMAL');
   const monitorStudents = students.filter(s => computeStudentRisk(s) === 'MONITOR');
-  const riskStudents    = students.filter(s => computeStudentRisk(s) === 'RISK');
-  const urgentStudents  = students.filter(s => computeStudentRisk(s) === 'URGENT');
+  const riskStudents = students.filter(s => computeStudentRisk(s) === 'RISK');
+  const urgentStudents = students.filter(s => computeStudentRisk(s) === 'URGENT');
   const unscreenedCount = students.filter(s => computeStudentRisk(s) === null).length;
-  const screenedCount   = totalCount - unscreenedCount;
+  const screenedCount = totalCount - unscreenedCount;
 
   // V14: Classroom Risk Donut data
   const riskDonutData = [
-    { name: 'ปกติ',        value: normalStudents.length,  key: 'NORMAL',  color: '#10b981' },
-    { name: 'เฝ้าระวัง',    value: monitorStudents.length, key: 'MONITOR', color: '#eab308' },
-    { name: 'กลุ่มเสี่ยง',  value: riskStudents.length,    key: 'RISK',    color: '#f97316' },
-    { name: 'ช่วยเหลือด่วน', value: urgentStudents.length,  key: 'URGENT',  color: '#ef4444' },
+    { name: 'ปกติ', value: normalStudents.length, key: 'NORMAL', color: '#10b981' },
+    { name: 'เฝ้าระวัง', value: monitorStudents.length, key: 'MONITOR', color: '#eab308' },
+    { name: 'กลุ่มเสี่ยง', value: riskStudents.length, key: 'RISK', color: '#f97316' },
+    { name: 'ช่วยเหลือด่วน', value: urgentStudents.length, key: 'URGENT', color: '#ef4444' },
   ].filter(d => d.value > 0);
 
   // V14: SDQ 5-Dimension Stacked Bar data (จาก TEACHER assessment)
   const sdqDimLabels = [
-    { key: 'emotional',     th: 'ด้านอารมณ์' },
-    { key: 'conduct',       th: 'ด้านเกเร' },
+    { key: 'emotional', th: 'ด้านอารมณ์' },
+    { key: 'conduct', th: 'ด้านเกเร' },
     { key: 'hyperactivity', th: 'ด้านสมาธิ' },
-    { key: 'peer',          th: 'ด้านเพื่อน' },
-    { key: 'prosocial',     th: 'สัมพันธภาพ' },
+    { key: 'peer', th: 'ด้านเพื่อน' },
+    { key: 'prosocial', th: 'สัมพันธภาพ' },
   ];
   // Thresholds per dimension for TEACHER evaluator
   const sdqTeacherThresholds: Record<string, { risk: number; problem: number }> = {
-    emotional:    { risk: 4, problem: 5 },
-    conduct:      { risk: 4, problem: 5 },
-    hyperactivity:{ risk: 6, problem: 7 },
-    peer:         { risk: 6, problem: 7 },
-    prosocial:    { risk: 0, problem: 0 }, // special
+    emotional: { risk: 4, problem: 5 },
+    conduct: { risk: 4, problem: 5 },
+    hyperactivity: { risk: 6, problem: 7 },
+    peer: { risk: 6, problem: 7 },
+    prosocial: { risk: 0, problem: 0 }, // special
   };
   const sdqStackedData = sdqDimLabels.map(({ key, th }) => {
     let normal = 0, risk = 0, problem = 0;
@@ -185,7 +185,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        
+
         {onBack && (
           <div className="flex justify-start">
             <button
@@ -206,7 +206,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
               <div>
                 <h4 className="font-bold text-amber-300 text-sm">กำลังทำหน้าที่แทนครูที่ปรึกษา (Simulation Mode)</h4>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  คุณกำลังเข้าถึงพอร์ทัลดูแลช่วยเหลือนักเรียนในฐานะ <span className="underline text-amber-200 font-bold">ครู{teacherName}</span>
+                  คุณกำลังเข้าถึงพอร์ทัลดูแลช่วยเหลือนักเรียนในฐานะ <span className="underline text-amber-200 font-bold">{teacherName}</span>
                 </p>
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
 
         {/* 📊 Overview Stats Calculation Cards */}
         <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          
+
           {/* Card Total */}
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-lg relative overflow-hidden group hover:border-white/20 transition-all">
             <div className="absolute top-3 right-3 p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
@@ -412,7 +412,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                   <span className="text-white">
                     {students.filter(s => {
                       const sdqList = s.student_support_sdq as any[];
-                      return ['TEACHER','STUDENT','PARENT'].every(t =>
+                      return ['TEACHER', 'STUDENT', 'PARENT'].every(t =>
                         sdqList?.some((x: any) => x.evaluator_type === t)
                       );
                     }).length}/{totalCount} คน
@@ -421,14 +421,16 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                 <div className="h-2.5 bg-black/30 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"
-                    style={{ width: `${Math.round(
-                      (students.filter(s => {
-                        const sdqList = s.student_support_sdq as any[];
-                        return ['TEACHER','STUDENT','PARENT'].every(t =>
-                          sdqList?.some((x: any) => x.evaluator_type === t)
-                        );
-                      }).length / totalCount) * 100
-                    )}%` }}
+                    style={{
+                      width: `${Math.round(
+                        (students.filter(s => {
+                          const sdqList = s.student_support_sdq as any[];
+                          return ['TEACHER', 'STUDENT', 'PARENT'].every(t =>
+                            sdqList?.some((x: any) => x.evaluator_type === t)
+                          );
+                        }).length / totalCount) * 100
+                      )}%`
+                    }}
                   />
                 </div>
               </div>
@@ -436,7 +438,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                 {Math.round(
                   (students.filter(s => {
                     const sdqList = s.student_support_sdq as any[];
-                    return ['TEACHER','STUDENT','PARENT'].every(t =>
+                    return ['TEACHER', 'STUDENT', 'PARENT'].every(t =>
                       sdqList?.some((x: any) => x.evaluator_type === t)
                     );
                   }).length / totalCount) * 100
@@ -502,10 +504,10 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
             {/* Legend */}
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'ปกติ',        count: normalStudents.length,  color: '#10b981', key: 'NORMAL' },
-                { label: 'เฝ้าระวัง',   count: monitorStudents.length, color: '#eab308', key: 'MONITOR' },
-                { label: 'กลุ่มเสี่ยง', count: riskStudents.length,    color: '#f97316', key: 'RISK' },
-                { label: 'ช่วยเหลือด่วน',count: urgentStudents.length, color: '#ef4444', key: 'URGENT' },
+                { label: 'ปกติ', count: normalStudents.length, color: '#10b981', key: 'NORMAL' },
+                { label: 'เฝ้าระวัง', count: monitorStudents.length, color: '#eab308', key: 'MONITOR' },
+                { label: 'กลุ่มเสี่ยง', count: riskStudents.length, color: '#f97316', key: 'RISK' },
+                { label: 'ช่วยเหลือด่วน', count: urgentStudents.length, color: '#ef4444', key: 'URGENT' },
               ].map(({ label, count, color, key }) => (
                 <button
                   key={key}
@@ -580,9 +582,9 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                       );
                     }}
                   />
-                  <Bar dataKey="ปกติ"    stackId="a" fill="#10b981" radius={[0,0,0,0]} />
-                  <Bar dataKey="เสี่ยง"   stackId="a" fill="#f59e0b" radius={[0,0,0,0]} />
-                  <Bar dataKey="มีปัญหา" stackId="a" fill="#ef4444" radius={[4,4,0,0]} />
+                  <Bar dataKey="ปกติ" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="เสี่ยง" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="มีปัญหา" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
                   <Legend
                     wrapperStyle={{ paddingTop: 8, fontSize: 11, color: '#9ca3af', fontWeight: 700 }}
                     formatter={(val: string) => <span style={{ color: val === 'มีปัญหา' ? '#ef4444' : val === 'เสี่ยง' ? '#f59e0b' : '#10b981' }}>{val}</span>}
@@ -619,7 +621,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            
+
             {/* Column 1: Normal (Green) */}
             <div className={`bg-white/5 border rounded-2xl p-4 flex flex-col h-[400px] transition-all ${riskFilter === 'NORMAL' ? 'border-emerald-500/40' : 'border-white/5'}`}>
               <div className="flex justify-between items-center pb-3 border-b border-white/5 mb-3">
@@ -633,30 +635,30 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                   normalStudents
                     .filter(s => !riskFilter || s.student_support_risk_analysis?.[0]?.risk_level === riskFilter || riskFilter === 'NORMAL')
                     .map(student => (
-                    <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
-                          {student.first_name[0]}
+                      <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
+                        <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
+                            {student.first_name[0]}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
+                            <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-white truncate leading-snug">{student.first_name} {student.last_name}</p>
-                          <p className="text-[10px] text-gray-500 truncate">รหัส {student.student_code}</p>
+                        {/* V15.10: Quick Actions */}
+                        <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
+                            <Eye size={10} /> 360°
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
+                            <FileText size={10} /> SDQ
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
+                            <ShieldAlert size={10} /> เคส
+                          </button>
                         </div>
                       </div>
-                      {/* V15.10: Quick Actions */}
-                      <div className="hidden group-hover:flex gap-1.5 pt-1 border-t border-white/5">
-                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/profile/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition">
-                          <Eye size={10} /> 360°
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/sdq/${student.id}`); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold transition">
-                          <FileText size={10} /> SDQ
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); navigate(`/studentsupport/cases`, { state: { prefillStudentId: student.id } }); }} className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold transition">
-                          <ShieldAlert size={10} /> เคส
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
@@ -673,7 +675,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                 ) : (
                   monitorStudents.map(student => (
                     <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>
                         <div className="w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-300 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
                           {student.first_name[0]}
                         </div>
@@ -711,7 +713,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                 ) : (
                   riskStudents.map(student => (
                     <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>
                         <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
                           {student.first_name[0]}
                         </div>
@@ -749,7 +751,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
                 ) : (
                   urgentStudents.map(student => (
                     <div key={student.id} className="group flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition">
-                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>  
+                      <div className="flex items-center gap-2.5" onClick={() => navigate(`/studentsupport/profile/${student.id}`)}>
                         <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs border border-white/5 uppercase shrink-0">
                           {student.first_name[0]}
                         </div>

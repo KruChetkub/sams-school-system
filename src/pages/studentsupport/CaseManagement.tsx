@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ShieldAlert, AlertTriangle, CheckCircle2, ChevronRight, PlusCircle, 
+import {
+  ShieldAlert, AlertTriangle, CheckCircle2, ChevronRight, PlusCircle,
   MessageSquare, User, Clock, ArrowLeft, Send, Sparkles, Filter, Check, Eye
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -17,7 +17,7 @@ export default function CaseManagement() {
   const [selectedCase, setSelectedCase] = useState<SupportCase | null>(null);
   const [newLogComment, setNewLogComment] = useState('');
   const [updateStatus, setUpdateStatus] = useState<SupportCase['status'] | ''>('');
-  
+
   // สถานะเปิดเคสใหม่
   const [openModal, setOpenModal] = useState(false);
   const [advisingStudents, setAdvisingStudents] = useState<any[]>([]);
@@ -25,7 +25,7 @@ export default function CaseManagement() {
   const [newCaseTitle, setNewCaseTitle] = useState('');
   const [newCaseDesc, setNewCaseDesc] = useState('');
   const [newCaseRisk, setNewCaseRisk] = useState<'MONITOR' | 'RISK' | 'URGENT'>('MONITOR');
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -150,10 +150,10 @@ export default function CaseManagement() {
 
       setNewLogComment('');
       setUpdateStatus('');
-      
+
       // ดึงข้อมูลเคสที่อัปเดตใหม่
       await selectCaseDetails(selectedCase.id!);
-      
+
       // รีเฟรชรายการเคสหลัก
       let loadedCases = [];
       if (userRole === 'ADMIN' || userRole === 'EXECUTIVE') {
@@ -269,13 +269,13 @@ export default function CaseManagement() {
 
   return (
     <div className="min-h-screen bg-transparent text-white p-4 md:p-8 relative overflow-hidden font-sans">
-      
+
       {/* Decorative Glow elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        
+
         {/* Header Block */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
           <div className="flex items-center gap-3">
@@ -297,7 +297,7 @@ export default function CaseManagement() {
               </p>
             </div>
           </div>
-          
+
           <button
             onClick={() => setOpenModal(true)}
             className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
@@ -316,7 +316,7 @@ export default function CaseManagement() {
 
         {/* Main Interface: Two Column Grid on desktop */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Column Left: Case List (5 cols) */}
           <div className="lg:col-span-5 bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4 max-h-[700px] overflow-y-auto">
             <h3 className="text-base font-bold text-white border-b border-white/10 pb-3">
@@ -334,14 +334,13 @@ export default function CaseManagement() {
             ) : (
               <div className="space-y-3">
                 {cases.map((c) => (
-                  <div 
+                  <div
                     key={c.id}
                     onClick={() => selectCaseDetails(c.id!)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 hover:translate-x-1 ${
-                      selectedCase?.id === c.id 
-                        ? 'bg-white/10 border-indigo-500 shadow-md' 
-                        : 'bg-white/5 border-white/5 hover:border-white/10'
-                    }`}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 hover:translate-x-1 ${selectedCase?.id === c.id
+                      ? 'bg-white/10 border-indigo-500 shadow-md'
+                      : 'bg-white/5 border-white/5 hover:border-white/10'
+                      }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${getRiskColor(c.risk_level)}`}>
@@ -366,7 +365,7 @@ export default function CaseManagement() {
                         {new Date(c.created_at!).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                       </span>
                       {c.teacher && (
-                        <span>ผู้เปิดเคส: ครู{c.teacher.first_name}</span>
+                        <span>ผู้เปิดเคส: {c.teacher.first_name}</span>
                       )}
                     </div>
                   </div>
@@ -379,7 +378,7 @@ export default function CaseManagement() {
           <div className="lg:col-span-7 bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[500px]">
             {selectedCase ? (
               <div className="space-y-6 flex flex-col justify-between h-full">
-                
+
                 {/* Case Meta info */}
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -404,7 +403,7 @@ export default function CaseManagement() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-xxs font-black border ${getRiskColor(selectedCase.risk_level)}`}>
                         ระดับความรุนแรง: {getRiskLabel(selectedCase.risk_level)}
@@ -436,19 +435,19 @@ export default function CaseManagement() {
                         <div key={log.id} className="relative space-y-1">
                           {/* Timeline dot */}
                           <div className="absolute top-1.5 -left-[21px] w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-[#0f172a]" />
-                          
+
                           <div className="flex items-center justify-between text-xxs text-gray-500">
                             <span className="font-bold text-gray-400">
-                              ครู{log.teacher?.first_name} {log.teacher?.last_name}
+                              {log.teacher?.first_name} {log.teacher?.last_name}
                             </span>
                             <span>
-                              {new Date(log.created_at!).toLocaleString('th-TH', { 
+                              {new Date(log.created_at!).toLocaleString('th-TH', {
                                 day: 'numeric', month: 'short', year: '2-digit',
                                 hour: '2-digit', minute: '2-digit'
                               })}
                             </span>
                           </div>
-                          
+
                           <p className="text-xs text-gray-300 leading-relaxed bg-white/[0.02] border border-white/5 rounded-xl p-3">
                             {log.comment}
                           </p>
@@ -520,7 +519,7 @@ export default function CaseManagement() {
         {openModal && (
           <div className="fixed inset-0 z-50 bg-[#020617]/80 backdrop-blur-md flex items-center justify-center p-4">
             <div className="w-full max-w-lg bg-[#0f172a] border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
-              
+
               <div className="space-y-1">
                 <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-emerald-500/35 w-fit block">
                   New Support Case Entry
@@ -588,13 +587,12 @@ export default function CaseManagement() {
                         key={item.key}
                         type="button"
                         onClick={() => setNewCaseRisk(item.key as any)}
-                        className={`py-2 px-1 rounded-xl text-xxs font-black border transition-all text-center ${
-                          newCaseRisk === item.key
-                            ? item.key === 'URGENT' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' :
-                              item.key === 'RISK' ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' :
+                        className={`py-2 px-1 rounded-xl text-xxs font-black border transition-all text-center ${newCaseRisk === item.key
+                          ? item.key === 'URGENT' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' :
+                            item.key === 'RISK' ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' :
                               'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
-                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                        }`}
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                          }`}
                       >
                         {item.label}
                       </button>

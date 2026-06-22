@@ -31,7 +31,7 @@ const GaugeChart = ({ rate, color, target }: { rate: number, color: string, targ
         <text x={targetX2 + 5} y={targetY2 - 5} fill="#94a3b8" fontSize="10" fontWeight="bold">เป้า</text>
       </svg>
       <div className="absolute bottom-0 flex flex-col items-center">
-        <span className="text-4xl font-black" style={{ color }}>{safeRate}%</span>
+        <span className="text-3xl sm:text-4xl font-black" style={{ color }}>{safeRate}%</span>
       </div>
     </div>
   )
@@ -44,26 +44,26 @@ const StackedBar = ({ data }: { data: any[] }) => {
 
   return (
     <div className="w-full flex flex-col h-full justify-center">
-      <div className="h-12 flex w-full rounded-full overflow-hidden shadow-inner bg-slate-50 border border-slate-100 mb-6">
+      <div className="h-10 sm:h-12 flex w-full rounded-full overflow-hidden shadow-inner bg-slate-50 border border-slate-100 mb-4 sm:mb-6">
         {safeData.filter(d => d.name !== 'ยังไม่มีข้อมูล' && d.value > 0).map((d, i) => {
           const widthPct = (d.value / total) * 100;
           return (
             <div key={i} className="h-full transition-all duration-1000 hover:brightness-110 flex items-center justify-center border-r border-white/20 last:border-0" style={{ width: `${widthPct}%`, backgroundColor: d.fill || d.color }}>
-               {widthPct > 8 && <span className="text-white text-xs font-bold opacity-95">{Math.round(widthPct)}%</span>}
+               {widthPct > 8 && <span className="text-white text-[10px] sm:text-xs font-bold opacity-95">{Math.round(widthPct)}%</span>}
             </div>
           )
         })}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {safeData.filter(d => d.name !== 'ยังไม่มีข้อมูล').map((d, i) => (
-          <div key={i} className="flex flex-col items-center p-3 rounded-2xl bg-slate-50/50 border border-slate-100 hover:bg-slate-50 transition-colors">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: d.fill || d.color }}></div>
-              <span className="text-xs font-bold text-slate-600">{d.name}</span>
+          <div key={i} className="flex flex-col items-center p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-1.5 mb-1 truncate max-w-full">
+              <div className="w-2.5 h-2.5 rounded-full shadow-sm shrink-0" style={{ backgroundColor: d.fill || d.color }}></div>
+              <span className="text-[10px] sm:text-xs font-bold text-slate-600 truncate">{d.name}</span>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl font-black text-slate-800">{d.value}</span>
-              <span className="text-xs font-semibold text-slate-400">คน</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-lg sm:text-xl font-black text-slate-800">{d.value}</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400">คน</span>
             </div>
           </div>
         ))}
@@ -299,41 +299,41 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto min-h-screen w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4 w-full">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Executive Dashboard</h1>
-          <p className="text-slate-500 font-medium mt-1">ภาพรวมและสถิติระบบจัดการการเข้าเรียน (SAMS)</p>
+          <h1 className="text-[clamp(1.5rem,4vw,1.875rem)] font-black text-slate-800 tracking-tight leading-tight">Executive Dashboard</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">ภาพรวมและสถิติระบบจัดการการเข้าเรียน (SAMS)</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-4 py-2 text-emerald-700 font-semibold">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-400/50" />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-emerald-700 font-semibold min-h-[40px] sm:min-h-[44px] justify-center">
+            <span className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-400/50 shrink-0" />
             ออนไลน์
           </div>
-          <div className="rounded-3xl bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm border border-slate-200">
+          <div className="rounded-3xl bg-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-slate-600 shadow-sm border border-slate-200 min-h-[40px] sm:min-h-[44px] flex items-center justify-center">
             {formattedDateTime}
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 mb-6 sm:mb-8 w-full">
         {cards.map((card, index) => (
           <div 
             key={index} 
             onClick={card.onClick}
-            className={`${card.bg} p-6 rounded-[2rem] shadow-xl ${card.shadow} flex items-center justify-between text-white overflow-hidden relative group ${card.onClick ? 'cursor-pointer hover:-translate-y-1 transition-all duration-300' : ''}`}
+            className={`${card.bg} p-3.5 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2rem] shadow-xl ${card.shadow} flex items-center justify-between text-white overflow-hidden relative group transition-all duration-300 ${card.onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
           >
-            <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-              {React.cloneElement(card.icon as React.ReactElement, { size: 100 })}
+            <div className="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2 sm:translate-x-4 sm:-translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              {React.cloneElement(card.icon as React.ReactElement, { size: undefined, className: "w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 text-white" })}
             </div>
-            <div className="relative z-10">
-              <p className="text-sm font-bold text-white/80 mb-1">{card.title}</p>
-              <h3 className="text-5xl font-black">{card.value}</h3>
+            <div className="relative z-10 min-w-0">
+              <p className="text-xs sm:text-sm font-bold text-white/80 mb-0.5 sm:mb-1 truncate">{card.title}</p>
+              <h3 className="text-[clamp(1.5rem,4vw,2.5rem)] font-black leading-none">{card.value}</h3>
             </div>
-            <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md relative z-10 border border-white/20">
-              {card.icon}
+            <div className="hidden min-[400px]:flex sm:flex md:flex lg:hidden 2xl:flex w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-full bg-white/20 items-center justify-center backdrop-blur-md relative z-10 border border-white/20 shrink-0 ml-2">
+              {React.cloneElement(card.icon as React.ReactElement, { size: undefined, className: "w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white" })}
             </div>
           </div>
         ))}
@@ -346,13 +346,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="mb-8 rounded-2xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-rose-50 to-orange-100 p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+      <div className="mb-8 rounded-2xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-rose-50 to-orange-100 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">สรุปสถานะนักเรียนตามวันที่เลือก</h2>
-            <p className="text-sm text-slate-500">วันที่ {thaiSelectedDate} • รวมทั้งหมด {dailyStatusSummary?.total ?? 0} คน</p>
+            <h2 className="text-base sm:text-lg font-bold text-slate-800">สรุปสถานะนักเรียนตามวันที่เลือก</h2>
+            <p className="text-xs sm:text-sm text-slate-500">วันที่ {thaiSelectedDate} • รวมทั้งหมด {dailyStatusSummary?.total ?? 0} คน</p>
           </div>
-          <div className="relative w-full md:w-[260px]">
+          <div className="relative w-full sm:w-[240px] md:w-[260px]">
             <label htmlFor="dashboard-summary-date" className="block text-sm font-medium text-slate-700 mb-2"></label>
             <input
               id="dashboard-summary-date"
@@ -373,24 +373,24 @@ export default function Dashboard() {
                   commitThaiDateInput()
                 }
               }}
-              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm sm:text-base"
             />
             {showDatePicker && (
-              <div className="absolute z-20 top-full mt-2 w-full rounded-3xl border border-slate-200 bg-white shadow-2xl p-4">
+              <div className="absolute z-20 top-full mt-2 right-0 left-0 mx-auto sm:mx-0 sm:left-auto w-[calc(100vw-2.5rem)] xs:w-[300px] sm:w-[320px] rounded-3xl border border-slate-200 bg-white shadow-2xl p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
                   <button type="button" onClick={() => {
                     if (calendarMonth === 0) {
                       setCalendarMonth(11)
                       setCalendarYear((prev) => prev - 1)
                     } else setCalendarMonth((prev) => prev - 1)
-                  }} className="rounded-full p-2 text-slate-500 hover:bg-slate-100">‹</button>
+                  }} className="w-11 h-11 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 text-lg transition-colors">‹</button>
                   <div className="text-sm font-semibold text-slate-700">{calendarHeader}</div>
                   <button type="button" onClick={() => {
                     if (calendarMonth === 11) {
                       setCalendarMonth(0)
                       setCalendarYear((prev) => prev + 1)
                     } else setCalendarMonth((prev) => prev + 1)
-                  }} className="rounded-full p-2 text-slate-500 hover:bg-slate-100">›</button>
+                  }} className="w-11 h-11 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 text-lg transition-colors">›</button>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-500 mb-2">
                   {thaiWeekdays.map((day) => <div key={day}>{day}</div>)}
@@ -401,11 +401,11 @@ export default function Dashboard() {
                       key={`${calendarYear}-${calendarMonth}-${index}`}
                       type="button"
                       onClick={() => day && selectCalendarDate(day)}
-                      className={`h-10 rounded-xl ${day ? 'hover:bg-blue-50 text-slate-700' : 'pointer-events-none text-transparent'} ${
+                      className={`h-11 sm:h-10 w-full rounded-xl transition-colors ${day ? 'hover:bg-blue-50 text-slate-700' : 'pointer-events-none text-transparent'} ${
                         day === new Date(`${selectedSummaryDate}T00:00:00`).getDate() &&
                         calendarMonth === new Date(`${selectedSummaryDate}T00:00:00`).getMonth() &&
                         calendarYear === new Date(`${selectedSummaryDate}T00:00:00`).getFullYear()
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-white font-bold'
                           : ''
                       }`}
                     >
@@ -413,9 +413,9 @@ export default function Dashboard() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 flex justify-between text-xs text-slate-500">
-                  <button type="button" onClick={closeDatePicker} className="rounded-lg px-3 py-2 hover:bg-slate-100">ปิด</button>
-                  <div>เลือกวันที่ไทยแล้วเก็บเป็นระบบ</div>
+                <div className="mt-3 flex justify-between items-center text-xs text-slate-500">
+                  <button type="button" onClick={closeDatePicker} className="rounded-lg px-4 py-2.5 hover:bg-slate-100 font-semibold text-slate-600 min-h-[44px] flex items-center justify-center">ปิด</button>
+                  <div className="text-[10px] text-right">เลือกวันที่ไทยเพื่อคำนวณ</div>
                 </div>
               </div>
             )}
@@ -424,25 +424,25 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
           <div className="rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 p-4">
             <p className="mb-3 text-sm font-bold text-slate-700">1. สรุปรายวิชา</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {selectedDateStatusCards.map((card) => (
-                <div key={`classroom-${card.title}`} className={`${card.bg} rounded-2xl p-4 text-white shadow-lg`}>
-                  <p className="text-sm font-semibold text-white/85">{card.title}</p>
-                  <p className="mt-1 text-3xl font-black">{card.value}</p>
+                <div key={`classroom-${card.title}`} className={`${card.bg} rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white shadow-md sm:shadow-lg`}>
+                  <p className="text-xs sm:text-sm font-semibold text-white/85">{card.title}</p>
+                  <p className="mt-1 text-[clamp(1.5rem,4vw,2.25rem)] font-black leading-none">{card.value}</p>
                 </div>
               ))}
             </div>
           </div>
           <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-teal-50 to-lime-100 p-4">
             <p className="mb-3 text-sm font-bold text-slate-700">2. สรุปเข้าแถว</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {selectedDateHomeroomCards.map((card) => (
-                <div key={`homeroom-${card.title}`} className={`${card.bg} rounded-2xl p-4 text-white shadow-lg`}>
-                  <p className="text-sm font-semibold text-white/85">{card.title}</p>
-                  <p className="mt-1 text-3xl font-black">{card.value}</p>
+                <div key={`homeroom-${card.title}`} className={`${card.bg} rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white shadow-md sm:shadow-lg`}>
+                  <p className="text-xs sm:text-sm font-semibold text-white/85">{card.title}</p>
+                  <p className="mt-1 text-[clamp(1.5rem,4vw,2.25rem)] font-black leading-none">{card.value}</p>
                 </div>
               ))}
             </div>
@@ -452,32 +452,32 @@ export default function Dashboard() {
 
       <div className="mb-8">
         {!showAdvancedAnalytics ? (
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-10 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
+          <div className="rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
             <div className="absolute inset-0 bg-slate-50 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-            <TrendingUp size={48} className="text-slate-300 mb-5 relative z-10 group-hover:text-indigo-400 transition-colors duration-300" />
-            <h3 className="text-xl font-bold text-slate-800 mb-2 relative z-10">ข้อมูลวิเคราะห์ขั้นสูง</h3>
-            <p className="text-sm text-slate-500 max-w-md mb-8 relative z-10">
+            <TrendingUp size={48} className="text-slate-300 mb-4 sm:mb-5 relative z-10 group-hover:text-indigo-400 transition-colors duration-300" />
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-2 relative z-10">ข้อมูลวิเคราะห์ขั้นสูง</h3>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md mb-6 sm:mb-8 relative z-10">
               แสดงอัตราการเข้าเรียนวันนี้เทียบกับเมื่อวาน, 5 อันดับห้องเรียนที่มีความเสี่ยง, และอัตราการเข้าเรียนเฉลี่ยรายเดือน
             </p>
             <button
               onClick={() => setShowAdvancedAnalytics(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-md shadow-indigo-200 flex items-center gap-2 relative z-10 hover:-translate-y-0.5"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 sm:px-8 rounded-xl transition-all duration-300 shadow-md shadow-indigo-200 flex items-center gap-2 relative z-10 hover:-translate-y-0.5 min-h-[44px]"
             >
               <TrendingUp size={18} />
               โหลดข้อมูลวิเคราะห์ขั้นสูง
             </button>
-            <p className="text-xs text-slate-400 mt-4 relative z-10">ระบบไม่ได้โหลดข้อมูลส่วนนี้อัตโนมัติเพื่อประหยัดทรัพยากร</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 mt-4 relative z-10">ระบบไม่ได้โหลดข้อมูลส่วนนี้อัตโนมัติเพื่อประหยัดทรัพยากร</p>
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between mb-4 mt-2">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <TrendingUp size={24} className="text-indigo-600" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 mt-2 gap-3">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp size={24} className="text-indigo-600 shrink-0" />
                 ข้อมูลวิเคราะห์ขั้นสูง
               </h2>
               <button
                 onClick={() => setShowAdvancedAnalytics(false)}
-                className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm hover:shadow flex items-center gap-1.5"
+                className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors bg-white px-4 py-2.5 sm:py-1.5 rounded-full border border-slate-200 shadow-sm hover:shadow flex items-center gap-1.5 min-h-[44px] sm:min-h-0"
               >
                 ซ่อนข้อมูล
               </button>
@@ -490,15 +490,15 @@ export default function Dashboard() {
                  <p className="text-sm text-slate-400 mt-2">กำลังดึงข้อมูลและคำนวณสถิติ อาจใช้เวลาสักครู่</p>
                </div>
             ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+               <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 sm:p-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
                       <TrendingUp size={100} />
                     </div>
-                    <p className="text-sm font-semibold text-slate-500 mb-4 relative z-10">อัตราเข้าเรียนวันนี้ (รายวิชา)</p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-500 mb-3 sm:mb-4 relative z-10">อัตราเข้าเรียนวันนี้ (รายวิชา)</p>
                     <div className="flex items-end gap-3 mb-2 relative z-10">
-                      <h3 className="text-5xl font-black text-slate-800">{trendToday?.todayRate ?? 0}%</h3>
+                      <h3 className="text-[clamp(2rem,5vw,3rem)] font-black text-slate-800 leading-none">{trendToday?.todayRate ?? 0}%</h3>
                       <div className={`flex items-center gap-1 text-sm font-bold mb-1 ${
                         (trendToday?.deltaRate ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'
                       }`}>
@@ -506,27 +506,27 @@ export default function Dashboard() {
                         {Math.abs(trendToday?.deltaRate ?? 0)}%
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 font-medium relative z-10">เทียบกับเมื่อวาน ({trendToday?.yesterdayRate ?? 0}%)</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 font-medium relative z-10">เทียบกับเมื่อวาน ({trendToday?.yesterdayRate ?? 0}%)</p>
                   </div>
 
-                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+                  <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 sm:p-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
                       <TrendingUp size={100} />
                     </div>
-                    <p className="text-sm font-semibold text-slate-500 mb-2 relative z-10">อัตราการเข้าเรียนเฉลี่ย (เดือนนี้)</p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-500 mb-2 relative z-10">อัตราการเข้าเรียนเฉลี่ย (เดือนนี้)</p>
                     <div className="flex flex-col items-center justify-center mt-2 relative z-10">
                       <GaugeChart rate={gaugeRate} color={gaugeColor} target={gaugeTarget} />
                       <div className="mt-4 flex items-center justify-center gap-3 w-full">
                         <div className="flex flex-col items-center px-4 border-r border-slate-100">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">เทียบเดือนก่อน</p>
-                           <div className={`flex items-center gap-0.5 text-sm font-black ${gaugeDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                           <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">เทียบเดือนก่อน</p>
+                           <div className={`flex items-center gap-0.5 text-xs sm:text-sm font-black ${gaugeDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                              {gaugeDelta >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                              {Math.abs(gaugeDelta)}%
                            </div>
                         </div>
                         <div className="flex flex-col items-center px-4">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">เป้า {gaugeTarget}%</p>
-                           <p className="text-sm font-black text-slate-700">
+                           <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">เป้า {gaugeTarget}%</p>
+                           <p className="text-xs sm:text-sm font-black text-slate-700">
                              {gaugeRate >= gaugeTarget ? 'ผ่านเกณฑ์ 🎉' : 'ต้องระวัง ⚠️'}
                            </p>
                         </div>
@@ -534,23 +534,23 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden md:col-span-1">
+                  <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-sm border border-slate-100 relative overflow-hidden md:col-span-2 lg:col-span-1">
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="p-2.5 bg-rose-50 text-rose-500 rounded-xl">
+                      <div className="p-2 sm:p-2.5 bg-rose-50 text-rose-500 rounded-xl">
                         <AlertTriangle size={20} />
                       </div>
-                      <p className="text-sm font-bold text-slate-800">Top 5 ห้องเสี่ยง (สัปดาห์นี้)</p>
+                      <p className="text-xs sm:text-sm font-bold text-slate-800">Top 5 ห้องเสี่ยง (สัปดาห์นี้)</p>
                     </div>
                     {topRiskClassrooms.length > 0 ? (
                       <div className="space-y-4">
                         {topRiskClassrooms.map((room) => (
-                          <div key={room.classroomId} className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-slate-600">{room.roomLabel}</span>
-                            <div className="flex items-center gap-3 w-[65%]">
+                          <div key={room.classroomId} className="flex items-center justify-between gap-3 text-xs sm:text-sm">
+                            <span className="font-semibold text-slate-600 truncate max-w-[80px] sm:max-w-none">{room.roomLabel}</span>
+                            <div className="flex items-center gap-2 sm:gap-3 w-[70%] sm:w-[65%]">
                               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${room.rate}%`, backgroundColor: room.fill }} />
                               </div>
-                              <span className="text-xs font-black w-9 text-right" style={{ color: room.fill }}>{room.rate}%</span>
+                              <span className="text-[10px] sm:text-xs font-black w-9 text-right" style={{ color: room.fill }}>{room.rate}%</span>
                             </div>
                           </div>
                         ))}
@@ -566,9 +566,9 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-                    <p className="text-sm font-bold text-slate-800 mb-6 px-2">แนวโน้มการเข้าเรียน 7 วันล่าสุด</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                  <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-sm border border-slate-100 overflow-hidden w-full">
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 mb-4 sm:mb-6 px-1 sm:px-2">แนวโน้มการเข้าเรียน 7 วันล่าสุด</p>
                     <div className="h-[280px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={dailyRates} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -579,8 +579,8 @@ export default function Dashboard() {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
-                          <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
+                          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
+                          <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 500 }} />
                           <RechartsTooltip 
                             contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
                             itemStyle={{ fontWeight: 700 }}
@@ -592,9 +592,9 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-                    <p className="text-sm font-bold text-slate-800 mb-6 px-2">สัดส่วนสถานะการเข้าเรียน (เดือนนี้)</p>
-                    <div className="h-[280px] w-full flex items-center justify-center p-2">
+                  <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 shadow-sm border border-slate-100 overflow-hidden w-full">
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 mb-4 sm:mb-6 px-1 sm:px-2">สัดส่วนสถานะการเข้าเรียน (เดือนนี้)</p>
+                    <div className="h-[280px] w-full flex items-center justify-center p-1 sm:p-2">
                        <StackedBar data={analytics?.pieData} />
                     </div>
                   </div>
