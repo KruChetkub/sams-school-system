@@ -298,9 +298,9 @@ export default function VisitForm() {
 
   const advisorFullName = advisorProfile && Array.isArray(advisorProfile)
     ? advisorProfile.map(t => {
-        const name = `${t.first_name || ''} ${t.last_name || ''}`.trim();
-        return name.startsWith('ครู') ? name : `ครู${name}`;
-      }).join(', ')
+      const name = `${t.first_name || ''} ${t.last_name || ''}`.trim();
+      return name.startsWith('') ? name : `${name}`;
+    }).join(', ')
     : '';
 
   // ดึงโปรไฟล์ของครูที่กำลังเข้าใช้งานระบบอยู่ขณะนี้ (Logged-in Teacher)
@@ -321,9 +321,9 @@ export default function VisitForm() {
 
   const currentUserFullName = role === 'ADMIN' ? 'แอดมิน' : (currentUserProfile
     ? (() => {
-        const name = `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim();
-        return name.startsWith('ครู') ? name : `ครู${name}`;
-      })()
+      const name = `${currentUserProfile.first_name || ''} ${currentUserProfile.last_name || ''}`.trim();
+      return name.startsWith('') ? name : `${name}`;
+    })()
     : '');
 
   useEffect(() => {
