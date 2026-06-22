@@ -1,6 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, LogOut, ChevronRight, Home as HomeIcon, Heart } from 'lucide-react';
+import {
+  GraduationCap,
+  LogOut,
+  ChevronRight,
+  Home as HomeIcon,
+  Heart,
+  Search,
+  Sun,
+  Moon,
+  Globe,
+  Users,
+  BookOpen,
+  School,
+  ClipboardCheck,
+  Bell,
+  Settings,
+  Sparkles
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import LottieDefault from 'lottie-react';
@@ -8,12 +25,118 @@ import animationData from '../../../A.json';
 
 const Lottie = (LottieDefault as any).default || LottieDefault;
 
+const translations = {
+  th: {
+    siteTitle: 'School Portal Ckw',
+    subTitle: 'เลือกแอปพลิเคชันที่ต้องการใช้งาน',
+    tagline: 'แพลตฟอร์มดิจิทัลสำหรับการบริหารจัดการโรงเรียน',
+    desc: 'ระบบบริการดิจิทัลเพื่อการศึกษา ยกระดับการบริหารจัดการโรงเรียนสู่ระบบการทำงานอัจฉริยะ',
+    stats: {
+      students: 'นักเรียนทั้งหมด',
+      teachers: 'ครูและบุคลากร',
+      rooms: 'ห้องเรียนทั้งหมด',
+      activeSystems: 'ระบบที่เปิดใช้งาน'
+    },
+    apps: {
+      sams: {
+        title: 'ระบบเช็คชื่อ (SAMS)',
+        desc: 'จัดการข้อมูลนักเรียน เช็คชื่อเข้าแถว รายวิชา ตารางสอน และรายงานสรุปสถิติประจำวันอย่างรวดเร็ว',
+        btn: 'เข้าสู่ระบบ SAMS'
+      },
+      homevisit: {
+        title: 'ระบบเยี่ยมบ้าน',
+        desc: 'บันทึกข้อมูลการเยี่ยมบ้าน ระบุพิกัด GPS ประเมินความเสี่ยง และแนบรูปภาพรายงานผลแบบเรียลไทม์',
+        btn: 'เข้าสู่ระบบเยี่ยมบ้าน'
+      },
+      studentsupport: {
+        title: 'ระบบดูแลช่วยเหลือนักเรียน',
+        desc: 'คัดกรองพฤติกรรม (SDQ) ประเมินความฉลาดทางอารมณ์ (EQ 52 ข้อ) วิเคราะห์ความเสี่ยงและติดตามเคสสะสม',
+        btn: 'เข้าสู่ระบบดูแลช่วยเหลือ'
+      }
+    },
+    logout: 'ออกจากระบบ (Sign Out)',
+    loggingOut: 'กำลังออกจากระบบ...'
+  },
+  en: {
+    siteTitle: 'School Portal Ckw',
+    subTitle: 'Select an application to launch',
+    tagline: 'Digital Platform For Smart School Management',
+    desc: 'Digital services for education, elevating school administration into a smart unified operating system.',
+    stats: {
+      students: 'Total Students',
+      teachers: 'Teachers & Staff',
+      rooms: 'Total Classrooms',
+      activeSystems: 'Active Systems'
+    },
+    apps: {
+      sams: {
+        title: 'Attendance System (SAMS)',
+        desc: 'Manage student profiles, morning/class roll call, schedules, and daily statistical reports.',
+        btn: 'Launch SAMS'
+      },
+      homevisit: {
+        title: 'Home Visit System',
+        desc: 'Record home visits, pinpoint GPS coordinates, assess risk levels, and attach photos in real-time.',
+        btn: 'Launch Home Visit'
+      },
+      studentsupport: {
+        title: 'Student Support System',
+        desc: 'Behavioral screening (SDQ), emotional intelligence (EQ) assessments, and case progression tracking.',
+        btn: 'Launch Student Support'
+      }
+    },
+    logout: 'Sign Out',
+    loggingOut: 'Signing out...'
+  }
+};
+
 const Portal = () => {
   const { user, signOut, role } = useAuthStore();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [userName, setUserName] = useState('');
 
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    classrooms: 0,
+    activeSystems: 3
+  });
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+
+  // 1. Language System (TH / EN)
+  const [lang, setLang] = useState<'th' | 'en'>(() => {
+    return (localStorage.getItem('portal-lang') as 'th' | 'en') || 'th';
+  });
+
+  const toggleLanguage = () => {
+    const nextLang = lang === 'th' ? 'en' : 'th';
+    setLang(nextLang);
+    localStorage.setItem('portal-lang', nextLang);
+  };
+
+  const t = translations[lang];
+
+  // 2. Dark Mode System
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('portal-theme') as 'light' | 'dark') || 'dark';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('portal-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  // Fetch teacher's name or fall back to email prefix
   useEffect(() => {
     const fetchUserName = async () => {
       if (user?.id) {
@@ -33,142 +156,329 @@ const Portal = () => {
     fetchUserName();
   }, [user]);
 
+  // Fetch actual stats from Supabase
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsStatsLoading(true);
+        const [
+          { count: studentsCount },
+          { count: teachersCount },
+          { count: classroomsCount }
+        ] = await Promise.all([
+          supabase.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('teachers').select('*', { count: 'exact', head: true }),
+          supabase.from('classrooms').select('*', { count: 'exact', head: true })
+        ]);
+        setStats({
+          students: studentsCount || 0,
+          teachers: teachersCount || 0,
+          classrooms: classroomsCount || 0,
+          activeSystems: 3
+        });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      } finally {
+        setIsStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const handleLogout = async () => {
     setIsSigningOut(true);
     await signOut();
     setIsSigningOut(false);
   };
 
+  // Application cards list
+  const apps = [
+    {
+      id: 'sams',
+      title: t.apps.sams.title,
+      desc: t.apps.sams.desc,
+      btn: t.apps.sams.btn,
+      path: '/',
+      icon: GraduationCap,
+      colorClass: 'from-purple-500 to-indigo-600 shadow-purple-500/25 dark:shadow-indigo-500/15',
+      borderColor: 'group-hover:border-purple-400 dark:group-hover:border-indigo-500',
+      tag: 'Core'
+    },
+    {
+      id: 'homevisit',
+      title: t.apps.homevisit.title,
+      desc: t.apps.homevisit.desc,
+      btn: t.apps.homevisit.btn,
+      path: '/homevisit/dashboard',
+      icon: HomeIcon,
+      colorClass: 'from-fuchsia-500 to-purple-600 shadow-fuchsia-500/25 dark:shadow-purple-500/15',
+      borderColor: 'group-hover:border-fuchsia-400 dark:group-hover:border-purple-500',
+      tag: 'Advisor'
+    },
+    {
+      id: 'studentsupport',
+      title: t.apps.studentsupport.title,
+      desc: t.apps.studentsupport.desc,
+      btn: t.apps.studentsupport.btn,
+      path: '/studentsupport',
+      icon: Heart,
+      colorClass: 'from-violet-600 to-purple-700 shadow-violet-600/25 dark:shadow-violet-500/15',
+      borderColor: 'group-hover:border-violet-400 dark:group-hover:border-purple-600',
+      tag: 'Care'
+    }
+  ];
+
+
+
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden bg-[#0f172a]">
-      {/* Background Lottie Animation */}
-      <div className="absolute inset-0 z-0 opacity-90 pointer-events-none">
-        <Lottie
-          animationData={animationData}
-          loop={true}
-          autoplay={true}
-          initialSegment={[60, 112]}
-          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transform: 'scale(1.15)' }}
-          rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
-        />
+    <div className="min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 bg-[#F8FAFC] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100">
+
+      {/* Background Lottie Animation with Theme-Adaptive Overlay */}
+      <div className="absolute inset-0 z-0 pointer-events-none select-none">
+        <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen dark:mix-blend-normal">
+          <Lottie
+            animationData={animationData}
+            loop={true}
+            autoplay={true}
+            initialSegment={[60, 112]}
+            style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transform: 'scale(1.15)' }}
+            rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
+          />
+        </div>
+        {/* Soft blur backdrops in gradient purple */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 dark:bg-purple-600/15 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 dark:bg-indigo-600/15 blur-[100px]" />
+        {/* Responsive Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-[#F8FAFC]/75 dark:bg-[#0f172a]/80 backdrop-blur-[1px] transition-colors duration-300" />
       </div>
 
-      {/* Content wrapper to ensure z-index stays above background */}
-      <div className="relative z-10 flex flex-col flex-1 h-full">
+      <div className="relative z-10 flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Logout Overlay */}
         {isSigningOut && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 backdrop-blur-md p-4">
-            <div className="rounded-3xl border border-white/35 bg-white/20 px-8 py-7 text-center shadow-2xl">
-              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/35 border-t-white" />
-              <p className="text-lg font-bold text-white">กำลังออกจากระบบ...</p>
+            <div className="rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/20 dark:bg-slate-900/30 p-8 text-center shadow-2xl backdrop-blur-xl max-w-xs w-full">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-500/30 border-t-purple-600" />
+              <p className="text-lg font-extrabold text-slate-800 dark:text-white leading-relaxed">{t.loggingOut}</p>
             </div>
           </div>
         )}
 
-        {/* Header - Transparent with Glassmorphism Pills */}
-        <header className="px-4 md:px-10 py-4 md:py-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-3 sticky top-0 z-10 w-full">
-          
-          {/* Left Side: Logo and Title in a Glass Pill */}
-          <div className="bg-white/80 backdrop-blur-xl px-4 py-2.5 md:px-6 md:py-3 rounded-2xl md:rounded-3xl border border-white/60 shadow-sm flex items-center gap-3 w-full md:w-auto">
-            <div className="w-9 h-9 md:w-12 md:h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg text-white font-black text-lg md:text-2xl shrink-0">S</div>
+        {/* Header - Glassmorphism Navigation Bar */}
+        <header className="py-4 md:py-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sticky top-0 z-40 w-full">
+
+          {/* Left Pill: Logo & Title (Desktop only: hidden md:flex) */}
+          <div className="hidden md:flex bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl px-4 py-3 rounded-2xl md:rounded-[2rem] border border-white/50 dark:border-slate-800/50 shadow-sm items-center gap-3.5 flex-1 md:flex-initial">
+            <div className="w-10 h-10 md:w-11 md:h-11 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 text-white font-black text-xl shrink-0">
+              C
+            </div>
             <div className="text-left">
-              <h1 className="text-sm md:text-2xl font-black text-gray-900 leading-tight">School Portal Ckw</h1>
-              <p className="hidden md:block text-xs md:text-sm font-semibold text-gray-600 mt-0.5">เลือกแอปพลิเคชันที่ต้องการใช้งาน</p>
+              <h1 className="text-base md:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                {t.siteTitle}
+              </h1>
+              <p className="text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                {t.subTitle}
+              </p>
             </div>
           </div>
 
-          {/* Right Side: User Info in a Glass Pill (Always display on both mobile and desktop) */}
-          <div className="bg-white/80 backdrop-blur-xl px-4 py-2.5 md:px-5 md:py-3 rounded-2xl md:rounded-3xl border border-white/60 shadow-sm flex items-center gap-3 w-full md:w-auto">
-            <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold text-xs md:text-sm shadow-inner border border-blue-200/50 shrink-0">
-              {userName ? userName.charAt(0).toUpperCase() : 'U'}
+          {/* Right Action Menu: Search, Lang, Theme, Profile */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl px-3 py-2 rounded-2xl md:rounded-[2rem] border border-white/50 dark:border-slate-800/50 shadow-sm mx-auto md:mx-0 w-full sm:w-auto">
+
+            {/* Lang Button (Accessible Touch Size >=44px) */}
+            <button
+              onClick={toggleLanguage}
+              aria-label="Toggle language"
+              className="w-11 h-11 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <Globe className="w-5 h-5" />
+              <span className="ml-1 text-xs font-bold uppercase">{lang === 'th' ? 'EN' : 'TH'}</span>
+            </button>
+
+            {/* Dark Mode Button (Accessible Touch Size >=44px) */}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+              className="w-11 h-11 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
+            </button>
+
+            {/* User Profile Info */}
+            <div className="h-11 pl-2.5 pr-4 flex items-center gap-2.5 rounded-xl md:rounded-full bg-slate-100 dark:bg-slate-800/70 border border-slate-200/40 dark:border-slate-700/30">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950 dark:to-indigo-950 flex items-center justify-center text-purple-700 dark:text-purple-300 font-black text-xs shadow-inner">
+                {userName ? userName.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="text-left leading-none">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{userName || 'User'}</p>
+                <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest block mt-0.5">{role || 'GUEST'}</span>
+              </div>
             </div>
-            <div className="text-left flex-1 md:flex-initial">
-              <p className="text-xs md:text-sm font-bold text-gray-900 leading-tight">{userName || 'ผู้ใช้งาน'}</p>
-              <p className="text-[9px] md:text-xs font-bold text-blue-700 uppercase tracking-wider leading-none mt-0.5">{role}</p>
-            </div>
+
+            {/* Logout Button (Desktop only: md:flex, hidden on mobile) */}
+            <button
+              onClick={handleLogout}
+              aria-label="Sign out"
+              className="hidden md:flex w-11 h-11 items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+            >
+              <LogOut className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+            </button>
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-12 flex flex-col justify-center items-center">
-          <div className="grid grid-cols-2 gap-4 md:flex md:flex-wrap md:justify-center md:gap-6 max-w-5xl mx-auto w-full">
+        {/* Hero Section */}
+        <section className="mt-6 md:mt-12 mb-8 md:mb-10 text-center flex flex-col items-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[10px] md:text-xs font-black uppercase tracking-wider mb-4 animate-pulse">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Smart School Operating System</span>
+          </div>
 
-            {/* Card 1: SAMS */}
-            <Link to="/" className="group relative bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-lg border border-white/60 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 flex flex-col h-full justify-between w-full md:w-[calc(50%-12px)] max-w-md">
-              <div className="absolute top-0 right-0 w-16 h-16 md:w-32 md:h-32 bg-blue-100 rounded-bl-full -mr-4 -mt-4 md:-mr-8 md:-mt-8 opacity-60 group-hover:scale-125 transition-transform duration-500"></div>
+          <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white max-w-3xl leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white">
+            {t.tagline}
+          </h2>
 
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 mb-3 md:mb-6 text-white group-hover:scale-110 transition-transform duration-300">
-                    <GraduationCap className="w-5 h-5 md:w-8 md:h-8" />
-                  </div>
-                  <h3 className="text-sm md:text-2xl font-bold text-gray-900 mb-1.5 md:mb-3 leading-tight">ระบบเช็คชื่อ (SAMS)</h3>
-                  <p className="hidden md:block text-gray-500 text-xs md:text-sm leading-relaxed mb-4 md:mb-8">
-                    จัดการข้อมูลนักเรียน เช็คชื่อเข้าแถว รายวิชา ตารางสอน และรายงานสรุปสถิติ
-                  </p>
-                </div>
+          <p className="mt-3 text-xs sm:text-base text-slate-500 dark:text-slate-400 max-w-xl font-medium leading-relaxed">
+            {t.desc}
+          </p>
+        </section>
 
-                <div className="flex items-center text-[11px] md:text-base text-blue-600 font-bold group-hover:gap-2 transition-all mt-auto">
-                  <span>เข้าสู่ระบบ SAMS</span> <ChevronRight className="w-3 h-3 md:w-5 md:h-5 ml-0.5 md:ml-1" />
-                </div>
+        {/* Quick Statistics (Real Data from Supabase) */}
+        <section className="mb-10 md:mb-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+
+            {/* Stat 1: Total Students */}
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5" />
               </div>
-            </Link>
-
-            {/* Card 2: Home Visit */}
-            <Link to="/homevisit/dashboard" className="group relative bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-lg border border-white/60 hover:border-emerald-400 hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 flex flex-col h-full justify-between w-full md:w-[calc(50%-12px)] max-w-md">
-              <div className="absolute top-0 right-0 w-16 h-16 md:w-32 md:h-32 bg-emerald-100 rounded-bl-full -mr-4 -mt-4 md:-mr-8 md:-mt-8 opacity-60 group-hover:scale-125 transition-transform duration-500"></div>
-
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-3 md:mb-6 text-white group-hover:scale-110 transition-transform duration-300">
-                    <HomeIcon className="w-5 h-5 md:w-8 md:h-8" />
-                  </div>
-                  <h3 className="text-sm md:text-2xl font-bold text-gray-900 mb-1.5 md:mb-3 leading-tight">ระบบเยี่ยมบ้าน</h3>
-                  <p className="hidden md:block text-gray-500 text-xs md:text-sm leading-relaxed mb-4 md:mb-8">
-                    บันทึกข้อมูลการเยี่ยมบ้าน พิกัด GPS ประเมินความเสี่ยงและแนบภาพถ่ายสภาพบ้าน
-                  </p>
-                </div>
-
-                <div className="flex items-center text-[11px] md:text-base text-emerald-600 font-bold group-hover:gap-2 transition-all mt-auto">
-                  <span>เข้าสู่ระบบเยี่ยมบ้าน</span> <ChevronRight className="w-3 h-3 md:w-5 md:h-5 ml-0.5 md:ml-1" />
-                </div>
+              <div className="text-left overflow-hidden">
+                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.students}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                  {isStatsLoading ? (
+                    <span className="inline-block w-12 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  ) : (
+                    stats.students.toLocaleString()
+                  )}
+                </p>
               </div>
-            </Link>
+            </div>
 
-            {/* Card 3: Student Support (SAMS v13) */}
-            <Link to="/studentsupport" className="group relative bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-lg border border-white/60 hover:border-violet-400 hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 flex flex-col h-full justify-between w-full md:w-[calc(50%-12px)] max-w-md">
-              <div className="absolute top-0 right-0 w-16 h-16 md:w-32 md:h-32 bg-violet-100 rounded-bl-full -mr-4 -mt-4 md:-mr-8 md:-mt-8 opacity-60 group-hover:scale-125 transition-transform duration-500"></div>
-
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30 mb-3 md:mb-6 text-white group-hover:scale-110 transition-transform duration-300">
-                    <Heart className="w-5 h-5 md:w-8 md:h-8" />
-                  </div>
-                  <h3 className="text-sm md:text-2xl font-bold text-gray-900 mb-1.5 md:mb-3 leading-tight">ระบบดูแลช่วยเหลือนักเรียน</h3>
-                  <p className="hidden md:block text-gray-500 text-xs md:text-sm leading-relaxed mb-4 md:mb-8">
-                    คัดกรองพฤติกรรม (SDQ) ประเมินความฉลาดทางอารมณ์ (EQ 52 ข้อ) วิเคราะห์ความเสี่ยงและติดตามเคสสะสม
-                  </p>
-                </div>
-
-                <div className="flex items-center text-[11px] md:text-base text-violet-600 font-bold group-hover:gap-2 transition-all mt-auto">
-                  <span>เข้าสู่ระบบดูแลช่วยเหลือ</span> <ChevronRight className="w-3 h-3 md:w-5 md:h-5 ml-0.5 md:ml-1" />
-                </div>
+            {/* Stat 2: Total Teachers */}
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5" />
               </div>
-            </Link>
+              <div className="text-left overflow-hidden">
+                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.teachers}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                  {isStatsLoading ? (
+                    <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  ) : (
+                    stats.teachers.toLocaleString()
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Stat 3: Total Rooms */}
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                <School className="w-5 h-5" />
+              </div>
+              <div className="text-left overflow-hidden">
+                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.rooms}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                  {isStatsLoading ? (
+                    <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  ) : (
+                    stats.classrooms.toLocaleString()
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Stat 4: Active Systems */}
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+              <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center shrink-0">
+                <ClipboardCheck className="w-5 h-5" />
+              </div>
+              <div className="text-left overflow-hidden">
+                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.activeSystems}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                  {isStatsLoading ? (
+                    <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  ) : (
+                    `${stats.activeSystems} / ${stats.activeSystems}`
+                  )}
+                </p>
+              </div>
+            </div>
 
           </div>
-        </main>
+        </section>
 
-        {/* Footer - Logout Button at the bottom */}
-        <footer className="w-full py-6 md:py-8 mt-auto flex justify-center items-center z-10">
+        {/* Apps Grid Layout */}
+        <section className="mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {apps.map((app) => {
+              const IconComponent = app.icon;
+              return (
+                <Link
+                  key={app.id}
+                  to={app.path}
+                  className={`group relative bg-white/80 dark:bg-[#1E293B]/70 backdrop-blur-lg rounded-[1.75rem] p-6 shadow-md hover:shadow-xl border border-white/70 dark:border-slate-800/60 ${app.borderColor} transition-all duration-300 overflow-hidden transform hover:-translate-y-1.5 flex flex-col h-full justify-between outline-none focus:ring-2 focus:ring-purple-500`}
+                >
+                  {/* Color Corner Blob */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-500/10 to-indigo-500/0 rounded-bl-full -mr-2 -mt-2 group-hover:scale-125 transition-transform duration-500" />
+
+                  <div className="relative z-10 flex flex-col h-full">
+                    {/* Badge / Tag */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${app.colorClass} flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                        <IconComponent className="w-6 h-6" />
+                      </div>
+                      <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/10 uppercase tracking-widest">
+                        {app.tag}
+                      </span>
+                    </div>
+
+                    {/* Title & Description */}
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {app.title}
+                      </h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm leading-relaxed mb-6 font-medium">
+                        {app.desc}
+                      </p>
+                    </div>
+
+                    {/* Action trigger button */}
+                    <div className="flex items-center text-xs md:text-sm text-purple-600 dark:text-purple-400 font-extrabold group-hover:gap-1.5 transition-all mt-auto py-1">
+                      <span>{app.btn}</span>
+                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Footer with logout button */}
+        <footer className="w-full py-8 mt-auto flex flex-col items-center gap-4 border-t border-slate-200/30 dark:border-slate-800/30 z-10">
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 text-xs md:text-sm font-bold text-white bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 border border-red-500/40 rounded-xl transition-all shadow-lg backdrop-blur-md"
+            className="md:hidden flex items-center justify-center gap-2 px-6 py-3 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 dark:border dark:border-rose-500/30 rounded-xl transition-all shadow-md hover:shadow-lg focus:ring-2 focus:ring-rose-500 cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4 text-red-400" />
-            <span className="text-red-200 font-semibold">ออกจากระบบ (Sign Out)</span>
+            <LogOut className="w-4 h-4 text-white dark:text-rose-400" />
+            <span>{t.logout}</span>
           </button>
+
+          <p className="text-[10px] md:text-xs font-semibold text-slate-400 dark:text-slate-500 text-center mt-2 leading-none">
+            © {new Date().getFullYear()} School Portal Ckw. All rights reserved. Powered by Pichet Sripichai Smart School Operating System. v2.2.0
+          </p>
         </footer>
+
       </div>
     </div>
   );

@@ -258,6 +258,12 @@ export default function Login() {
                 {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
               </button>
             </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-[10px] font-semibold text-[#8b7f9d]">
+                v2.2.0
+              </p>
+            </div>
           </section>
         </div>
       </div>

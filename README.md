@@ -26,6 +26,13 @@
 
 ## ✨ คุณสมบัติเด่นของระบบ (Key Features)
 
+### 🌐 พอร์ทัลกลางรวมระบบ (School Portal V2)
+*   **Smart Portal Integration:** พอร์ทัลหลักที่เปรียบเสมือน "Smart School Operating System" ออกแบบสไตล์ Microsoft Fluent + Apple Design เรียบหรู คลีน และรองรับ Mobile-First เต็มรูปแบบ
+*   **Supabase Database Stats:** ดึงข้อมูลสถิติจริงแบบเรียลไทม์จาก Supabase (นับจำนวนนักเรียน ครู และห้องเรียนทั้งหมด) พร้อม Pulse Loading Effect เพื่อความลื่นไหล
+*   **Light / Dark Theme Support:** สลับโหมดสว่าง/มืด ควบคุมด้วย className และผสานความโปร่งแสงเข้ากับฉากหลังแอนิเมชัน Lottie (`A.json`) พร้อมบันทึกสถานะล่าสุดลงใน Local Storage
+*   **Multi-language System (TH/EN):** ปุ่มเปลี่ยนภาษาระหว่างภาษาไทยและอังกฤษ เปลี่ยนข้อความและอินเทอร์เฟซทันทีโดยไม่โหลดหน้าใหม่ (No Page Reload)
+*   **Responsive Header & Sign Out:** ซ่อนป้ายชื่อเว็บที่ไม่จำเป็นบนโทรศัพท์เพื่อความคลีน และย้ายปุ่ม Sign Out ไปไว้บน Header (Desktop) เพื่อสุขลักษณะการใช้งานที่เหมาะสมตามขนาดหน้าจอ
+
 ### 📊 หน้าแสดงผลและสรุป (Executive Dashboard)
 *   **Real-time Analytics:** สรุปตัวเลขนักเรียน ห้องเรียน และบุคลากรทั้งหมดแบบเรียลไทม์
 *   **Advanced Visualizations:** กราฟวิเคราะห์ขั้นสูงสำหรับผู้บริหาร (เช่น Gauge Chart สำหรับอัตราเข้าเรียนเฉลี่ยรายเดือน และ 100% Stacked Bar สำหรับสัดส่วนสถานะการเข้าเรียน)
@@ -52,12 +59,17 @@ frontend/
 ├── src/
 │   ├── assets/            # รูปภาพและสไตล์ (เช่น index.css, App.css)
 │   ├── lib/               # ไฟล์ตั้งค่าไลบรารีภายนอก (เช่น supabase.ts)
-│   ├── pages/             # หน้าจอ UI ต่างๆ (Dashboard.tsx, Homeroom.tsx, Settings.tsx)
+│   ├── pages/             # หน้าจอ UI แบ่งกลุ่มตามความเกี่ยวข้อง
+│   │   ├── portal/        # โฟลเดอร์หน้าหลักพอร์ทัล V2 (Portal.tsx)
+│   │   ├── studentsupport/# ระบบดูแลช่วยเหลือนักเรียน (SDQ, EQ, Case)
+│   │   ├── homevisit/     # ระบบเยี่ยมบ้านของครูประจำชั้น
+│   │   └── ...            # Dashboard.tsx, Homeroom.tsx, Settings.tsx
 │   ├── services/          # โค้ดสำหรับติดต่อ Backend/DB (เช่น dashboardService.ts)
 │   ├── store/             # ระบบจัดการ State ส่วนกลาง (Zustand)
 │   ├── App.tsx            # ไฟล์หลักกำหนดโครงสร้าง Layout และ Router
 │   └── main.tsx           # จุดเริ่มต้นของ React Application
 ├── package.json           # รายชื่อ Dependencies และคำสั่ง Script
+├── CHANGELOG.md           # ประวัติการปรับปรุงและรหัสเวอร์ชันของระบบ
 ├── .env.example           # ไฟล์ตัวอย่างสำหรับการตั้งค่าตัวแปรระบบ
 └── vite.config.ts         # การตั้งค่า Vite bundler
 ```
