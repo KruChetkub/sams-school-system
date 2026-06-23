@@ -12,13 +12,14 @@
 }
 
 body {
-  background-color: var(--app-bg, #f3f4f6);
-  background-image: var(--app-bg-image, none);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-color: #f3f4f6;
   color: #1f2937;
   font-family: var(--font-sans);
+}
+
+.dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
 @media print {
@@ -48,5 +49,211 @@ body {
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+}
+
+/* ==========================================================================
+   CROSS-APP THEMING RULES (STUDENT SUPPORT & HOME VISIT LAYOUTS)
+   ========================================================================== */
+
+/* 1. Student Support Theme Overrides (Defaults to Dark, adapts to Light) */
+html:not(.dark) .student-support-layout {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important;
+  }
+
+  /* Exclude buttons and badges from text-white overrides */
+  .text-white:not(button):not(a):not(span.bg-indigo-600):not(span.bg-emerald-500):not(span.bg-gradient-to-r) {
+    color: #0f172a !important;
+  }
+
+  .text-gray-300 {
+    color: #334155 !important;
+  }
+
+  .text-gray-400 {
+    color: #475569 !important;
+  }
+
+  .text-gray-500 {
+    color: #64748b !important;
+  }
+
+  .text-indigo-400 {
+    color: #4f46e5 !important;
+  }
+
+  .text-purple-400 {
+    color: #7c3aed !important;
+  }
+
+  .text-rose-400 {
+    color: #e11d48 !important;
+  }
+
+  .text-amber-400 {
+    color: #d97706 !important;
+  }
+
+  .text-yellow-300 {
+    color: #b45309 !important;
+  }
+
+  .text-emerald-400 {
+    color: #059669 !important;
+  }
+
+  /* Card and Panel Backgrounds */
+  .bg-white\/5 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .bg-white\/10 {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .bg-white\/\[0\.02\] {
+    background-color: #f8fafc !important;
+  }
+
+  /* Background overrides for main screens and dialogs */
+  .bg-\[\#090d16\],
+  .bg-\[\#0f172a\],
+  .bg-\[\#020617\]\/80 {
+    background-color: #f8fafc !important;
+  }
+
+  .bg-\[\#0f172a\],
+  .bg-\[\#1e293b\] {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+
+  /* Input fields styling */
+  input, select, textarea {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Border styles */
+  .border-white\/10 {
+    border-color: #cbd5e1 !important;
+  }
+
+  .border-white\/5 {
+    border-color: #f1f5f9 !important;
+  }
+
+  /* Timelines and hover animations */
+  .hover\:bg-white\/10:hover {
+    background-color: #f1f5f9 !important;
+  }
+
+  .hover\:bg-white\/5:hover {
+    background-color: #f8fafc !important;
+  }
+
+  /* Preserve texts inside solid colored badges/cards */
+  .bg-gradient-to-br.from-indigo-500.to-purple-600 *,
+  .bg-gradient-to-r.from-emerald-500.to-teal-600 *,
+  .bg-indigo-600 * {
+    color: #ffffff !important;
+  }
+}
+
+/* 2. Home Visit Theme Overrides (Defaults to Light, adapts to Dark) */
+html.dark .home-visit-layout {
+  background-color: #0b1329 !important;
+  color: #f1f5f9 !important;
+
+  /* Card backgrounds and layout adjustments */
+  .bg-white {
+    background-color: #111a36 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .bg-gray-50,
+  .bg-gray-50\/50 {
+    background-color: #0b1329 !important;
+  }
+
+  /* Hover states and lists */
+  .hover\:bg-emerald-50:hover {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+  }
+
+  /* Headers and borders */
+  .bg-gray-50 {
+    background-color: #1e293b !important;
+  }
+
+  .border-gray-100,
+  .border-gray-150,
+  .border-gray-200 {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* Text Colors */
+  .text-gray-900,
+  .text-slate-800 {
+    color: #f1f5f9 !important;
+  }
+
+  .text-gray-600,
+  .text-gray-400 {
+    color: #94a3b8 !important;
+  }
+
+  .text-gray-500 {
+    color: #cbd5e1 !important;
+  }
+
+  .text-emerald-700 {
+    color: #34d399 !important;
+  }
+
+  /* Input fields */
+  input, select, textarea {
+    background-color: #18223f !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Custom badge colors mapping to dark contrast */
+  .bg-emerald-100 {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+  }
+
+  .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+  }
+
+  .bg-indigo-50 {
+    background-color: rgba(99, 102, 241, 0.2) !important;
+    color: #818cf8 !important;
+  }
+
+  .bg-amber-100 {
+    background-color: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
   }
 }

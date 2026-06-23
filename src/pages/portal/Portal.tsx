@@ -196,6 +196,7 @@ const Portal = () => {
     {
       id: 'sams',
       title: t.apps.sams.title,
+      shortTitle: lang === 'th' ? 'ระบบเช็คชื่อ' : 'SAMS',
       desc: t.apps.sams.desc,
       btn: t.apps.sams.btn,
       path: '/',
@@ -207,6 +208,7 @@ const Portal = () => {
     {
       id: 'homevisit',
       title: t.apps.homevisit.title,
+      shortTitle: lang === 'th' ? 'เยี่ยมบ้าน' : 'Home Visit',
       desc: t.apps.homevisit.desc,
       btn: t.apps.homevisit.btn,
       path: '/homevisit/dashboard',
@@ -218,6 +220,7 @@ const Portal = () => {
     {
       id: 'studentsupport',
       title: t.apps.studentsupport.title,
+      shortTitle: lang === 'th' ? 'ดูแลช่วยเหลือ' : 'Support',
       desc: t.apps.studentsupport.desc,
       btn: t.apps.studentsupport.btn,
       path: '/studentsupport',
@@ -235,21 +238,28 @@ const Portal = () => {
 
       {/* Background Lottie Animation with Theme-Adaptive Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none">
-        <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen dark:mix-blend-normal">
-          <Lottie
-            animationData={animationData}
-            loop={true}
-            autoplay={true}
-            initialSegment={[60, 112]}
-            style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transform: 'scale(1.15)' }}
-            rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
+        {theme === 'dark' ? (
+          <div className="absolute inset-0 z-0 opacity-80 mix-blend-screen dark:mix-blend-normal">
+            <Lottie
+              animationData={animationData}
+              loop={true}
+              autoplay={true}
+              initialSegment={[60, 112]}
+              style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transform: 'scale(1.15)' }}
+              rendererSettings={{ preserveAspectRatio: 'xMidYMid slice' }}
+            />
+          </div>
+        ) : (
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center opacity-95 transition-all duration-500"
+            style={{ backgroundImage: 'url(/portal-light-bg.png)' }}
           />
-        </div>
+        )}
         {/* Soft blur backdrops in gradient purple */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 dark:bg-purple-600/15 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 dark:bg-indigo-600/15 blur-[100px]" />
         {/* Responsive Overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-[#F8FAFC]/75 dark:bg-[#0f172a]/80 backdrop-blur-[1px] transition-colors duration-300" />
+        <div className="absolute inset-0 bg-[#F8FAFC]/40 dark:bg-[#0f172a]/80 backdrop-blur-[1px] transition-colors duration-300" />
       </div>
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -315,11 +325,11 @@ const Portal = () => {
               </div>
             </div>
 
-            {/* Logout Button (Desktop only: md:flex, hidden on mobile) */}
+            {/* Logout Button (Visible on all screens) */}
             <button
               onClick={handleLogout}
               aria-label="Sign out"
-              className="hidden md:flex w-11 h-11 items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+              className="flex w-11 h-11 items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
             >
               <LogOut className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             </button>
@@ -327,17 +337,17 @@ const Portal = () => {
         </header>
 
         {/* Hero Section */}
-        <section className="mt-6 md:mt-12 mb-8 md:mb-10 text-center flex flex-col items-center">
+        <section className="mt-4 sm:mt-6 md:mt-12 mb-4 sm:mb-8 md:mb-10 text-center flex flex-col items-center">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[10px] md:text-xs font-black uppercase tracking-wider mb-4 animate-pulse">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Smart School Operating System</span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white max-w-3xl leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white">
+          <h2 className="text-xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-white dark:via-purple-200 dark:to-white max-w-3xl leading-[1.15]">
             {t.tagline}
           </h2>
 
-          <p className="mt-3 text-xs sm:text-base text-slate-500 dark:text-slate-400 max-w-xl font-medium leading-relaxed">
+          <p className="mt-3 text-xs sm:text-base text-slate-800 dark:text-slate-300 max-w-xl font-semibold leading-relaxed hidden sm:block">
             {t.desc}
           </p>
         </section>
@@ -347,13 +357,13 @@ const Portal = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
 
             {/* Stat 1: Total Students */}
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+            <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5" />
               </div>
               <div className="text-left overflow-hidden">
-                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.students}</p>
-                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                <p className="text-[10px] md:text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider truncate">{t.stats.students}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-950 dark:text-white leading-tight">
                   {isStatsLoading ? (
                     <span className="inline-block w-12 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
                   ) : (
@@ -364,13 +374,13 @@ const Portal = () => {
             </div>
 
             {/* Stat 2: Total Teachers */}
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+            <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <BookOpen className="w-5 h-5" />
               </div>
               <div className="text-left overflow-hidden">
-                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.teachers}</p>
-                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                <p className="text-[10px] md:text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider truncate">{t.stats.teachers}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-950 dark:text-white leading-tight">
                   {isStatsLoading ? (
                     <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
                   ) : (
@@ -381,13 +391,13 @@ const Portal = () => {
             </div>
 
             {/* Stat 3: Total Rooms */}
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+            <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
               <div className="w-10 h-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                 <School className="w-5 h-5" />
               </div>
               <div className="text-left overflow-hidden">
-                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.rooms}</p>
-                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                <p className="text-[10px] md:text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider truncate">{t.stats.rooms}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-950 dark:text-white leading-tight">
                   {isStatsLoading ? (
                     <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
                   ) : (
@@ -398,13 +408,13 @@ const Portal = () => {
             </div>
 
             {/* Stat 4: Active Systems */}
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
+            <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl md:rounded-3xl p-4 border border-white/50 dark:border-slate-800/40 shadow-sm flex items-center gap-3.5 transform hover:scale-[1.02] transition-all">
               <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center shrink-0">
                 <ClipboardCheck className="w-5 h-5" />
               </div>
               <div className="text-left overflow-hidden">
-                <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{t.stats.activeSystems}</p>
-                <p className="text-lg md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                <p className="text-[10px] md:text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider truncate">{t.stats.activeSystems}</p>
+                <p className="text-lg md:text-2xl font-black text-slate-950 dark:text-white leading-tight">
                   {isStatsLoading ? (
                     <span className="inline-block w-8 h-5 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
                   ) : (
@@ -419,19 +429,20 @@ const Portal = () => {
 
         {/* Apps Grid Layout */}
         <section className="mb-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {apps.map((app) => {
               const IconComponent = app.icon;
               return (
                 <Link
                   key={app.id}
                   to={app.path}
-                  className={`group relative bg-white/80 dark:bg-[#1E293B]/70 backdrop-blur-lg rounded-[1.75rem] p-6 shadow-md hover:shadow-xl border border-white/70 dark:border-slate-800/60 ${app.borderColor} transition-all duration-300 overflow-hidden transform hover:-translate-y-1.5 flex flex-col h-full justify-between outline-none focus:ring-2 focus:ring-purple-500`}
+                  className={`group relative bg-white/80 dark:bg-[#1E293B]/70 backdrop-blur-lg rounded-2xl sm:rounded-[1.75rem] p-3 sm:p-6 shadow-md hover:shadow-xl border border-white/70 dark:border-slate-800/60 ${app.borderColor} transition-all duration-300 overflow-hidden transform hover:-translate-y-1.5 flex flex-col h-auto sm:h-full items-center sm:items-stretch justify-center sm:justify-between outline-none focus:ring-2 focus:ring-purple-500`}
                 >
                   {/* Color Corner Blob */}
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-500/10 to-indigo-500/0 rounded-bl-full -mr-2 -mt-2 group-hover:scale-125 transition-transform duration-500" />
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-500/10 to-indigo-500/0 rounded-bl-full -mr-2 -mt-2 group-hover:scale-125 transition-transform duration-500 hidden sm:block" />
 
-                  <div className="relative z-10 flex flex-col h-full">
+                  {/* Desktop Layout Wrapper */}
+                  <div className="hidden sm:flex relative z-10 flex-col h-full">
                     {/* Badge / Tag */}
                     <div className="flex justify-between items-start mb-4">
                       <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${app.colorClass} flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform duration-300`}>
@@ -447,7 +458,7 @@ const Portal = () => {
                       <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                         {app.title}
                       </h3>
-                      <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm leading-relaxed mb-6 font-medium">
+                      <p className="text-slate-800 dark:text-slate-300 text-xs md:text-sm leading-relaxed mb-6 font-semibold">
                         {app.desc}
                       </p>
                     </div>
@@ -458,22 +469,26 @@ const Portal = () => {
                       <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
+
+                  {/* Mobile App Icon Layout Wrapper */}
+                  <div className="sm:hidden flex flex-col items-center gap-1.5 w-full text-center">
+                    {/* App Icon (Squircle) */}
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${app.colorClass} flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                      <IconComponent className="w-7 h-7" />
+                    </div>
+                    {/* App Name */}
+                    <span className="text-[10px] font-black text-slate-900 dark:text-white leading-tight tracking-tight break-words line-clamp-2 max-w-full">
+                      {app.shortTitle}
+                    </span>
+                  </div>
                 </Link>
               );
             })}
           </div>
         </section>
 
-        {/* Footer with logout button */}
-        <footer className="w-full py-8 mt-auto flex flex-col items-center gap-4 border-t border-slate-200/30 dark:border-slate-800/30 z-10">
-          <button
-            onClick={handleLogout}
-            className="md:hidden flex items-center justify-center gap-2 px-6 py-3 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 dark:border dark:border-rose-500/30 rounded-xl transition-all shadow-md hover:shadow-lg focus:ring-2 focus:ring-rose-500 cursor-pointer"
-          >
-            <LogOut className="w-4 h-4 text-white dark:text-rose-400" />
-            <span>{t.logout}</span>
-          </button>
-
+        {/* Footer */}
+        <footer className="w-full py-6 mt-auto flex flex-col items-center gap-4 border-t border-slate-200/30 dark:border-slate-800/30 z-10">
           <p className="text-[10px] md:text-xs font-semibold text-slate-400 dark:text-slate-500 text-center mt-2 leading-none">
             © {new Date().getFullYear()} School Portal Ckw. All rights reserved. Powered by Pichet Sripichai Smart School Operating System. v2.2.0
           </p>

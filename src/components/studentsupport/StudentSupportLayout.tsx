@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import {
-  LayoutDashboard, Users, ShieldAlert, Menu, X, ArrowLeft, LogOut, Heart, Sparkles
+  LayoutDashboard, Users, ShieldAlert, Menu, X, ArrowLeft, LogOut, Heart, Sparkles, Globe, Sun, Moon
 } from 'lucide-react';
 
 type StudentSupportRole = 'TEACHER' | 'EXECUTIVE' | 'ADMIN';
@@ -15,6 +15,31 @@ const normalizeRole = (role?: string | null): StudentSupportRole | null => {
   return null;
 };
 
+const translations = {
+  th: {
+    title: 'ดูแลช่วยเหลือนักเรียน',
+    stats: 'ภาพรวมสถิติโรงเรียน',
+    screening: 'ภาพรวมคัดกรอง',
+    individual: 'คัดกรองนักเรียนรายบุคคล',
+    cases: 'จัดการเคสช่วยเหลือ',
+    switchApp: 'สลับแอปพลิเคชัน',
+    logout: 'ออกจากระบบ',
+    admin: 'ผู้ดูแลระบบ',
+    user: 'ผู้ใช้งาน'
+  },
+  en: {
+    title: 'Student Support Care',
+    stats: 'School Stats Overview',
+    screening: 'Screening Overview',
+    individual: 'Individual Screening',
+    cases: 'Case Management',
+    switchApp: 'Switch Application',
+    logout: 'Sign Out',
+    admin: 'Administrator',
+    user: 'User'
+  }
+};
+
 const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any, children: React.ReactNode, onClick: () => void }) => {
   const location = useLocation();
   // match active route exactly or prefix match (excluding exact dashboard / root match)
@@ -24,9 +49,13 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'text-gray-400 hover:bg-white/5 hover:text-white font-medium'}`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+        isActive 
+          ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-150 dark:border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)] dark:shadow-[0_0_15px_rgba(99,102,241,0.15)]' 
+          : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white font-medium'
+      }`}
     >
-      <Icon size={20} className={isActive ? 'text-indigo-400' : 'text-gray-500'} />
+      <Icon size={20} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-gray-500'} />
       {children}
     </Link>
   );
@@ -38,6 +67,48 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [teacherDisplayName, setTeacherDisplayName] = useState('');
   const [userRole, setUserRole] = useState<StudentSupportRole | null>(normalizeRole(role));
+
+  // Language & Theme Sync
+  const [lang, setLang] = useState<'th' | 'en'>(() => {
+    return (localStorage.getItem('portal-lang') as 'th' | 'en') || 'th'
+  })
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('portal-theme') as 'light' | 'dark') || 'dark'
+  })
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+    localStorage.setItem('portal-theme', theme)
+  }, [theme])
+
+  // Sync state changes from localStorage (if changed in other tabs/pages)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedTheme = localStorage.getItem('portal-theme') as 'light' | 'dark'
+      const storedLang = localStorage.getItem('portal-lang') as 'th' | 'en'
+      if (storedTheme && storedTheme !== theme) setTheme(storedTheme)
+      if (storedLang && storedLang !== lang) setLang(storedLang)
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [theme, lang])
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+  }
+
+  const toggleLanguage = () => {
+    const nextLang = lang === 'th' ? 'en' : 'th'
+    setLang(nextLang)
+    localStorage.setItem('portal-lang', nextLang)
+  }
+
+  const t = translations[lang]
 
   const closeSidebar = () => setIsSidebarOpen(false);
 
@@ -106,29 +177,26 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
     navigate('/login');
   };
 
-  const userDisplayName = userRole === 'ADMIN' ? 'ผู้ดูแลระบบ' : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'));
+  const userDisplayName = userRole === 'ADMIN' ? t.admin : (teacherDisplayName || (user?.email ? user.email.split('@')[0] : t.user));
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans bg-[#090d16] text-white">
+    <div className="flex h-screen overflow-hidden font-sans bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-white transition-colors duration-300 student-support-layout">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity" onClick={closeSidebar} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0d1527] border-r border-white/5 flex flex-col transform transition-transform duration-300 ease-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-[#0d1527] border-r border-slate-200 dark:border-white/5 flex flex-col transform transition-transform duration-300 ease-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-[#111c34]">
+        <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-indigo-50/50 dark:bg-[#111c34]">
           <div className="space-y-1">
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 tracking-tight flex items-center gap-1.5">
-              <Heart size={20} className="text-indigo-400 shrink-0" />
-              ดูแลช่วยเหลือนักเรียน
+            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 tracking-tight flex items-center gap-1.5">
+              <Heart size={20} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+              {t.title}
             </h2>
-            <p className="text-xs text-indigo-300 font-semibold flex items-center gap-1">
-              <Sparkles size={8} /> ยินดีต้อนรับ {userDisplayName}
-            </p>
           </div>
-          <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:bg-white/5 rounded-xl transition-colors">
+          <button onClick={closeSidebar} className="lg:hidden p-2 text-slate-400 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -137,36 +205,48 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           {/* แดชบอร์ดแรกภาพรวมคัดกรอง - แสดงสำหรับทุกคน */}
           <NavItem to="/studentsupport" icon={LayoutDashboard} onClick={closeSidebar}>
-            {userRole === 'EXECUTIVE' || userRole === 'ADMIN' ? 'ภาพรวมสถิติโรงเรียน' : 'ภาพรวมคัดกรอง'}
+            {userRole === 'EXECUTIVE' || userRole === 'ADMIN' ? t.stats : t.screening}
           </NavItem>
 
           {/* รายชื่อคัดกรองเฉพาะสำหรับครูที่ปรึกษาประจำชั้น */}
           {userRole !== 'EXECUTIVE' && userRole !== 'ADMIN' && (
             <NavItem to="/studentsupport/students" icon={Users} onClick={closeSidebar}>
-              คัดกรองนักเรียนรายบุคคล
+              {t.individual}
             </NavItem>
           )}
 
           {/* เมนูจัดการเคสช่วยเหลือ - แสดงสำหรับทุกคน */}
           <NavItem to="/studentsupport/cases" icon={ShieldAlert} onClick={closeSidebar}>
-            จัดการเคสช่วยเหลือ
+            {t.cases}
           </NavItem>
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-5 border-t border-white/5 bg-[#0a101f]">
-          <div className="mb-5 px-2">
-            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-            <span className="inline-block mt-1 px-2.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/25 text-[10px] font-black text-indigo-300 capitalize">
-              {userRole?.toLowerCase() || 'Loading...'}
-            </span>
+        <div className="p-5 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-[#0a101f]">
+          <div className="flex gap-2 mb-3">
+            {/* Language Switch Button */}
+            <button
+              onClick={toggleLanguage}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-750 border border-gray-250 dark:border-slate-700 rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              <Globe size={16} />
+              <span>{lang === 'th' ? 'EN' : 'TH'}</span>
+            </button>
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-750 border border-gray-250 dark:border-slate-700 rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              {theme === 'dark' ? <Sun size={16} className="text-amber-500" /> : <Moon size={16} className="text-indigo-600" />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
           </div>
 
-          <Link to="/portal" className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 text-sm font-bold text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl transition-all shadow-sm">
-            <ArrowLeft size={16} /> กลับสู่ SAMS Portal
+          <Link to="/portal" className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 rounded-xl transition-all shadow-sm">
+            <ArrowLeft size={18} /> {t.switchApp}
           </Link>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-rose-400 bg-white/5 border border-rose-500/10 hover:bg-rose-500/10 rounded-xl transition-all shadow-sm">
-            <LogOut size={16} /> ออกจากระบบ
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-white/5 border border-rose-200 dark:border-rose-500/10 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all shadow-sm cursor-pointer">
+            <LogOut size={18} /> {t.logout}
           </button>
         </div>
       </aside>
@@ -174,15 +254,15 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden bg-[#0d1527] border-b border-white/5 p-4 flex items-center gap-3 z-30 shrink-0">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-400 hover:bg-white/5 rounded-xl transition-colors">
+        <header className="lg:hidden bg-white dark:bg-[#0d1527] border-b border-slate-200 dark:border-white/5 p-4 flex items-center gap-3 z-30 shrink-0">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">
             <Menu size={26} />
           </button>
-          <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Student Support</h2>
+          <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 tracking-tight">{t.title}</h2>
         </header>
 
         {/* Scrollable Workspace Container */}
-        <div className="flex-1 overflow-auto bg-[#090d16]">
+        <div className="flex-1 overflow-auto bg-slate-50/50 dark:bg-[#090d16]">
           {children}
         </div>
       </main>

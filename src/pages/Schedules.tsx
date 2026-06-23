@@ -150,20 +150,20 @@ export default function Schedules() {
   const { selectedYear, selectedSemester } = useAcademicYearStore()
   const { role } = useAuthStore()
 
-  const { data: schedules, isLoading } = useQuery({ 
-    queryKey: ['schedules', selectedYear?.id], 
-    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id) 
+  const { data: schedules, isLoading } = useQuery({
+    queryKey: ['schedules', selectedYear?.id],
+    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id)
   })
-  const { data: subjects } = useQuery({ 
-    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id], 
-    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id) 
+  const { data: subjects } = useQuery({
+    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id)
   })
-  const { data: classrooms } = useQuery({ 
-    queryKey: ['classrooms', selectedYear?.id], 
-    queryFn: () => getClassrooms(selectedYear?.id) 
+  const { data: classrooms } = useQuery({
+    queryKey: ['classrooms', selectedYear?.id],
+    queryFn: () => getClassrooms(selectedYear?.id)
   })
   const { data: teachers, isLoading: isLoadingTeachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers })
-  
+
   const [showForm, setShowForm] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
   const [calendarTheme, setCalendarTheme] = useState(() => {
@@ -633,7 +633,7 @@ export default function Schedules() {
                   </svg>
                 </div>
               </div>
-              
+
               <div className="flex gap-3 w-full md:w-auto">
                 <select
                   value={selectedDept}
@@ -671,14 +671,14 @@ export default function Schedules() {
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
-                              ครู{teacher.first_name} {teacher.last_name}
+                              {teacher.first_name} {teacher.last_name}
                             </h4>
                             <p className="text-xs text-slate-400 mt-0.5">รหัส: {teacher.teacher_code || '-'}</p>
                           </div>
                         </div>
                         <p className="text-xs text-slate-500">กลุ่มสาระฯ: {teacher.department || '-'}</p>
                       </div>
-                      
+
                       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                         {count > 0 ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -691,7 +691,7 @@ export default function Schedules() {
                             ยังไม่ได้จัดตาราง
                           </span>
                         )}
-                        
+
                         <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5">
                           จัดการตาราง &rarr;
                         </span>
@@ -721,7 +721,7 @@ export default function Schedules() {
               </button>
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
-                  ตารางสอนของ: ครู{currentTeacher?.first_name} {currentTeacher?.last_name}
+                  ตารางสอนของ: {currentTeacher?.first_name} {currentTeacher?.last_name}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1 font-medium">
                   <span>รหัส: {currentTeacher?.teacher_code || '-'}</span>
@@ -759,275 +759,275 @@ export default function Schedules() {
             </div>
           </div>
 
-      {showForm && (
-        <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">วิชา</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.subject_id} onChange={e => {
-              const subj = subjects?.find(s => s.id === e.target.value);
-              setFormData({...formData, subject_id: e.target.value, teacher_id: subj?.teacher_id || formData.teacher_id})
-            }}>
-              <option value="">-- เลือกวิชา --</option>
-              {subjects?.map(s => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ครูผู้สอน</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})}>
-              <option value="">-- เลือกครู --</option>
-              {teachers?.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ห้องเรียนหลักของคาบ</label>
-            <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => {
-              const nextMain = e.target.value
-              setFormData({...formData, classroom_id: nextMain})
-              setExtraClassroomIds(prev => prev.filter(id => id !== nextMain))
-            }}>
-              <option value="">-- เลือกห้องเรียนหลัก --</option>
-              {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ห้องเรียนเพิ่มเติม (เรียนรวม)</label>
-            <div className="mt-1 max-h-[140px] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2.5 space-y-1.5">
-              {classrooms?.map(c => {
-                const disabled = c.id === formData.classroom_id
-                const checked = extraClassroomIds.includes(c.id)
-                return (
-                  <label key={c.id} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      disabled={disabled}
-                      checked={checked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setExtraClassroomIds(prev => Array.from(new Set([...prev, c.id])))
-                        } else {
-                          setExtraClassroomIds(prev => prev.filter(id => id !== c.id))
-                        }
-                      }}
-                    />
-                    <span className="text-sm text-slate-700">{c.level}/{c.room}</span>
-                  </label>
-                )
-              })}
-            </div>
-            <p className="mt-1 text-xs text-slate-500">ติ๊กเลือกได้หลายห้อง ระบบจะดึงนักเรียนจากทุกห้องที่เลือกใน Attendance</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">วัน</label>
-            <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.day_of_week} onChange={e => setFormData({...formData, day_of_week: e.target.value})}>
-              {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">คาบที่</label>
-            <input type="number" min="1" max="10" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.period} onChange={e => setFormData({...formData, period: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ห้องพัก/อาคาร (ไม่บังคับ)</label>
-            <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.room_name} onChange={e => setFormData({...formData, room_name: e.target.value})} placeholder="เช่น ห้อง 501" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เวลาเริ่ม</label>
-            <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                value={splitTime(formData.start_time).hour}
-                onChange={(e) => updateTimePart('start_time', 'hour', e.target.value)}
-                onBlur={() => normalizeTimeField('start_time')}
-              />
-              <span className="text-gray-500 font-semibold">:</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                value={splitTime(formData.start_time).minute}
-                onChange={(e) => updateTimePart('start_time', 'minute', e.target.value)}
-                onBlur={() => normalizeTimeField('start_time')}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เวลาสิ้นสุด</label>
-            <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                value={splitTime(formData.end_time).hour}
-                onChange={(e) => updateTimePart('end_time', 'hour', e.target.value)}
-                onBlur={() => normalizeTimeField('end_time')}
-              />
-              <span className="text-gray-500 font-semibold">:</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                value={splitTime(formData.end_time).minute}
-                onChange={(e) => updateTimePart('end_time', 'minute', e.target.value)}
-                onBlur={() => normalizeTimeField('end_time')}
-              />
-            </div>
-          </div>
-          
-          <div className="col-span-1 md:col-span-3 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={resetFormState} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
-              {editingScheduleId ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
-            </button>
-          </div>
-        </form>
-      )}
+          {showForm && (
+            <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">วิชา</label>
+                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.subject_id} onChange={e => {
+                  const subj = subjects?.find(s => s.id === e.target.value);
+                  setFormData({ ...formData, subject_id: e.target.value, teacher_id: subj?.teacher_id || formData.teacher_id })
+                }}>
+                  <option value="">-- เลือกวิชา --</option>
+                  {subjects?.map(s => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ครูผู้สอน</label>
+                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.teacher_id} onChange={e => setFormData({ ...formData, teacher_id: e.target.value })}>
+                  <option value="">-- เลือกครู --</option>
+                  {teachers?.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ห้องเรียนหลักของคาบ</label>
+                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => {
+                  const nextMain = e.target.value
+                  setFormData({ ...formData, classroom_id: nextMain })
+                  setExtraClassroomIds(prev => prev.filter(id => id !== nextMain))
+                }}>
+                  <option value="">-- เลือกห้องเรียนหลัก --</option>
+                  {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ห้องเรียนเพิ่มเติม (เรียนรวม)</label>
+                <div className="mt-1 max-h-[140px] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2.5 space-y-1.5">
+                  {classrooms?.map(c => {
+                    const disabled = c.id === formData.classroom_id
+                    const checked = extraClassroomIds.includes(c.id)
+                    return (
+                      <label key={c.id} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          disabled={disabled}
+                          checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setExtraClassroomIds(prev => Array.from(new Set([...prev, c.id])))
+                            } else {
+                              setExtraClassroomIds(prev => prev.filter(id => id !== c.id))
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-slate-700">{c.level}/{c.room}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">ติ๊กเลือกได้หลายห้อง ระบบจะดึงนักเรียนจากทุกห้องที่เลือกใน Attendance</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">วัน</label>
+                <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.day_of_week} onChange={e => setFormData({ ...formData, day_of_week: e.target.value })}>
+                  {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">คาบที่</label>
+                <input type="number" min="1" max="10" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.period} onChange={e => setFormData({ ...formData, period: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ห้องพัก/อาคาร (ไม่บังคับ)</label>
+                <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.room_name} onChange={e => setFormData({ ...formData, room_name: e.target.value })} placeholder="เช่น ห้อง 501" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">เวลาเริ่ม</label>
+                <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                    value={splitTime(formData.start_time).hour}
+                    onChange={(e) => updateTimePart('start_time', 'hour', e.target.value)}
+                    onBlur={() => normalizeTimeField('start_time')}
+                  />
+                  <span className="text-gray-500 font-semibold">:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                    value={splitTime(formData.start_time).minute}
+                    onChange={(e) => updateTimePart('start_time', 'minute', e.target.value)}
+                    onBlur={() => normalizeTimeField('start_time')}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">เวลาสิ้นสุด</label>
+                <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                    value={splitTime(formData.end_time).hour}
+                    onChange={(e) => updateTimePart('end_time', 'hour', e.target.value)}
+                    onBlur={() => normalizeTimeField('end_time')}
+                  />
+                  <span className="text-gray-500 font-semibold">:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                    value={splitTime(formData.end_time).minute}
+                    onChange={(e) => updateTimePart('end_time', 'minute', e.target.value)}
+                    onBlur={() => normalizeTimeField('end_time')}
+                  />
+                </div>
+              </div>
 
-      {isLoading ? (
-        <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
-      ) : viewMode === 'calendar' ? (
-        <div className={`rounded-2xl shadow-lg border p-4 md:p-6 overflow-hidden ${activeTheme.wrapper}`}>
-          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-            <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>ตารางสอนรายสัปดาห์</h2>
-            <div className="flex items-center gap-2">
-              <p className={`text-xs md:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
-              {CALENDAR_THEMES.map((theme) => (
-                <button
-                  key={theme.key}
-                  type="button"
-                  onClick={() => setCalendarTheme(theme.key)}
-                  className={`h-6 w-6 rounded-full border-2 transition ${calendarTheme === theme.key ? 'border-slate-800 scale-110' : 'border-white/80'}`}
-                  title={theme.label}
-                >
-                  <span className={`block h-full w-full rounded-full ${theme.key === 'green-board' ? 'bg-emerald-700' : theme.key === 'pastel-green' ? 'bg-emerald-200' : 'bg-cyan-200'}`} />
+              <div className="col-span-1 md:col-span-3 flex justify-end gap-3 mt-4">
+                <button type="button" onClick={resetFormState} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
+                  {editingScheduleId ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
                 </button>
-              ))}
-            </div>
-          </div>
+              </div>
+            </form>
+          )}
 
-          <div className={`overflow-x-auto rounded-xl border ${activeTheme.tableWrap}`}>
-            <table className="min-w-[900px] w-full table-fixed border-collapse">
-              <colgroup>
-                <col className="w-[92px]" />
-                {timeSlots.map((slot) => (
-                  <col key={`col-${slot}`} className={slot === LUNCH_SLOT_KEY ? 'w-[92px]' : 'w-[132px]'} />
-                ))}
-              </colgroup>
-              <thead>
-                <tr className={activeTheme.head}>
-                  <th className={`px-4 py-3 text-left text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>วัน / เวลา</th>
-                  {timeSlots.map((slot) => (
-                    <th key={slot} className={`px-3 py-3 text-center text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>
-                      {formatThai24Hour(slot.split('-')[0])} - {formatThai24Hour(slot.split('-')[1])}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {DAYS.filter((d) => d.value <= 5).map((day) => (
-                  <tr key={day.value} className="align-top">
-                    <td className={`px-4 py-4 text-sm font-bold border whitespace-nowrap ${activeTheme.rowHead} ${activeTheme.border}`}>
-                      วัน{day.label}
-                    </td>
-                    {timeSlots.map((slot) => {
-                      const schedule = findScheduleByDayAndSlot(day.value, slot)
-                      const palette = schedule
-                        ? getSubjectPalette(`${schedule.subject_id || ''}-${schedule.subject?.subject_code || ''}`)
-                        : null
-                      return (
-                        <td key={`${day.value}-${slot}`} className={`border p-2 md:p-3 h-[120px] ${activeTheme.border}`}>
-                          {schedule ? (
-                            <div
-                              onClick={() => handleCellClickForMove(day.value, slot, schedule)}
-                              className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'ring-2 ring-blue-500' : ''} ${palette?.card || 'bg-white/95 border border-gray-200 hover:bg-blue-50'}`}
-                            >
-                              <p className={`text-xs font-bold ${palette?.code || 'text-blue-700'}`}>{schedule.subject?.subject_code || '-'}</p>
-                              <p className={`mt-0.5 text-xs line-clamp-2 ${palette?.name || 'text-gray-700'}`}>{schedule.subject?.subject_name || '-'}</p>
-                              <p className={`mt-1 text-[11px] ${palette?.meta || 'text-gray-500'}`}>คาบ {schedule.period}</p>
-                              <p className={`text-[11px] ${palette?.meta || 'text-gray-500'}`}>
-                                {schedule.classroom ? `${schedule.classroom.level}/${schedule.classroom.room}` : '-'}
-                              </p>
-                            </div>
-                          ) : (
-                            <div
-                              onClick={() => handleCellClickForMove(day.value, slot, null)}
-                              className={`h-full rounded-lg border border-dashed cursor-pointer transition ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
-                            />
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วัน / เวลา (คาบ)</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วิชา</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ผู้สอน</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {teacherSchedules?.map(schedule => (
-                <tr key={schedule.id} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    <div className="font-medium text-blue-600">{DAYS.find(d => d.value === schedule.day_of_week)?.label}</div>
-                    <div className="text-xs text-gray-500">คาบ {schedule.period} ({formatThai24Hour(schedule.start_time)} - {formatThai24Hour(schedule.end_time)})</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {schedule.subject?.subject_code} <br/>
-                    <span className="text-gray-500 text-xs">{schedule.subject?.subject_name}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {schedule.teacher ? `${schedule.teacher.first_name} ${schedule.teacher.last_name}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {schedule.classroom?.level}/{schedule.classroom?.room} <br/>
-                    {schedule.room_name && (
-                      <span className="text-gray-500 text-xs">
-                        ห้อง: {String(schedule.room_name).split('|').map((x: string) => x.trim()).filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX)).join(' | ')}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+          {isLoading ? (
+            <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
+          ) : viewMode === 'calendar' ? (
+            <div className={`rounded-2xl shadow-lg border p-4 md:p-6 overflow-hidden ${activeTheme.wrapper}`}>
+              <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+                <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>ตารางสอนรายสัปดาห์</h2>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xs md:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
+                  {CALENDAR_THEMES.map((theme) => (
                     <button
-                      onClick={() => openEditForm(schedule)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex justify-center mr-2"
-                      title="แก้ไขข้อมูล"
+                      key={theme.key}
+                      type="button"
+                      onClick={() => setCalendarTheme(theme.key)}
+                      className={`h-6 w-6 rounded-full border-2 transition ${calendarTheme === theme.key ? 'border-slate-800 scale-110' : 'border-white/80'}`}
+                      title={theme.label}
                     >
-                      <Pencil size={18} />
+                      <span className={`block h-full w-full rounded-full ${theme.key === 'green-board' ? 'bg-emerald-700' : theme.key === 'pastel-green' ? 'bg-emerald-200' : 'bg-cyan-200'}`} />
                     </button>
-                    <button 
-                      onClick={() => setDeleteTargetId(schedule.id)} 
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
-                      title="ลบข้อมูล"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {teacherSchedules?.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลตารางเรียนในระบบ</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  ))}
+                </div>
+              </div>
+
+              <div className={`overflow-x-auto rounded-xl border ${activeTheme.tableWrap}`}>
+                <table className="min-w-[900px] w-full table-fixed border-collapse">
+                  <colgroup>
+                    <col className="w-[92px]" />
+                    {timeSlots.map((slot) => (
+                      <col key={`col-${slot}`} className={slot === LUNCH_SLOT_KEY ? 'w-[92px]' : 'w-[132px]'} />
+                    ))}
+                  </colgroup>
+                  <thead>
+                    <tr className={activeTheme.head}>
+                      <th className={`px-4 py-3 text-left text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>วัน / เวลา</th>
+                      {timeSlots.map((slot) => (
+                        <th key={slot} className={`px-3 py-3 text-center text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>
+                          {formatThai24Hour(slot.split('-')[0])} - {formatThai24Hour(slot.split('-')[1])}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DAYS.filter((d) => d.value <= 5).map((day) => (
+                      <tr key={day.value} className="align-top">
+                        <td className={`px-4 py-4 text-sm font-bold border whitespace-nowrap ${activeTheme.rowHead} ${activeTheme.border}`}>
+                          วัน{day.label}
+                        </td>
+                        {timeSlots.map((slot) => {
+                          const schedule = findScheduleByDayAndSlot(day.value, slot)
+                          const palette = schedule
+                            ? getSubjectPalette(`${schedule.subject_id || ''}-${schedule.subject?.subject_code || ''}`)
+                            : null
+                          return (
+                            <td key={`${day.value}-${slot}`} className={`border p-2 md:p-3 h-[120px] ${activeTheme.border}`}>
+                              {schedule ? (
+                                <div
+                                  onClick={() => handleCellClickForMove(day.value, slot, schedule)}
+                                  className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'ring-2 ring-blue-500' : ''} ${palette?.card || 'bg-white/95 border border-gray-200 hover:bg-blue-50'}`}
+                                >
+                                  <p className={`text-xs font-bold ${palette?.code || 'text-blue-700'}`}>{schedule.subject?.subject_code || '-'}</p>
+                                  <p className={`mt-0.5 text-xs line-clamp-2 ${palette?.name || 'text-gray-700'}`}>{schedule.subject?.subject_name || '-'}</p>
+                                  <p className={`mt-1 text-[11px] ${palette?.meta || 'text-gray-500'}`}>คาบ {schedule.period}</p>
+                                  <p className={`text-[11px] ${palette?.meta || 'text-gray-500'}`}>
+                                    {schedule.classroom ? `${schedule.classroom.level}/${schedule.classroom.room}` : '-'}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div
+                                  onClick={() => handleCellClickForMove(day.value, slot, null)}
+                                  className={`h-full rounded-lg border border-dashed cursor-pointer transition ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
+                                />
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วัน / เวลา (คาบ)</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วิชา</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ผู้สอน</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {teacherSchedules?.map(schedule => (
+                    <tr key={schedule.id} className="hover:bg-blue-50/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <div className="font-medium text-blue-600">{DAYS.find(d => d.value === schedule.day_of_week)?.label}</div>
+                        <div className="text-xs text-gray-500">คาบ {schedule.period} ({formatThai24Hour(schedule.start_time)} - {formatThai24Hour(schedule.end_time)})</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {schedule.subject?.subject_code} <br />
+                        <span className="text-gray-500 text-xs">{schedule.subject?.subject_name}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {schedule.teacher ? `${schedule.teacher.first_name} ${schedule.teacher.last_name}` : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {schedule.classroom?.level}/{schedule.classroom?.room} <br />
+                        {schedule.room_name && (
+                          <span className="text-gray-500 text-xs">
+                            ห้อง: {String(schedule.room_name).split('|').map((x: string) => x.trim()).filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX)).join(' | ')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => openEditForm(schedule)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex justify-center mr-2"
+                          title="แก้ไขข้อมูล"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTargetId(schedule.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
+                          title="ลบข้อมูล"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {teacherSchedules?.length === 0 && (
+                    <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลตารางเรียนในระบบ</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>

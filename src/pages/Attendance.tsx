@@ -234,8 +234,8 @@ export default function Attendance() {
     enabled: !!user?.id && isTeacherRole
   })
 
-  const activeTeacherId = isTeacherRole 
-    ? teacherProfile?.id 
+  const activeTeacherId = isTeacherRole
+    ? teacherProfile?.id
     : (selectedTeacherId && selectedTeacherId !== 'school' ? selectedTeacherId : undefined)
 
   const { selectedYear } = useAcademicYearStore()
@@ -285,7 +285,7 @@ export default function Attendance() {
       setAttendanceState({})
     }
   }, [selectedSchedule, schedules])
-  
+
   const { data: students, isLoading } = useQuery({
     queryKey: ['schedule_students', selectedSchedule],
     queryFn: () => getStudentsForSchedule(selectedSchedule),
@@ -389,7 +389,7 @@ export default function Attendance() {
             <h2 className="text-xl font-bold text-gray-800">เลือกครูผู้สอน</h2>
             <p className="text-sm text-gray-500 mt-1">ค้นหาครูผู้สอนและคลิกการ์ดเพื่อจัดการตารางเรียนและเช็คชื่อวิชาที่สอน</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
@@ -457,7 +457,7 @@ export default function Attendance() {
                           {teacher.teacher_code || 'ไม่มีรหัสครู'}
                         </p>
                         <h3 className="font-bold text-gray-800 text-base line-clamp-1 group-hover:text-cyan-600 transition-colors">
-                          ครู{teacher.first_name} {teacher.last_name}
+                          {teacher.first_name} {teacher.last_name}
                         </h3>
                       </div>
                     </div>
@@ -511,7 +511,7 @@ export default function Attendance() {
             <div>
               <h4 className="font-bold text-amber-800 text-sm">กำลังทำหน้าที่แทนครูผู้สอน</h4>
               <p className="text-xs text-amber-700 font-medium">
-                คุณกำลังเช็คชื่อรายวิชาในฐานะ <span className="underline font-bold">ครู{selectedTeacher.first_name} {selectedTeacher.last_name}</span> {selectedTeacher.department ? `(${selectedTeacher.department})` : ''}
+                คุณกำลังเช็คชื่อรายวิชาในฐานะ <span className="underline font-bold">{selectedTeacher.first_name} {selectedTeacher.last_name}</span> {selectedTeacher.department ? `(${selectedTeacher.department})` : ''}
               </p>
             </div>
           </div>
@@ -546,11 +546,10 @@ export default function Attendance() {
               <button
                 type="button"
                 onClick={closeResultModal}
-                className={`mt-6 w-full rounded-xl px-4 py-2.5 font-semibold text-white transition ${
-                  resultModalType === 'success'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-rose-600 hover:bg-rose-700'
-                }`}
+                className={`mt-6 w-full rounded-xl px-4 py-2.5 font-semibold text-white transition ${resultModalType === 'success'
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
               >
                 ตกลง
               </button>
@@ -575,7 +574,7 @@ export default function Attendance() {
             <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
               <Calendar size={18} />
             </div>
-            <input 
+            <input
               id="attendance-date"
               type="text"
               inputMode="numeric"
@@ -767,7 +766,7 @@ export default function Attendance() {
               <button onClick={() => markAll('ABSENT')} className="px-3 py-1.5 text-sm font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">ขาดทั้งหมด</button>
             </div>
           </div>
-          
+
           {isLoading ? (
             <div className="p-10 text-center text-gray-500">กำลังโหลดรายชื่อ...</div>
           ) : (
@@ -784,10 +783,10 @@ export default function Attendance() {
                         <div className="text-sm font-mono text-gray-500 mt-0.5">รหัส: {student.student_code}</div>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
-                        <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={22} className="mb-1"/> เข้าเรียน</button>
-                        <button onClick={() => setStatus(student.id, 'LATE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={22} className="mb-1"/> สาย</button>
-                        <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={22} className="mb-1"/> ขาด</button>
-                        <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={22} className="mb-1"/> ลา</button>
+                        <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={22} className="mb-1" /> เข้าเรียน</button>
+                        <button onClick={() => setStatus(student.id, 'LATE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={22} className="mb-1" /> สาย</button>
+                        <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={22} className="mb-1" /> ขาด</button>
+                        <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[11px] font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={22} className="mb-1" /> ลา</button>
                       </div>
                     </div>
                   )
@@ -816,10 +815,10 @@ export default function Attendance() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{student.first_name} {student.last_name}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex justify-center gap-2">
-                              <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={16}/> เข้าเรียน</button>
-                              <button onClick={() => setStatus(student.id, 'LATE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={16}/> สาย</button>
-                              <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={16}/> ขาด</button>
-                              <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={16}/> ลา</button>
+                              <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={16} /> เข้าเรียน</button>
+                              <button onClick={() => setStatus(student.id, 'LATE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LATE' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Clock size={16} /> สาย</button>
+                              <button onClick={() => setStatus(student.id, 'ABSENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'ABSENT' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><XCircle size={16} /> ขาด</button>
+                              <button onClick={() => setStatus(student.id, 'LEAVE')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'LEAVE' ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><AlertCircle size={16} /> ลา</button>
                             </div>
                           </td>
                         </tr>
@@ -830,7 +829,7 @@ export default function Attendance() {
                 </table>
               </div>
               <div className="p-6 bg-white border-t flex justify-end">
-                <button 
+                <button
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending || students?.length === 0 || !canEditPastDate}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"

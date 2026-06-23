@@ -30,18 +30,18 @@ export default function Students() {
     },
     enabled: !!user?.id && role === 'TEACHER'
   })
-  
-  const { data: students, isLoading } = useQuery({ 
-    queryKey: ['students', selectedYear?.id], 
-    queryFn: () => getStudents(selectedYear?.id) 
+
+  const { data: students, isLoading } = useQuery({
+    queryKey: ['students', selectedYear?.id],
+    queryFn: () => getStudents(selectedYear?.id)
   })
-  const { data: classrooms } = useQuery({ 
-    queryKey: ['classrooms', selectedYear?.id], 
-    queryFn: () => getClassrooms(selectedYear?.id) 
+  const { data: classrooms } = useQuery({
+    queryKey: ['classrooms', selectedYear?.id],
+    queryFn: () => getClassrooms(selectedYear?.id)
   })
-  const { data: subjects } = useQuery({ 
-    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id], 
-    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id) 
+  const { data: subjects } = useQuery({
+    queryKey: ['subjects', selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getSubjects(selectedYear?.id, selectedSemester?.id)
   })
   const { data: allMemberships = [] } = useQuery({ queryKey: ['student_group_memberships_all'], queryFn: getAllMemberships })
 
@@ -62,7 +62,7 @@ export default function Students() {
     queryFn: getUsers,
     enabled: !!user?.id && (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER')
   })
-  
+
   const [showForm, setShowForm] = useState(false)
   const [filterClassroomId, setFilterClassroomId] = useState('')
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
@@ -73,7 +73,7 @@ export default function Students() {
   const [promoteSourceClassroomId, setPromoteSourceClassroomId] = useState('')
   const [promoteTargetClassroomId, setPromoteTargetClassroomId] = useState('')
   const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject' | 'deleted_history'>('list')
-  
+
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -108,8 +108,8 @@ export default function Students() {
   const filteredFilterOptions = React.useMemo(() => {
     if (!filterSearchQuery.trim()) return filterOptions
     const q = filterSearchQuery.toLowerCase().trim()
-    return filterOptions.filter(opt => 
-      opt.label.toLowerCase().includes(q) || 
+    return filterOptions.filter(opt =>
+      opt.label.toLowerCase().includes(q) ||
       opt.category.toLowerCase().includes(q)
     )
   }, [filterOptions, filterSearchQuery])
@@ -137,8 +137,8 @@ export default function Students() {
   const [modalTitle, setModalTitle] = useState('')
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState<'confirm' | 'message'>('message')
-  const confirmCallbackRef = React.useRef<() => void>(() => {})
-  const cancelCallbackRef = React.useRef<() => void>(() => {})
+  const confirmCallbackRef = React.useRef<() => void>(() => { })
+  const cancelCallbackRef = React.useRef<() => void>(() => { })
 
   const createMutation = useMutation({
     mutationFn: createStudent,
@@ -181,7 +181,7 @@ export default function Students() {
     // 2. Try to find in teachers table (by user_id)
     const teacher = teachers.find((t: any) => t.user_id === deletedBy)
     if (teacher) {
-      return `ครู ${teacher.first_name} ${teacher.last_name}`
+      return ` ${teacher.first_name} ${teacher.last_name}`
     }
 
     // 3. Fallback to users table
@@ -366,7 +366,7 @@ export default function Students() {
     setModalMessage(message)
     setModalType('confirm')
     confirmCallbackRef.current = onConfirm
-    cancelCallbackRef.current = onCancel || (() => {})
+    cancelCallbackRef.current = onCancel || (() => { })
     setShowModal(true)
   }
 
@@ -540,7 +540,7 @@ export default function Students() {
     <div id="students-page-top" className="p-8 pb-28 md:pb-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลนักเรียน (Students)</h1>
-        <button 
+        <button
           onClick={() => {
             setActiveTab('list')
             setShowForm(!showForm)
@@ -558,9 +558,8 @@ export default function Students() {
         <button
           type="button"
           onClick={() => setActiveTab('list')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-            activeTab === 'list' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${activeTab === 'list' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+            }`}
         >
           <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
             <Users size={20} />
@@ -572,9 +571,8 @@ export default function Students() {
         <button
           type="button"
           onClick={() => setActiveTab('single')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-            activeTab === 'single' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${activeTab === 'single' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+            }`}
         >
           <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'single' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
             <Edit3 size={20} />
@@ -586,9 +584,8 @@ export default function Students() {
         <button
           type="button"
           onClick={() => setActiveTab('bulk')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-            activeTab === 'bulk' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${activeTab === 'bulk' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+            }`}
         >
           <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'bulk' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
             <Upload size={20} />
@@ -600,9 +597,8 @@ export default function Students() {
         <button
           type="button"
           onClick={() => setActiveTab('subject')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-            activeTab === 'subject' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${activeTab === 'subject' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+            }`}
         >
           <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'subject' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
             <Plus size={20} />
@@ -615,9 +611,8 @@ export default function Students() {
           <button
             type="button"
             onClick={() => setActiveTab('deleted_history')}
-            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-              activeTab === 'deleted_history' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
-            }`}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${activeTab === 'deleted_history' ? 'text-blue-600 font-bold scale-105' : 'text-gray-400 hover:text-gray-600'
+              }`}
           >
             <div className={`p-1.5 rounded-2xl transition-all ${activeTab === 'deleted_history' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
               <Trash2 size={20} />
@@ -631,52 +626,47 @@ export default function Students() {
       <div className="hidden md:flex border-b border-gray-200 mb-8 overflow-x-auto whitespace-nowrap gap-1">
         <button
           onClick={() => setActiveTab('list')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
-            activeTab === 'list'
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${activeTab === 'list'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
-          }`}
+            }`}
         >
           <Users size={18} /> รายชื่อนักเรียนทั้งหมด
         </button>
         <button
           onClick={() => setActiveTab('single')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
-            activeTab === 'single'
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${activeTab === 'single'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
-          }`}
+            }`}
         >
           <Edit3 size={18} /> ย้ายนักเรียนเข้าห้องใหม่
         </button>
         <button
           onClick={() => setActiveTab('bulk')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
-            activeTab === 'bulk'
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${activeTab === 'bulk'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
-          }`}
+            }`}
         >
           <Upload size={18} /> เลื่อนชั้นเรียน / ย้ายยกห้อง (Bulk Move)
         </button>
         <button
           onClick={() => setActiveTab('subject')}
-          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
-            activeTab === 'subject'
+          className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${activeTab === 'subject'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
-          }`}
+            }`}
         >
           <Plus size={18} /> วิชาเรียนรวม (ไม่ย้ายห้องหลัก)
         </button>
         {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TEACHER') && (
           <button
             onClick={() => setActiveTab('deleted_history')}
-            className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${
-              activeTab === 'deleted_history'
+            className={`px-5 py-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2 outline-none ${activeTab === 'deleted_history'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-indigo-600 hover:border-gray-300'
-            }`}
+              }`}
           >
             <Trash2 size={18} /> ประวัติการลบและกู้คืน
           </button>
@@ -686,14 +676,14 @@ export default function Students() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop with blur */}
-          <div 
-            className="absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300" 
+          <div
+            className="absolute inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300"
             onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }}
           ></div>
-          
+
           {/* Modal Content container */}
-          <form 
-            onSubmit={handleSubmit} 
+          <form
+            onSubmit={handleSubmit}
             className="relative w-full max-w-lg bg-white p-6 rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh] grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in zoom-in duration-200 z-10"
           >
             <div className="md:col-span-2 flex justify-between items-start border-b pb-3 mb-2">
@@ -701,42 +691,42 @@ export default function Students() {
                 <h2 className="text-xl font-bold text-gray-800">{editingStudentId ? '📝 แก้ไขข้อมูลนักเรียน' : '👤 เพิ่มนักเรียนใหม่'}</h2>
                 <p className="text-xs text-gray-400 mt-0.5">กรอกข้อมูลพื้นฐานของนักเรียนให้ถูกต้องครบถ้วน</p>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }}
                 className="text-gray-400 hover:text-gray-600 font-bold p-1 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center w-8 h-8"
               >
                 ✕
               </button>
             </div>
-            
+
             {/* Form Fields */}
             <div>
               <label className="block text-sm font-semibold text-gray-700">รหัสนักเรียน</label>
-              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.student_code} onChange={e => setFormData({...formData, student_code: e.target.value})} />
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.student_code} onChange={e => setFormData({ ...formData, student_code: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">คำนำหน้า</label>
-              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.prefix} onChange={e => setFormData({...formData, prefix: e.target.value})} placeholder="เช่น ด.ช., ด.ญ., นาย, นางสาว" />
+              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.prefix} onChange={e => setFormData({ ...formData, prefix: e.target.value })} placeholder="เช่น ด.ช., ด.ญ., นาย, นางสาว" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">ชื่อจริง</label>
-              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.first_name} onChange={e => setFormData({ ...formData, first_name: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">นามสกุล</label>
-              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+              <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-semibold text-gray-800" value={formData.last_name} onChange={e => setFormData({ ...formData, last_name: e.target.value })} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">ชื่อเล่น</label>
-              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} placeholder="ถ้าไม่มีให้เว้นว่าง" />
+              <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-sm font-medium" value={formData.nickname} onChange={e => setFormData({ ...formData, nickname: e.target.value })} placeholder="ถ้าไม่มีให้เว้นว่าง" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">เพศ</label>
-              <select 
+              <select
                 className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm font-semibold text-gray-700"
                 value={formData.gender}
-                onChange={e => setFormData({...formData, gender: e.target.value})}
+                onChange={e => setFormData({ ...formData, gender: e.target.value })}
               >
                 <option value="">-- ไม่ระบุ --</option>
                 <option value="MALE">ชาย</option>
@@ -745,10 +735,10 @@ export default function Students() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">ห้องเรียน (ระดับชั้น/ห้อง)</label>
-              <select 
+              <select
                 className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm font-semibold text-gray-700"
                 value={formData.classroom_id}
-                onChange={e => setFormData({...formData, classroom_id: e.target.value})}
+                onChange={e => setFormData({ ...formData, classroom_id: e.target.value })}
               >
                 <option value="">-- ไม่ระบุ --</option>
                 {classrooms?.map(c => (
@@ -779,18 +769,18 @@ export default function Students() {
                 </div>
               </div>
             )}
-            
+
             <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-3 border-t">
-              <button 
-                type="button" 
-                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }} 
+              <button
+                type="button"
+                onClick={() => { setShowForm(false); setEditingStudentId(null); setFormData({ student_code: '', prefix: '', first_name: '', last_name: '', nickname: '', classroom_id: '', gender: '' }) }}
                 className="px-5 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-slate-50 transition font-semibold text-sm"
               >
                 ยกเลิก
               </button>
-              <button 
-                type="submit" 
-                disabled={(editingStudentId ? updateMutation.isPending : createMutation.isPending) || !formData.student_code || !formData.first_name} 
+              <button
+                type="submit"
+                disabled={(editingStudentId ? updateMutation.isPending : createMutation.isPending) || !formData.student_code || !formData.first_name}
                 className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-bold text-sm"
               >
                 {editingStudentId ? (updateMutation.isPending ? 'กำลังอัปเดต...' : 'บันทึกการแก้ไข') : (createMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล')}
@@ -909,24 +899,24 @@ export default function Students() {
                 }
                 const sourceRoom = classrooms?.find(c => c.id === promoteSourceClassroomId)
                 const sourceLabel = sourceRoom ? `${sourceRoom.level}/${sourceRoom.room}` : ''
-                
+
                 const targetRoom = classrooms?.find(c => c.id === promoteTargetClassroomId)
                 const targetLabel = promoteTargetClassroomId === 'none' ? 'ปลดออก (ไม่มีห้องเรียนหลัก)' : (targetRoom ? `${targetRoom.level}/${targetRoom.room}` : '')
-                
+
                 const studentCount = (students || []).filter(s => s.classroom_id === promoteSourceClassroomId).length
-                
+
                 if (studentCount === 0) {
                   openMessageModal('ไม่พบนักเรียน', `ไม่มีรายชื่อนักเรียนอยู่ในห้องเรียน ${sourceLabel} สำหรับทำรายการย้ายห้อง`)
                   return
                 }
-                
+
                 openConfirmModal(
                   'ยืนยันการย้ายนักเรียนยกห้อง',
                   `คุณต้องการย้ายนักเรียนจำนวนทั้งหมด ${studentCount} คน จากห้อง ${sourceLabel} ไปยังห้อง ${targetLabel} ใช่หรือไม่?\n\n(การดำเนินการนี้จะอัปเดตข้อมูลนักเรียนทั้งหมดในห้องเรียนต้นทางทันที)`,
                   () => {
-                    bulkPromoteMutation.mutate({ 
-                      sourceId: promoteSourceClassroomId, 
-                      targetId: promoteTargetClassroomId === 'none' ? '' : promoteTargetClassroomId 
+                    bulkPromoteMutation.mutate({
+                      sourceId: promoteSourceClassroomId,
+                      targetId: promoteTargetClassroomId === 'none' ? '' : promoteTargetClassroomId
                     })
                   }
                 )
@@ -1039,13 +1029,12 @@ export default function Students() {
           <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  modalType === 'confirm' ? 'bg-amber-100' : 
-                  modalTitle.includes('สำเร็จ') ? 'bg-emerald-100' : 'bg-red-100'
-                }`}>
-                  {modalType === 'confirm' ? <AlertTriangle size={24} className="text-amber-500" /> : 
-                   modalTitle.includes('สำเร็จ') ? <CheckCircle size={24} className="text-emerald-500" /> : 
-                   <AlertTriangle size={24} className="text-red-500" />}
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${modalType === 'confirm' ? 'bg-amber-100' :
+                    modalTitle.includes('สำเร็จ') ? 'bg-emerald-100' : 'bg-red-100'
+                  }`}>
+                  {modalType === 'confirm' ? <AlertTriangle size={24} className="text-amber-500" /> :
+                    modalTitle.includes('สำเร็จ') ? <CheckCircle size={24} className="text-emerald-500" /> :
+                      <AlertTriangle size={24} className="text-red-500" />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-800">{modalTitle}</h3>
@@ -1101,7 +1090,7 @@ export default function Students() {
                     กรองตามห้องเรียน:
                   </label>
                   <div className="relative w-full sm:min-w-[240px]">
-                    <div 
+                    <div
                       onClick={() => setIsFilterDropdownOpen(true)}
                       className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 gap-2 min-h-[42px]"
                     >
@@ -1134,7 +1123,7 @@ export default function Students() {
                         <span className="text-gray-400 text-[10px]">▼</span>
                       </div>
                     </div>
-                    
+
                     {isFilterDropdownOpen && (
                       <div className="absolute z-50 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl py-1 text-sm">
                         {filteredFilterOptions.length === 0 ? (
@@ -1160,11 +1149,10 @@ export default function Students() {
                                           setFilterSearchQuery('')
                                           setIsFilterDropdownOpen(false)
                                         }}
-                                        className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between ${
-                                          filterClassroomId === opt.value 
-                                            ? 'bg-indigo-50 text-indigo-700 font-bold' 
+                                        className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between ${filterClassroomId === opt.value
+                                            ? 'bg-indigo-50 text-indigo-700 font-bold'
                                             : 'text-gray-700 hover:bg-gray-50'
-                                        }`}
+                                          }`}
                                       >
                                         <span>{opt.label}</span>
                                         {filterClassroomId === opt.value && (
@@ -1258,68 +1246,69 @@ export default function Students() {
                           .filter(Boolean)
                           .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
                         return (
-                        <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
-                          <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
-                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
-                          <td 
-                            className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold cursor-pointer hover:text-indigo-600 transition-all group"
-                            onClick={() => handleStartEdit(student)}
-                            title="แตะเพื่อแก้ไขข้อมูลนักเรียน"
-                          >
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span className="sm:hidden font-medium text-gray-500">{student.prefix || ''}</span>
-                              <span className="group-hover:underline text-indigo-900 sm:text-gray-800">{student.first_name} {student.last_name}</span>
-                              {student.nickname && <span className="text-gray-400 font-normal text-xs">({student.nickname})</span>}
-                              {(() => {
-                                const visit = student.home_visits?.[0];
-                                if (visit?.status !== 'COMPLETED') return null;
-                                const risk = visit.home_visit_assessments?.[0]?.risk_level;
-                                if (risk === 'WATCH') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-800" title="กลุ่มเฝ้าระวัง (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เฝ้าระวัง</span>;
-                                if (risk === 'URGENT') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-800" title="กลุ่มช่วยเหลือเร่งด่วน (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เร่งด่วน</span>;
-                                return null;
-                              })()}
-                            </div>
-                          </td>
-                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {student.gender === 'MALE' ? 'ชาย' : student.gender === 'FEMALE' ? 'หญิง' : '-'}
-                          </td>
-                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                            {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
-                            {subjectLabels.length > 0 && (
-                              <div className="mt-1 text-xs text-indigo-700">
-                                กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
+                          <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
+                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
+                            <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
+                            <td
+                              className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold cursor-pointer hover:text-indigo-600 transition-all group"
+                              onClick={() => handleStartEdit(student)}
+                              title="แตะเพื่อแก้ไขข้อมูลนักเรียน"
+                            >
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="sm:hidden font-medium text-gray-500">{student.prefix || ''}</span>
+                                <span className="group-hover:underline text-indigo-900 sm:text-gray-800">{student.first_name} {student.last_name}</span>
+                                {student.nickname && <span className="text-gray-400 font-normal text-xs">({student.nickname})</span>}
+                                {(() => {
+                                  const visit = student.home_visits?.[0];
+                                  if (visit?.status !== 'COMPLETED') return null;
+                                  const risk = visit.home_visit_assessments?.[0]?.risk_level;
+                                  if (risk === 'WATCH') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-800" title="กลุ่มเฝ้าระวัง (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เฝ้าระวัง</span>;
+                                  if (risk === 'URGENT') return <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-800" title="กลุ่มช่วยเหลือเร่งด่วน (เยี่ยมบ้าน)"><AlertTriangle size={10} className="mr-0.5" /> เร่งด่วน</span>;
+                                  return null;
+                                })()}
                               </div>
-                            )}
-                          </td>
-                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleStartEdit(student)
-                                }}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
-                                title="แก้ไขข้อมูล"
-                              >
-                                <Edit3 size={18} />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => {
-                                    const deleterInfo = getDeleterInfo()
-                                    deleteMutation.mutate({ id: student.id, deletedBy: deleterInfo })
-                                  })
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
-                                title="ลบข้อมูล"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )})}
+                            </td>
+                            <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {student.gender === 'MALE' ? 'ชาย' : student.gender === 'FEMALE' ? 'หญิง' : '-'}
+                            </td>
+                            <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                              {student.classroom ? <span className="bg-slate-100 px-2 py-1 rounded-lg">{student.classroom.level}/{student.classroom.room}</span> : '-'}
+                              {subjectLabels.length > 0 && (
+                                <div className="mt-1 text-xs text-indigo-700">
+                                  กลุ่มรวม: {subjectLabels.slice(0, 2).join(', ')}{subjectLabels.length > 2 ? ` +${subjectLabels.length - 2}` : ''}
+                                </div>
+                              )}
+                            </td>
+                            <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleStartEdit(student)
+                                  }}
+                                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-flex justify-center"
+                                  title="แก้ไขข้อมูล"
+                                >
+                                  <Edit3 size={18} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openConfirmModal('ยืนยันการลบ', `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ ${student.first_name} ${student.last_name}?`, () => {
+                                      const deleterInfo = getDeleterInfo()
+                                      deleteMutation.mutate({ id: student.id, deletedBy: deleterInfo })
+                                    })
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors inline-flex justify-center"
+                                  title="ลบข้อมูล"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
                       {students?.filter(s => {
                         // 1. กรองตามห้องเรียน / กิจกรรมรวม
                         let matchGroup = true
@@ -1345,8 +1334,8 @@ export default function Students() {
 
                         return matchGroup && matchSearch
                       }).length === 0 && (
-                        <tr><td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
-                      )}
+                          <tr><td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
+                        )}
                     </>
                   )}
                 </tbody>
@@ -1424,7 +1413,7 @@ export default function Students() {
 
                     return filteredDeleted.map(student => {
                       const date = student.deleted_at ? new Date(student.deleted_at) : null;
-                      const thaiDate = date 
+                      const thaiDate = date
                         ? `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'short' })} ${date.getFullYear() + 543} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} น.`
                         : '-';
 

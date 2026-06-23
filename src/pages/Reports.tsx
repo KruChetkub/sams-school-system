@@ -363,7 +363,7 @@ export default function Reports() {
             <h2 className="text-xl font-bold text-gray-800">รายงานรายครู</h2>
             <p className="text-sm text-gray-500 mt-1">กรุณาเลือกครูผู้สอนด้านล่างเพื่อจำลองหรือดูรายงานในความดูแลของครูท่านนั้น</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-64">
@@ -432,7 +432,7 @@ export default function Reports() {
                           {teacher.teacher_code || 'ไม่มีรหัสครู'}
                         </p>
                         <h3 className="font-bold text-gray-800 text-base line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                          ครู{teacher.first_name} {teacher.last_name}
+                          {teacher.first_name} {teacher.last_name}
                         </h3>
                       </div>
                     </div>
@@ -462,7 +462,7 @@ export default function Reports() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      
+
       {isAdmin && selectedTeacherId !== null && (
         <div className="flex justify-start">
           <button
@@ -482,7 +482,7 @@ export default function Reports() {
               <BarChart3 size={16} /> รายงานภาพรวม
             </span>
           </div>
-          
+
           <h1 className="text-4xl font-black mb-2 tracking-tight">สรุปการเช็คชื่อเข้าเรียน</h1>
           <p className="text-white/80 font-medium flex items-center gap-2 mb-6">
             <CalendarIcon size={18} /> อัปเดตข้อมูลล่าสุดเมื่อสักครู่นี้
@@ -516,7 +516,7 @@ export default function Reports() {
             <div>
               <h4 className="font-bold text-amber-800 text-base md:text-lg">กำลังจำลองมุมมองของครูผู้สอน</h4>
               <p className="text-xs md:text-sm text-amber-700 font-medium mt-0.5">
-                คุณกำลังดูรายงานของ <span className="underline font-bold">ครู{selectedTeacher.first_name} {selectedTeacher.last_name}</span> ({selectedTeacher.department || 'ไม่ระบุแผนก'}) {selectedTeacher.teacher_code ? `[รหัส: ${selectedTeacher.teacher_code}]` : ''}
+                คุณกำลังดูรายงานของ <span className="underline font-bold">{selectedTeacher.first_name} {selectedTeacher.last_name}</span> ({selectedTeacher.department || 'ไม่ระบุแผนก'}) {selectedTeacher.teacher_code ? `[รหัส: ${selectedTeacher.teacher_code}]` : ''}
               </p>
             </div>
           </div>
@@ -531,45 +531,45 @@ export default function Reports() {
 
       {/* Main Navigation Tabs */}
       <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex overflow-x-auto">
-        <button 
+        <button
           onClick={() => { setActiveTab('overview'); window.location.hash = 'overview' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'overview' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <BarChart3 size={18} /> ภาพรวม
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('classroom'); window.location.hash = 'classroom' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'classroom' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <Users size={18} /> รายห้องเรียน
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('homeroom'); window.location.hash = 'homeroom' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'homeroom' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <CalendarIcon size={18} /> เช็คชื่อเข้าแถว
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('student'); window.location.hash = 'student' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'student' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <User size={18} /> รายบุคคล
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('subject'); window.location.hash = 'subject' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'subject' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
           <Library size={18} /> รายวิชา
         </button>
         {isAdmin && (
-          <button 
+          <button
             onClick={() => setSelectedTeacherId(null)}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-gray-600 hover:bg-gray-50 hover:text-indigo-600"
           >
             <ArrowLeft size={18} /> เลือกครูผู้สอนใหม่
           </button>
         )}
-        <button 
+        <button
           onClick={() => { setActiveTab('export'); window.location.hash = 'export' }}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'export' ? 'bg-indigo-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
         >
@@ -589,11 +589,10 @@ export default function Reports() {
           <button
             key={filter.id}
             onClick={() => setActiveTimeFilter(filter.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all border ${
-              activeTimeFilter === filter.id 
-                ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' 
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all border ${activeTimeFilter === filter.id
+              ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              }`}
           >
             <CalendarIcon size={16} /> {filter.label}
           </button>
@@ -661,7 +660,7 @@ export default function Reports() {
                 <span className="text-xs font-bold text-gray-500 mt-1">มาเรียนเฉลี่ย</span>
               </div>
             </div>
-            
+
             <div className="mt-6 grid grid-cols-3 gap-2">
               {analytics?.pieData?.map((item: any, i: number) => (
                 <div key={i} className="text-center bg-gray-50 rounded-xl p-3 border border-gray-100">
@@ -707,10 +706,9 @@ export default function Reports() {
                       <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
                       <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
                           r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                        }`}>{r.rate}%</span>
+                          }`}>{r.rate}%</span>
                       </td>
                     </tr>
                   ))}
@@ -757,10 +755,9 @@ export default function Reports() {
                       <td className="px-6 py-4 text-center text-sky-500 font-semibold">{r.leave}</td>
                       <td className="px-6 py-4 text-center text-gray-600 font-semibold">{r.total}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
                           r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                        }`}>{r.rate}%</span>
+                          }`}>{r.rate}%</span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
@@ -830,10 +827,9 @@ export default function Reports() {
                               <td className="px-6 py-4 text-center text-sky-500 font-semibold">{s.leave}</td>
                               <td className="px-6 py-4 text-center text-gray-600 font-semibold">{s.total}</td>
                               <td className="px-6 py-4 text-center">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                  s.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${s.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
                                   s.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                                }`}>{s.rate}%</span>
+                                  }`}>{s.rate}%</span>
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass(s.latestStatus || '-')}`}>
@@ -900,10 +896,9 @@ export default function Reports() {
                       <td className="px-6 py-4 text-center text-red-500 font-semibold">{r.absent}</td>
                       <td className="px-6 py-4 text-center text-amber-500 font-semibold">{r.late}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.rate >= 80 ? 'bg-emerald-100 text-emerald-700' :
                           r.rate >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                        }`}>{r.rate}%</span>
+                          }`}>{r.rate}%</span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
@@ -955,153 +950,153 @@ export default function Reports() {
                   </button>
                 </div>
                 <div className="p-6">
-              {loadingStudentDetail ? (
-                <div className="py-10 text-center text-gray-500">กำลังโหลดประวัติรายบุคคล...</div>
-              ) : !studentDetail ? (
-                <div className="py-10 text-center text-gray-500">ไม่พบข้อมูลนักเรียน</div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">
-                        {studentDetail.studentCode} • {`${studentDetail.prefix ? `${studentDetail.prefix} ` : ''}${studentDetail.fullName}`} • ห้อง {studentDetail.classroom}
-                      </p>
-                    </div>
-                  </div>
+                  {loadingStudentDetail ? (
+                    <div className="py-10 text-center text-gray-500">กำลังโหลดประวัติรายบุคคล...</div>
+                  ) : !studentDetail ? (
+                    <div className="py-10 text-center text-gray-500">ไม่พบข้อมูลนักเรียน</div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600">
+                            {studentDetail.studentCode} • {`${studentDetail.prefix ? `${studentDetail.prefix} ` : ''}${studentDetail.fullName}`} • ห้อง {studentDetail.classroom}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อรายวิชา</h4>
-                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.classroomAttendanceSummary.present}</div>
-                        <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.classroomAttendanceSummary.absent}</div>
-                        <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.classroomAttendanceSummary.late}</div>
-                        <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.classroomAttendanceSummary.leave}</div>
-                        <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.classroomAttendanceSummary.total}</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อเข้าแถว</h4>
-                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.homeroomSummary.present}</div>
-                        <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.homeroomSummary.absent}</div>
-                        <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.homeroomSummary.late}</div>
-                        <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.homeroomSummary.leave}</div>
-                        <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.homeroomSummary.total}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อรายวิชา</div>
-                      <div className="max-h-80 overflow-auto">
-                        <table className="w-full text-xs">
-                          <thead className="bg-slate-50 text-slate-500 uppercase">
-                            <tr>
-                              <th className="px-4 py-2 text-left">วันที่</th>
-                              <th className="px-4 py-2 text-left">วิชา</th>
-                              <th className="px-4 py-2 text-center">สถานะ</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {studentDetail.classroomAttendanceHistory.length === 0 && (
-                              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
-                            )}
-                            {studentDetail.classroomAttendanceHistory
-                              .slice((subjectHistoryPage - 1) * historyPageSize, subjectHistoryPage * historyPageSize)
-                              .map((h) => (
-                              <tr key={h.id}>
-                                <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
-                                <td className="px-4 py-2 text-slate-700">{h.subjectName}</td>
-                                <td className="px-4 py-2 text-center">
-                                  <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {studentDetail.classroomAttendanceHistory.length > historyPageSize && (
-                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
-                          <span className="text-slate-500">
-                            หน้า {subjectHistoryPage} / {Math.max(1, Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize))}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setSubjectHistoryPage((p) => Math.max(1, p - 1))}
-                              disabled={subjectHistoryPage === 1}
-                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-                            >
-                              ก่อนหน้า
-                            </button>
-                            <button
-                              onClick={() => setSubjectHistoryPage((p) => Math.min(Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize), p + 1))}
-                              disabled={subjectHistoryPage >= Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize)}
-                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-                            >
-                              ถัดไป
-                            </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อรายวิชา</h4>
+                          <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.classroomAttendanceSummary.present}</div>
+                            <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.classroomAttendanceSummary.absent}</div>
+                            <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.classroomAttendanceSummary.late}</div>
+                            <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.classroomAttendanceSummary.leave}</div>
+                            <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.classroomAttendanceSummary.total}</div>
                           </div>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อเข้าแถว</div>
-                      <div className="max-h-80 overflow-auto">
-                        <table className="w-full text-xs">
-                          <thead className="bg-slate-50 text-slate-500 uppercase">
-                            <tr>
-                              <th className="px-4 py-2 text-left">วันที่</th>
-                              <th className="px-4 py-2 text-center">สถานะ</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {studentDetail.homeroomHistory.length === 0 && (
-                              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
-                            )}
-                            {studentDetail.homeroomHistory
-                              .slice((homeroomHistoryPage - 1) * historyPageSize, homeroomHistoryPage * historyPageSize)
-                              .map((h) => (
-                              <tr key={h.id}>
-                                <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
-                                <td className="px-4 py-2 text-center">
-                                  <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {studentDetail.homeroomHistory.length > historyPageSize && (
-                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
-                          <span className="text-slate-500">
-                            หน้า {homeroomHistoryPage} / {Math.max(1, Math.ceil(studentDetail.homeroomHistory.length / historyPageSize))}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setHomeroomHistoryPage((p) => Math.max(1, p - 1))}
-                              disabled={homeroomHistoryPage === 1}
-                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-                            >
-                              ก่อนหน้า
-                            </button>
-                            <button
-                              onClick={() => setHomeroomHistoryPage((p) => Math.min(Math.ceil(studentDetail.homeroomHistory.length / historyPageSize), p + 1))}
-                              disabled={homeroomHistoryPage >= Math.ceil(studentDetail.homeroomHistory.length / historyPageSize)}
-                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
-                            >
-                              ถัดไป
-                            </button>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <h4 className="font-semibold text-slate-800 mb-3">สรุปเช็คชื่อเข้าแถว</h4>
+                          <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">มา {studentDetail.homeroomSummary.present}</div>
+                            <div className="rounded-lg bg-red-50 p-2 text-red-700">ขาด {studentDetail.homeroomSummary.absent}</div>
+                            <div className="rounded-lg bg-amber-50 p-2 text-amber-700">สาย {studentDetail.homeroomSummary.late}</div>
+                            <div className="rounded-lg bg-sky-50 p-2 text-sky-700">ลา {studentDetail.homeroomSummary.leave}</div>
+                            <div className="rounded-lg bg-slate-100 p-2 text-slate-700">รวม {studentDetail.homeroomSummary.total}</div>
                           </div>
                         </div>
-                      )}
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                          <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อรายวิชา</div>
+                          <div className="max-h-80 overflow-auto">
+                            <table className="w-full text-xs">
+                              <thead className="bg-slate-50 text-slate-500 uppercase">
+                                <tr>
+                                  <th className="px-4 py-2 text-left">วันที่</th>
+                                  <th className="px-4 py-2 text-left">วิชา</th>
+                                  <th className="px-4 py-2 text-center">สถานะ</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {studentDetail.classroomAttendanceHistory.length === 0 && (
+                                  <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
+                                )}
+                                {studentDetail.classroomAttendanceHistory
+                                  .slice((subjectHistoryPage - 1) * historyPageSize, subjectHistoryPage * historyPageSize)
+                                  .map((h) => (
+                                    <tr key={h.id}>
+                                      <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
+                                      <td className="px-4 py-2 text-slate-700">{h.subjectName}</td>
+                                      <td className="px-4 py-2 text-center">
+                                        <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {studentDetail.classroomAttendanceHistory.length > historyPageSize && (
+                            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
+                              <span className="text-slate-500">
+                                หน้า {subjectHistoryPage} / {Math.max(1, Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize))}
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setSubjectHistoryPage((p) => Math.max(1, p - 1))}
+                                  disabled={subjectHistoryPage === 1}
+                                  className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                                >
+                                  ก่อนหน้า
+                                </button>
+                                <button
+                                  onClick={() => setSubjectHistoryPage((p) => Math.min(Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize), p + 1))}
+                                  disabled={subjectHistoryPage >= Math.ceil(studentDetail.classroomAttendanceHistory.length / historyPageSize)}
+                                  className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                                >
+                                  ถัดไป
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                          <div className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-800">ประวัติการเช็คชื่อเข้าแถว</div>
+                          <div className="max-h-80 overflow-auto">
+                            <table className="w-full text-xs">
+                              <thead className="bg-slate-50 text-slate-500 uppercase">
+                                <tr>
+                                  <th className="px-4 py-2 text-left">วันที่</th>
+                                  <th className="px-4 py-2 text-center">สถานะ</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {studentDetail.homeroomHistory.length === 0 && (
+                                  <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">ไม่มีประวัติในช่วงเวลานี้</td></tr>
+                                )}
+                                {studentDetail.homeroomHistory
+                                  .slice((homeroomHistoryPage - 1) * historyPageSize, homeroomHistoryPage * historyPageSize)
+                                  .map((h) => (
+                                    <tr key={h.id}>
+                                      <td className="px-4 py-2 text-slate-600">{formatThaiDate(h.date)}</td>
+                                      <td className="px-4 py-2 text-center">
+                                        <span className={`rounded-full px-2 py-1 font-semibold ${statusClass(h.status)}`}>{formatStatusThai(h.status)}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {studentDetail.homeroomHistory.length > historyPageSize && (
+                            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs">
+                              <span className="text-slate-500">
+                                หน้า {homeroomHistoryPage} / {Math.max(1, Math.ceil(studentDetail.homeroomHistory.length / historyPageSize))}
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setHomeroomHistoryPage((p) => Math.max(1, p - 1))}
+                                  disabled={homeroomHistoryPage === 1}
+                                  className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                                >
+                                  ก่อนหน้า
+                                </button>
+                                <button
+                                  onClick={() => setHomeroomHistoryPage((p) => Math.min(Math.ceil(studentDetail.homeroomHistory.length / historyPageSize), p + 1))}
+                                  disabled={homeroomHistoryPage >= Math.ceil(studentDetail.homeroomHistory.length / historyPageSize)}
+                                  className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-700 disabled:opacity-50"
+                                >
+                                  ถัดไป
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
               </div>
             </div>
           )}
@@ -1125,31 +1120,31 @@ export default function Reports() {
                 (() => {
                   const palette = getSubjectPalette(`${r.subjectId}-${r.subjectCode}`)
                   return (
-                <button
-                  key={`${r.subjectId}-${r.classroomLabel}`}
-                  onClick={() => setSelectedSubjectId(r.subjectId)}
-                  className={`rounded-2xl border overflow-hidden text-left transition-all hover:shadow-lg hover:-translate-y-0.5 ${palette.shell}`}
-                >
-                  <div className={`px-5 py-4 ${palette.header}`}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className={`text-xs font-mono ${palette.code}`}>{r.subjectCode}</p>
-                        <h3 className={`text-base font-bold ${palette.title}`}>{r.subjectName}</h3>
-                        <p className={`text-sm mt-1 ${palette.room}`}>ห้อง {r.classroomLabel}</p>
+                    <button
+                      key={`${r.subjectId}-${r.classroomLabel}`}
+                      onClick={() => setSelectedSubjectId(r.subjectId)}
+                      className={`rounded-2xl border overflow-hidden text-left transition-all hover:shadow-lg hover:-translate-y-0.5 ${palette.shell}`}
+                    >
+                      <div className={`px-5 py-4 ${palette.header}`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className={`text-xs font-mono ${palette.code}`}>{r.subjectCode}</p>
+                            <h3 className={`text-base font-bold ${palette.title}`}>{r.subjectName}</h3>
+                            <p className={`text-sm mt-1 ${palette.room}`}>ห้อง {r.classroomLabel}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${palette.rate}`}>{r.rate}% มาเรียน</span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.present}`}>มา {r.present}</span>
+                          <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.absent}`}>ขาด {r.absent}</span>
+                          <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.late}`}>สาย {r.late}</span>
+                          <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.total}`}>รวม {r.total}</span>
+                        </div>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${palette.rate}`}>{r.rate}% มาเรียน</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.present}`}>มา {r.present}</span>
-                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.absent}`}>ขาด {r.absent}</span>
-                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.late}`}>สาย {r.late}</span>
-                      <span className={`px-2.5 py-1 rounded-full font-semibold ${palette.stats.total}`}>รวม {r.total}</span>
-                    </div>
-                  </div>
-                  <div className={`p-4 text-xs font-semibold ${palette.hint}`}>
-                    กดการ์ดเพื่อดูตารางรายชื่อนักเรียนและสถานะเช็คชื่อ
-                  </div>
-                </button>
+                      <div className={`p-4 text-xs font-semibold ${palette.hint}`}>
+                        กดการ์ดเพื่อดูตารางรายชื่อนักเรียนและสถานะเช็คชื่อ
+                      </div>
+                    </button>
                   )
                 })()
               ))}
@@ -1221,16 +1216,16 @@ export default function Reports() {
                                 const status = student.bySession[col.sessionId]
                                 const statusCellClass =
                                   status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
-                                  status === 'ABSENT' ? 'bg-red-100 text-red-700 border-red-300' :
-                                  status === 'LATE' ? 'bg-amber-100 text-amber-700 border-amber-300' :
-                                  status === 'LEAVE' ? 'bg-sky-100 text-sky-700 border-sky-300' :
-                                  'bg-slate-100 text-slate-400 border-slate-200'
+                                    status === 'ABSENT' ? 'bg-red-100 text-red-700 border-red-300' :
+                                      status === 'LATE' ? 'bg-amber-100 text-amber-700 border-amber-300' :
+                                        status === 'LEAVE' ? 'bg-sky-100 text-sky-700 border-sky-300' :
+                                          'bg-slate-100 text-slate-400 border-slate-200'
                                 const statusLabel =
                                   status === 'PRESENT' ? 'มา' :
-                                  status === 'ABSENT' ? 'ขาด' :
-                                  status === 'LATE' ? 'สาย' :
-                                  status === 'LEAVE' ? 'ลา' :
-                                  '-'
+                                    status === 'ABSENT' ? 'ขาด' :
+                                      status === 'LATE' ? 'สาย' :
+                                        status === 'LEAVE' ? 'ลา' :
+                                          '-'
                                 return (
                                   <td key={`${student.studentId}-${col.sessionId}`} className="border border-slate-300 px-2 py-2 text-center">
                                     <span className={`inline-flex min-w-8 items-center justify-center rounded border px-1.5 py-0.5 text-[11px] font-bold ${statusCellClass}`}>
@@ -1266,7 +1261,7 @@ export default function Reports() {
           </div>
         </div>
       )}
-      
+
     </div>
   )
 }

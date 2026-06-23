@@ -70,7 +70,7 @@ const getSdqDimLevel = (
   const t: Record<string, Record<string, { risk: number; problem: number }>> = {
     STUDENT: { emotional: { risk: 6, problem: 7 }, conduct: { risk: 5, problem: 6 }, hyperactivity: { risk: 6, problem: 7 }, peer: { risk: 4, problem: 5 } },
     TEACHER: { emotional: { risk: 4, problem: 5 }, conduct: { risk: 4, problem: 5 }, hyperactivity: { risk: 6, problem: 7 }, peer: { risk: 6, problem: 7 } },
-    PARENT:  { emotional: { risk: 4, problem: 5 }, conduct: { risk: 4, problem: 5 }, hyperactivity: { risk: 6, problem: 7 }, peer: { risk: 6, problem: 7 } },
+    PARENT: { emotional: { risk: 4, problem: 5 }, conduct: { risk: 4, problem: 5 }, hyperactivity: { risk: 6, problem: 7 }, peer: { risk: 6, problem: 7 } },
   };
   const { risk, problem } = t[evalType][dim];
   if (score >= problem) return 'PROBLEM';
@@ -286,7 +286,7 @@ export default function Student360() {
   }));
   const teacherSdq: any = normalizedSdq.find((s: any) => s.evaluator_type === 'TEACHER') ?? null;
   const studentSdq: any = normalizedSdq.find((s: any) => s.evaluator_type === 'STUDENT') ?? null;
-  const parentSdq:  any = normalizedSdq.find((s: any) => s.evaluator_type === 'PARENT')  ?? null;
+  const parentSdq: any = normalizedSdq.find((s: any) => s.evaluator_type === 'PARENT') ?? null;
   const primarySdq: any = teacherSdq ?? studentSdq ?? parentSdq ?? null;
   const primaryEvalType: 'STUDENT' | 'TEACHER' | 'PARENT' =
     teacherSdq ? 'TEACHER' : studentSdq ? 'STUDENT' : 'PARENT';
@@ -310,20 +310,20 @@ export default function Student360() {
 
   // V14: Donut chart data
   const sdqDonutData = primarySdq ? [
-    { name: 'อารมณ์',      actualScore: primarySdq.emotional_score,    value: Math.max(primarySdq.emotional_score, 0.5),    color: getLvColor(getSdqDimLevel(primarySdq.emotional_score, 'emotional', primaryEvalType)) },
-    { name: 'เกเร',        actualScore: primarySdq.conduct_score,       value: Math.max(primarySdq.conduct_score, 0.5),       color: getLvColor(getSdqDimLevel(primarySdq.conduct_score, 'conduct', primaryEvalType)) },
-    { name: 'สมาธิ',      actualScore: primarySdq.hyperactivity_score, value: Math.max(primarySdq.hyperactivity_score, 0.5), color: getLvColor(getSdqDimLevel(primarySdq.hyperactivity_score, 'hyperactivity', primaryEvalType)) },
-    { name: 'เพื่อน',     actualScore: primarySdq.peer_score,           value: Math.max(primarySdq.peer_score, 0.5),           color: getLvColor(getSdqDimLevel(primarySdq.peer_score, 'peer', primaryEvalType)) },
-    { name: 'สัมพันธภาพ', actualScore: primarySdq.prosocial_score,     value: Math.max(primarySdq.prosocial_score, 0.5),     color: primarySdq.prosocial_score >= 4 ? '#10b981' : '#ef4444' },
+    { name: 'อารมณ์', actualScore: primarySdq.emotional_score, value: Math.max(primarySdq.emotional_score, 0.5), color: getLvColor(getSdqDimLevel(primarySdq.emotional_score, 'emotional', primaryEvalType)) },
+    { name: 'เกเร', actualScore: primarySdq.conduct_score, value: Math.max(primarySdq.conduct_score, 0.5), color: getLvColor(getSdqDimLevel(primarySdq.conduct_score, 'conduct', primaryEvalType)) },
+    { name: 'สมาธิ', actualScore: primarySdq.hyperactivity_score, value: Math.max(primarySdq.hyperactivity_score, 0.5), color: getLvColor(getSdqDimLevel(primarySdq.hyperactivity_score, 'hyperactivity', primaryEvalType)) },
+    { name: 'เพื่อน', actualScore: primarySdq.peer_score, value: Math.max(primarySdq.peer_score, 0.5), color: getLvColor(getSdqDimLevel(primarySdq.peer_score, 'peer', primaryEvalType)) },
+    { name: 'สัมพันธภาพ', actualScore: primarySdq.prosocial_score, value: Math.max(primarySdq.prosocial_score, 0.5), color: primarySdq.prosocial_score >= 4 ? '#10b981' : '#ef4444' },
   ] : [];
   const eqDonutData: { name: string; value: number; level: string; color: string }[] = latestEq
     ? (latestEq.goodness_score != null
-        ? [
-            { name: 'ด้านดี',  value: latestEq.goodness_score,   level: latestEq.goodness_level,   color: getEqLvColor(latestEq.goodness_level) },
-            { name: 'ด้านเก่ง', value: latestEq.competence_score, level: latestEq.competence_level, color: getEqLvColor(latestEq.competence_level) },
-            { name: 'ด้านสุข', value: latestEq.happiness_score,  level: latestEq.happiness_level,  color: getEqLvColor(latestEq.happiness_level) },
-          ]
-        : [{ name: 'EQ รวม', value: latestEq.total_score, level: latestEq.eq_level, color: getEqLvColor(latestEq.eq_level) }])
+      ? [
+        { name: 'ด้านดี', value: latestEq.goodness_score, level: latestEq.goodness_level, color: getEqLvColor(latestEq.goodness_level) },
+        { name: 'ด้านเก่ง', value: latestEq.competence_score, level: latestEq.competence_level, color: getEqLvColor(latestEq.competence_level) },
+        { name: 'ด้านสุข', value: latestEq.happiness_score, level: latestEq.happiness_level, color: getEqLvColor(latestEq.happiness_level) },
+      ]
+      : [{ name: 'EQ รวม', value: latestEq.total_score, level: latestEq.eq_level, color: getEqLvColor(latestEq.eq_level) }])
     : [];
   const triWeaknesses = primarySdq ? generateSdqWeaknesses(primarySdq, primaryEvalType) : [];
 
@@ -396,10 +396,10 @@ export default function Student360() {
 
         {/* Navigation & Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-          
+
           {/* Left / Center Content */}
           <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left w-full md:w-auto">
-            
+
             {/* Back Button for Desktop (hidden on mobile, mobile has bottom bar) */}
             <button
               onClick={() => navigate('/studentsupport')}
@@ -445,8 +445,8 @@ export default function Student360() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.key
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white/0 text-gray-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white/0 text-gray-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
                 <Icon size={14} />
@@ -518,8 +518,8 @@ export default function Student360() {
                     <span className="text-[10px] text-gray-400 font-bold mb-2">พฤติกรรม (SDQ)</span>
                     {primarySdq ? (
                       <span className={`px-2 py-1 rounded-full text-xxs font-black border ${primarySdq.result_difficulties === 'PROBLEM' ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
-                          primarySdq.result_difficulties === 'RISK' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                            'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        primarySdq.result_difficulties === 'RISK' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                         }`}>
                         {primarySdq.result_difficulties === 'PROBLEM' ? 'มีปัญหา' :
                           primarySdq.result_difficulties === 'RISK' ? 'กลุ่มเสี่ยง' : 'ปกติ'}
@@ -534,8 +534,8 @@ export default function Student360() {
                     <span className="text-[10px] text-gray-400 font-bold mb-2">อารมณ์ (EQ)</span>
                     {latestEq ? (
                       <span className={`px-2 py-1 rounded-full text-xxs font-black border ${latestEq.eq_level === 'LOWER_THAN_NORMAL' ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
-                          latestEq.eq_level === 'NORMAL' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                            'text-violet-400 bg-violet-500/10 border-violet-500/20'
+                        latestEq.eq_level === 'NORMAL' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                          'text-violet-400 bg-violet-500/10 border-violet-500/20'
                         }`}>
                         {latestEq.eq_level === 'LOWER_THAN_NORMAL' ? 'ต่ำกว่าเกณฑ์' :
                           latestEq.eq_level === 'NORMAL' ? 'ปกติ' : 'สูงกว่าเกณฑ์'}
@@ -549,8 +549,8 @@ export default function Student360() {
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between items-center text-center">
                     <span className="text-[10px] text-gray-400 font-bold mb-2">การมาเรียน</span>
                     <span className={`px-2 py-1 rounded-full text-xxs font-black border ${attendanceRisk === 'PROBLEM' ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
-                        attendanceRisk === 'RISK' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                          'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      attendanceRisk === 'RISK' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                        'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                       }`}>
                       ขาดเรียน: {attendanceSummary.absent} วัน
                     </span>
@@ -560,8 +560,8 @@ export default function Student360() {
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col justify-between items-center text-center">
                     <span className="text-[10px] text-gray-400 font-bold mb-2">คะแนนพฤติกรรม</span>
                     <span className={`px-2 py-1 rounded-full text-xxs font-black border ${behaviorSummary.netScore < 50 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
-                        behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                          'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                        'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                       }`}>
                       คะแนนสุทธิ: {behaviorSummary.netScore} คะแนน
                     </span>
@@ -590,8 +590,8 @@ export default function Student360() {
                           <span className="text-[10px] text-gray-500 block mt-0.5">เปิดเคสเมื่อ: {new Date(c.created_at).toLocaleDateString('th-TH')}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${c.status === 'CLOSED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                            c.status === 'HELPING' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' :
-                              'text-yellow-300 bg-yellow-500/10 border-yellow-500/20'
+                          c.status === 'HELPING' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' :
+                            'text-yellow-300 bg-yellow-500/10 border-yellow-500/20'
                           }`}>
                           {c.status === 'CLOSED' ? 'ปิดเคสแล้ว' : c.status === 'HELPING' ? 'กำลังช่วยเหลือ' : 'ติดตาม'}
                         </span>
@@ -617,9 +617,9 @@ export default function Student360() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {([
-                  { type: 'TEACHER' as const, label: 'ครูประเมินนักเรียน',     data: teacherSdq, icon: '👨\u200d🏫' },
-                  { type: 'STUDENT' as const, label: 'นักเรียนประเมินตนเอง',   data: studentSdq, icon: '🎒' },
-                  { type: 'PARENT'  as const, label: 'ผู้ปกครองประเมิน',       data: parentSdq,  icon: '👨\u200d👩\u200d👧' },
+                  { type: 'TEACHER' as const, label: 'ครูประเมินนักเรียน', data: teacherSdq, icon: '👨\u200d🏫' },
+                  { type: 'STUDENT' as const, label: 'นักเรียนประเมินตนเอง', data: studentSdq, icon: '🎒' },
+                  { type: 'PARENT' as const, label: 'ผู้ปกครองประเมิน', data: parentSdq, icon: '👨\u200d👩\u200d👧' },
                 ]).map(({ type, label, data, icon }) => (
                   <div key={type} className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col justify-between gap-4">
                     <div className="space-y-3">
@@ -629,11 +629,10 @@ export default function Student360() {
                       </div>
                       {data ? (
                         <>
-                          <div className={`px-3 py-2 rounded-xl text-xs font-black text-center ${
-                            data.result_difficulties === 'PROBLEM' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25' :
-                            data.result_difficulties === 'RISK'    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' :
-                                                                     'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                          }`}>
+                          <div className={`px-3 py-2 rounded-xl text-xs font-black text-center ${data.result_difficulties === 'PROBLEM' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25' :
+                              data.result_difficulties === 'RISK' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' :
+                                'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                            }`}>
                             {data.result_difficulties === 'PROBLEM' ? '🔴 มีปัญหา' : data.result_difficulties === 'RISK' ? '🟡 กลุ่มเสี่ยง' : '🟢 ปกติ'}
                           </div>
                           <p className="text-[10px] text-gray-500 text-center">
@@ -663,7 +662,7 @@ export default function Student360() {
                             room: classroomInfo,
                             timestamp: Date.now().toString()
                           }).toString();
-                          
+
                           const publicUrl = `${window.location.origin}/public/sdq/${student.id}?${queryParams}`;
                           setQrModalData({
                             url: publicUrl,
@@ -716,10 +715,9 @@ export default function Student360() {
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <span className="text-4xl font-black text-white leading-none">{primarySdq.total_difficulties_score}</span>
                         <span className="text-[11px] text-gray-400 mt-0.5 font-bold">/ 40 คะแนน</span>
-                        <span className={`text-[11px] font-black mt-2 px-3 py-1 rounded-full ${
-                          primarySdq.result_difficulties === 'PROBLEM' ? 'bg-rose-500/20 text-rose-400' :
-                          primarySdq.result_difficulties === 'RISK'    ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
-                        }`}>
+                        <span className={`text-[11px] font-black mt-2 px-3 py-1 rounded-full ${primarySdq.result_difficulties === 'PROBLEM' ? 'bg-rose-500/20 text-rose-400' :
+                            primarySdq.result_difficulties === 'RISK' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
+                          }`}>
                           {primarySdq.result_difficulties === 'PROBLEM' ? 'มีปัญหา' : primarySdq.result_difficulties === 'RISK' ? 'กลุ่มเสี่ยง' : 'ปกติ'}
                         </span>
                       </div>
@@ -737,14 +735,14 @@ export default function Student360() {
                   {/* Dimension Score Bars */}
                   <div className="space-y-3">
                     {([
-                      { label: '1. ด้านอารมณ์',             score: primarySdq.emotional_score,    dim: 'emotional'    as const },
-                      { label: '2. ด้านความประพฤติ',          score: primarySdq.conduct_score,       dim: 'conduct'      as const },
+                      { label: '1. ด้านอารมณ์', score: primarySdq.emotional_score, dim: 'emotional' as const },
+                      { label: '2. ด้านความประพฤติ', score: primarySdq.conduct_score, dim: 'conduct' as const },
                       { label: '3. ด้านสมาธิ/ไม่อยู่นิ่ง', score: primarySdq.hyperactivity_score, dim: 'hyperactivity' as const },
-                      { label: '4. ด้านความสัมพันธ์เพื่อน', score: primarySdq.peer_score,           dim: 'peer'         as const },
+                      { label: '4. ด้านความสัมพันธ์เพื่อน', score: primarySdq.peer_score, dim: 'peer' as const },
                     ]).map(({ label, score, dim }) => {
-                      const lv  = getSdqDimLevel(score, dim, primaryEvalType);
+                      const lv = getSdqDimLevel(score, dim, primaryEvalType);
                       const col = getLvColor(lv);
-                      const th  = lv === 'PROBLEM' ? 'มีปัญหา' : lv === 'RISK' ? 'เสี่ยง' : 'ปกติ';
+                      const th = lv === 'PROBLEM' ? 'มีปัญหา' : lv === 'RISK' ? 'เสี่ยง' : 'ปกติ';
                       return (
                         <div key={dim} className="space-y-1">
                           <div className="flex justify-between items-center text-xs">
@@ -834,10 +832,9 @@ export default function Student360() {
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <span className="text-4xl font-black text-white leading-none">{latestEq.total_score}</span>
                         <span className="text-[11px] text-gray-400 mt-0.5 font-bold">/ 208 คะแนน</span>
-                        <span className={`text-[11px] font-black mt-2 px-3 py-1 rounded-full ${
-                          latestEq.eq_level === 'LOWER_THAN_NORMAL'  ? 'bg-rose-500/20 text-rose-400' :
-                          latestEq.eq_level === 'HIGHER_THAN_NORMAL' ? 'bg-violet-500/20 text-violet-400' : 'bg-emerald-500/20 text-emerald-400'
-                        }`}>
+                        <span className={`text-[11px] font-black mt-2 px-3 py-1 rounded-full ${latestEq.eq_level === 'LOWER_THAN_NORMAL' ? 'bg-rose-500/20 text-rose-400' :
+                            latestEq.eq_level === 'HIGHER_THAN_NORMAL' ? 'bg-violet-500/20 text-violet-400' : 'bg-emerald-500/20 text-emerald-400'
+                          }`}>
                           {latestEq.eq_level === 'LOWER_THAN_NORMAL' ? 'ต่ำกว่าปกติ' : latestEq.eq_level === 'HIGHER_THAN_NORMAL' ? 'สูงกว่าปกติ' : 'ปกติ'}
                         </span>
                       </div>
@@ -859,9 +856,9 @@ export default function Student360() {
                       <>
                         <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">รายละเอียดรายมิติ EQ</p>
                         {eqDonutData.map((d, i) => {
-                          const maxs  = [80, 72, 56];
+                          const maxs = [80, 72, 56];
                           const norms = ['48-59', '43-52', '48-57'];
-                          const lvTh  = d.level === 'LOWER_THAN_NORMAL' ? 'ต่ำกว่าปกติ' : d.level === 'HIGHER_THAN_NORMAL' ? 'สูงกว่าปกติ' : 'ปกติ';
+                          const lvTh = d.level === 'LOWER_THAN_NORMAL' ? 'ต่ำกว่าปกติ' : d.level === 'HIGHER_THAN_NORMAL' ? 'สูงกว่าปกติ' : 'ปกติ';
                           return (
                             <div key={i} className="space-y-1">
                               <div className="flex justify-between items-center text-xs">
@@ -966,7 +963,7 @@ export default function Student360() {
                     <Legend formatter={(v: string) => <span style={{ fontSize: 10, color: '#9ca3af' }}>{v === 'TEACHER' ? 'ครูประเมิน' : v === 'STUDENT' ? 'นักเรียนประเมิน' : 'ผู้ปกครองประเมิน'}</span>} />
                     <Line dataKey="TEACHER" stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
                     <Line dataKey="STUDENT" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
-                    <Line dataKey="PARENT"  stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
+                    <Line dataKey="PARENT" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
                 <p className="text-[10px] text-gray-600 text-center">เส้นแบ่ง: เหลือง = เสี่ยง (≥ 15) │ แดง = มีปัญหา (≥ 18) — อ้างอิงเกณฑ์ครูประเมิน</p>
@@ -980,109 +977,109 @@ export default function Student360() {
         {activeTab === 'ATTENDANCE' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Visual statistics */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between items-center text-center">
-              <h3 className="text-base font-bold text-white border-b border-white/10 pb-3 w-full">
-                สถิติร้อยละเวลาการเข้าแถว (Homeroom)
-              </h3>
+              {/* Visual statistics */}
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between items-center text-center">
+                <h3 className="text-base font-bold text-white border-b border-white/10 pb-3 w-full">
+                  สถิติร้อยละเวลาการเข้าแถว (Homeroom)
+                </h3>
 
-              <div className="my-8 relative flex items-center justify-center">
-                {/* Circular indicator style */}
-                <div className="w-32 h-32 rounded-full border-8 border-white/5 flex items-center justify-center">
-                  <div>
-                    <span className="text-3xl font-black text-white">{attendanceRate}%</span>
-                    <p className="text-[10px] text-gray-500 mt-0.5">เข้าชั้นเรียน</p>
+                <div className="my-8 relative flex items-center justify-center">
+                  {/* Circular indicator style */}
+                  <div className="w-32 h-32 rounded-full border-8 border-white/5 flex items-center justify-center">
+                    <div>
+                      <span className="text-3xl font-black text-white">{attendanceRate}%</span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">เข้าชั้นเรียน</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 w-full text-xs">
+                  <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                    <span className="text-xxs text-gray-500 block mb-0.5">มาเรียน (PRESENT)</span>
+                    <span className="font-bold text-emerald-400">{attendanceSummary.present} วัน</span>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                    <span className="text-xxs text-gray-500 block mb-0.5">มาสาย (LATE)</span>
+                    <span className="font-bold text-yellow-300">{attendanceSummary.late} วัน</span>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                    <span className="text-xxs text-gray-500 block mb-0.5">ขาดเรียน (ABSENT)</span>
+                    <span className="font-bold text-rose-400">{attendanceSummary.absent} วัน</span>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                    <span className="text-xxs text-gray-500 block mb-0.5">ลากิจ/ลาป่วย</span>
+                    <span className="font-bold text-gray-300">{attendanceSummary.leave} วัน</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 w-full text-xs">
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <span className="text-xxs text-gray-500 block mb-0.5">มาเรียน (PRESENT)</span>
-                  <span className="font-bold text-emerald-400">{attendanceSummary.present} วัน</span>
-                </div>
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <span className="text-xxs text-gray-500 block mb-0.5">มาสาย (LATE)</span>
-                  <span className="font-bold text-yellow-300">{attendanceSummary.late} วัน</span>
-                </div>
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <span className="text-xxs text-gray-500 block mb-0.5">ขาดเรียน (ABSENT)</span>
-                  <span className="font-bold text-rose-400">{attendanceSummary.absent} วัน</span>
-                </div>
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <span className="text-xxs text-gray-500 block mb-0.5">ลากิจ/ลาป่วย</span>
-                  <span className="font-bold text-gray-300">{attendanceSummary.leave} วัน</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Leaves history */}
-            <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-              <h3 className="text-base font-bold text-white border-b border-white/10 pb-3">
-                ประวัติใบลาและการขาดเรียนสะสม ({leaves.length} ใบขออนุญาต)
-              </h3>
-
-              {leaves.length === 0 ? (
-                <p className="text-xs text-gray-500 italic py-8 text-center">นักเรียนรายนี้ยังไม่มีประวัติการส่งใบขออนุญาตลาป่วยหรือลากิจ</p>
-              ) : (
-                <div className="space-y-3 overflow-y-auto max-h-[350px]">
-                  {leaves.map((leave: any) => (
-                    <div key={leave.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-bold text-white">{leave.reason || 'ไม่ระบุเหตุผลในการลา'}</p>
-                        <span className="text-xxs text-gray-500 block mt-0.5">ประเภท: {leave.leave_type === 'SICK' ? 'ลาป่วย' : 'ลากิจ'} • วันเริ่มลา: {new Date(leave.start_date).toLocaleDateString('th-TH')}</span>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
-                          leave.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' : 'bg-yellow-500/10 text-yellow-300'
-                        }`}>
-                        {leave.status === 'APPROVED' ? 'อนุมัติเรียบร้อย' : leave.status === 'REJECTED' ? 'ปฏิเสธ' : 'รอกระบวนการอนุมัติ'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* V15.9: Attendance Monthly Mini-Chart */}
-          {Array.isArray(attendanceByMonth) && attendanceByMonth.length >= 2 && (
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Calendar size={18} className="text-indigo-400" />
-                  แนวโน้มการเข้าเรียนรายเดือน
+              {/* Leaves history */}
+              <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+                <h3 className="text-base font-bold text-white border-b border-white/10 pb-3">
+                  ประวัติใบลาและการขาดเรียนสะสม ({leaves.length} ใบขออนุญาต)
                 </h3>
-                <span className="text-[10px] text-gray-500 font-bold">จำนวนวันต่อเดือน</span>
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={attendanceByMonth} margin={{ top: 4, right: 16, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip
-                    content={({ active, payload, label }: any) => {
-                      if (!active || !payload?.length) return null;
-                      return (
-                        <div style={{ background: 'rgba(9,13,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px' }}>
-                          <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 11, marginBottom: 4 }}>{label}</p>
-                          {payload.map((p: any) => (
-                            <p key={p.dataKey} style={{ color: p.fill, fontWeight: 600, fontSize: 11 }}>
-                              {p.dataKey === 'present' ? 'มาเรียน' : p.dataKey === 'absent' ? 'ขาด' : 'สาย'}: {p.value} วัน
-                            </p>
-                          ))}
+
+                {leaves.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic py-8 text-center">นักเรียนรายนี้ยังไม่มีประวัติการส่งใบขออนุญาตลาป่วยหรือลากิจ</p>
+                ) : (
+                  <div className="space-y-3 overflow-y-auto max-h-[350px]">
+                    {leaves.map((leave: any) => (
+                      <div key={leave.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-white">{leave.reason || 'ไม่ระบุเหตุผลในการลา'}</p>
+                          <span className="text-xxs text-gray-500 block mt-0.5">ประเภท: {leave.leave_type === 'SICK' ? 'ลาป่วย' : 'ลากิจ'} • วันเริ่มลา: {new Date(leave.start_date).toLocaleDateString('th-TH')}</span>
                         </div>
-                      );
-                    }}
-                  />
-                  <Legend formatter={(v: string) => <span style={{ fontSize: 10, color: '#9ca3af' }}>{v === 'present' ? 'มาเรียน' : v === 'absent' ? 'ขาดเรียน' : 'มาสาย'}</span>} />
-                  <Bar dataKey="present" fill="#10b981" radius={[4,4,0,0]} maxBarSize={32} />
-                  <Bar dataKey="absent"  fill="#ef4444" radius={[4,4,0,0]} maxBarSize={32} />
-                  <Bar dataKey="late"    fill="#eab308" radius={[4,4,0,0]} maxBarSize={32} />
-                </BarChart>
-              </ResponsiveContainer>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' :
+                          leave.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' : 'bg-yellow-500/10 text-yellow-300'
+                          }`}>
+                          {leave.status === 'APPROVED' ? 'อนุมัติเรียบร้อย' : leave.status === 'REJECTED' ? 'ปฏิเสธ' : 'รอกระบวนการอนุมัติ'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* V15.9: Attendance Monthly Mini-Chart */}
+            {Array.isArray(attendanceByMonth) && attendanceByMonth.length >= 2 && (
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Calendar size={18} className="text-indigo-400" />
+                    แนวโน้มการเข้าเรียนรายเดือน
+                  </h3>
+                  <span className="text-[10px] text-gray-500 font-bold">จำนวนวันต่อเดือน</span>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={attendanceByMonth} margin={{ top: 4, right: 16, left: -18, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div style={{ background: 'rgba(9,13,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px' }}>
+                            <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 11, marginBottom: 4 }}>{label}</p>
+                            {payload.map((p: any) => (
+                              <p key={p.dataKey} style={{ color: p.fill, fontWeight: 600, fontSize: 11 }}>
+                                {p.dataKey === 'present' ? 'มาเรียน' : p.dataKey === 'absent' ? 'ขาด' : 'สาย'}: {p.value} วัน
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend formatter={(v: string) => <span style={{ fontSize: 10, color: '#9ca3af' }}>{v === 'present' ? 'มาเรียน' : v === 'absent' ? 'ขาดเรียน' : 'มาสาย'}</span>} />
+                    <Bar dataKey="present" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="absent" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="late" fill="#eab308" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         )}
 
         {/* TAB 4.5: PORTFOLIO */}
@@ -1115,9 +1112,9 @@ export default function Student360() {
                       <div className="flex justify-between items-start text-[10px]">
                         <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-2 py-0.5 rounded-full font-bold">
                           {item.category === 'ACADEMIC' ? 'วิชาการ/ผลการเรียน' :
-                           item.category === 'ACTIVITY' ? 'กิจกรรม/จิตอาสา' :
-                           item.category === 'AWARD' ? 'รางวัล/การแข่งขัน' :
-                           item.category === 'SKILL' ? 'ทักษะพิเศษ' : 'อื่นๆ'}
+                            item.category === 'ACTIVITY' ? 'กิจกรรม/จิตอาสา' :
+                              item.category === 'AWARD' ? 'รางวัล/การแข่งขัน' :
+                                item.category === 'SKILL' ? 'ทักษะพิเศษ' : 'อื่นๆ'}
                         </span>
                         <span className="text-gray-500 font-medium">ปี {item.academic_year || '-'}/{item.semester || '-'}</span>
                       </div>
@@ -1126,7 +1123,7 @@ export default function Student360() {
                         <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2">{item.description}</p>
                       )}
                     </div>
-                    
+
                     <div className="flex justify-between items-center text-[10px] text-gray-500 border-t border-white/5 pt-2 mt-1">
                       <span>{item.date ? new Date(item.date).toLocaleDateString('th-TH') : '-'}</span>
                       {item.certificate_url ? (
@@ -1206,8 +1203,8 @@ export default function Student360() {
 
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${c.status === 'CLOSED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                            c.status === 'HELPING' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' :
-                              'text-yellow-300 bg-yellow-500/10 border-yellow-500/20'
+                          c.status === 'HELPING' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' :
+                            'text-yellow-300 bg-yellow-500/10 border-yellow-500/20'
                           }`}>
                           {c.status === 'CLOSED' ? 'ปิดเคสแล้ว' : c.status === 'HELPING' ? 'กำลังช่วยเหลือ' : 'กำลังติดตาม'}
                         </span>
@@ -1288,22 +1285,20 @@ export default function Student360() {
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">คะแนนสุทธิปัจจุบัน</span>
                   <div className="relative flex items-center justify-center">
                     {/* Circle Score Display */}
-                    <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-black text-2xl shadow-inner ${
-                      behaviorSummary.netScore < 50 ? 'border-rose-500 text-rose-400 bg-rose-500/10' :
-                      behaviorSummary.netScore < 80 ? 'border-amber-500 text-amber-400 bg-amber-500/10' :
-                      'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-                    }`}>
+                    <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-black text-2xl shadow-inner ${behaviorSummary.netScore < 50 ? 'border-rose-500 text-rose-400 bg-rose-500/10' :
+                        behaviorSummary.netScore < 80 ? 'border-amber-500 text-amber-400 bg-amber-500/10' :
+                          'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                      }`}>
                       {behaviorSummary.netScore}
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold mt-3 px-2 py-0.5 rounded-full border ${
-                    behaviorSummary.netScore < 50 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
-                    behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                    'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                  }`}>
+                  <span className={`text-[10px] font-bold mt-3 px-2 py-0.5 rounded-full border ${behaviorSummary.netScore < 50 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' :
+                      behaviorSummary.netScore < 80 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                        'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    }`}>
                     {behaviorSummary.netScore < 50 ? 'มีปัญหา (PROBLEM)' :
-                     behaviorSummary.netScore < 80 ? 'กลุ่มเสี่ยง (RISK)' :
-                     'ปกติ (NORMAL)'}
+                      behaviorSummary.netScore < 80 ? 'กลุ่มเสี่ยง (RISK)' :
+                        'ปกติ (NORMAL)'}
                   </span>
                 </div>
 
@@ -1341,19 +1336,17 @@ export default function Student360() {
                       className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:bg-white/[0.04] transition-all"
                     >
                       <div className="flex items-start gap-3">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 mt-0.5 ${
-                          item.type === 'PLUS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}>
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 mt-0.5 ${item.type === 'PLUS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}>
                           {item.type === 'PLUS' ? '+' : '-'}{item.points}
                         </span>
-                        
+
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              item.type === 'PLUS' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                              'text-rose-400 bg-rose-500/10 border-rose-500/20'
-                            }`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.type === 'PLUS' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                                'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                              }`}>
                               {item.category}
                             </span>
                             <span className="text-[10px] text-gray-500">
@@ -1366,7 +1359,7 @@ export default function Student360() {
                             </p>
                           )}
                           <p className="text-[10px] text-gray-500">
-                            บันทึกโดย: ครู{item.teacher?.first_name || ''} {item.teacher?.last_name || 'ผู้ดูแลระบบ'}
+                            บันทึกโดย: {item.teacher?.first_name || ''} {item.teacher?.last_name || 'ผู้ดูแลระบบ'}
                           </p>
                         </div>
                       </div>
@@ -1439,33 +1432,31 @@ export default function Student360() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setBehaviorForm(prev => ({ 
-                      ...prev, 
-                      type: 'PLUS', 
+                    onClick={() => setBehaviorForm(prev => ({
+                      ...prev,
+                      type: 'PLUS',
                       category: 'ช่วยเหลือสังคม/จิตอาสา',
                       points: 10
                     }))}
-                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      behaviorForm.type === 'PLUS'
+                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${behaviorForm.type === 'PLUS'
                         ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-500/5'
                         : 'bg-white/0 border-white/10 text-gray-400 hover:bg-white/5 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <span>➕ เพิ่มคะแนนความดี</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setBehaviorForm(prev => ({ 
-                      ...prev, 
-                      type: 'MINUS', 
+                    onClick={() => setBehaviorForm(prev => ({
+                      ...prev,
+                      type: 'MINUS',
                       category: 'มาสาย/หนีเรียน',
                       points: 5
                     }))}
-                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      behaviorForm.type === 'MINUS'
+                    className={`py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${behaviorForm.type === 'MINUS'
                         ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow-md shadow-rose-500/5'
                         : 'bg-white/0 border-white/10 text-gray-400 hover:bg-white/5 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <span>➖ หักคะแนนความประพฤติ</span>
                   </button>
@@ -1488,7 +1479,7 @@ export default function Student360() {
                   </select>
                 </div>
 
-                 {/* Date Picker Selection */}
+                {/* Date Picker Selection */}
                 <div className="relative b-datepicker-container">
                   <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">วันที่เกิดเหตุ *</label>
                   <div className="relative">
@@ -1810,11 +1801,11 @@ export default function Student360() {
                 นักเรียน: {qrModalData.studentName} ({qrModalData.code})<br />
                 ชั้นเรียน: {qrModalData.classroom}
               </p>
-              
+
               <div className="p-4 bg-white rounded-2xl shadow-inner border border-white/10">
                 <QRCodeSVG value={qrModalData.url} size={200} level="H" includeMargin={false} />
               </div>
-              
+
               <p className="text-[10px] text-gray-500 max-w-[240px] leading-relaxed">
                 สแกนด้วยโทรศัพท์เพื่อกรอกแบบประเมิน SDQ ได้ทันที หน้านี้จะซ่อนเมนูระบบโดยอัตโนมัติ
               </p>

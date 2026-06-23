@@ -80,55 +80,101 @@ export default function HomeVisitDashboard() {
             ยังไม่มีประวัติการเยี่ยมบ้าน
           </div>
         ) : (
-          <div className="max-h-[600px] overflow-y-auto pr-2 rounded-2xl border border-gray-100 shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 w-16 text-center">ลำดับที่</th>
-                  <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100">คำนำหน้า ชื่อ สกุล</th>
-                  <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100">วันที่เยี่ยมบ้าน</th>
-                  <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 text-center">ระยะทางถึงโรงเรียน</th>
-                  <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 text-center">ดูรายละเอียด</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {visits.map((v, index) => {
-                  const date = new Date(v.visit_date);
-                  const thaiDate = `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'long' })} ${date.getFullYear() + 543}`;
-                  
-                  return (
-                    <tr 
-                      key={v.id} 
-                      onClick={() => setSelectedVisit(v)}
-                      className="hover:bg-emerald-50 cursor-pointer transition-colors group"
-                    >
-                      <td className="py-4 px-4 text-center font-bold text-gray-500">{index + 1}</td>
-                      <td className="py-4 px-4">
-                        <div className="font-bold text-gray-900 group-hover:text-emerald-900">
-                          {v.student?.prefix}{v.student?.first_name} {v.student?.last_name}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-600">{thaiDate}</td>
-                      <td className="py-4 px-4 text-center">
-                        {v.distance_to_school ? (
-                          <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">
-                            {v.distance_to_school} กม.
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button className="text-xs font-bold px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition-colors">
-                          เปิดดู
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block max-h-[600px] overflow-y-auto pr-2 rounded-2xl border border-gray-100 shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 w-16 text-center">ลำดับที่</th>
+                    <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100">คำนำหน้า ชื่อ สกุล</th>
+                    <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100">วันที่เยี่ยมบ้าน</th>
+                    <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 text-center">ระยะทางถึงโรงเรียน</th>
+                    <th className="py-4 px-4 font-bold text-gray-600 text-sm border-b border-gray-100 text-center">ดูรายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {visits.map((v, index) => {
+                    const date = new Date(v.visit_date);
+                    const thaiDate = `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'long' })} ${date.getFullYear() + 543}`;
+                    
+                    return (
+                      <tr 
+                        key={v.id} 
+                        onClick={() => setSelectedVisit(v)}
+                        className="hover:bg-emerald-50 cursor-pointer transition-colors group"
+                      >
+                        <td className="py-4 px-4 text-center font-bold text-gray-500">{index + 1}</td>
+                        <td className="py-4 px-4">
+                          <div className="font-bold text-gray-900 group-hover:text-emerald-900">
+                            {v.student?.prefix}{v.student?.first_name} {v.student?.last_name}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-sm text-gray-600">{thaiDate}</td>
+                        <td className="py-4 px-4 text-center">
+                          {v.distance_to_school ? (
+                            <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">
+                              {v.distance_to_school} กม.
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <button className="text-xs font-bold px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition-colors">
+                            เปิดดู
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              {visits.map((v, index) => {
+                const date = new Date(v.visit_date);
+                const thaiDate = `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'long' })} ${date.getFullYear() + 543}`;
+                
+                return (
+                  <div 
+                    key={v.id}
+                    onClick={() => setSelectedVisit(v)}
+                    className="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm hover:border-emerald-200 active:bg-emerald-50/30 transition-all cursor-pointer flex flex-col gap-3 relative"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-bold text-gray-400">ลำดับที่ {index + 1}</span>
+                      {v.distance_to_school ? (
+                        <span className="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full text-xs">
+                          🛣️ {v.distance_to_school} กม.
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">ไม่มีระยะทาง</span>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-base leading-tight">
+                        {v.student?.prefix}{v.student?.first_name} {v.student?.last_name}
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        📅 วันที่เยี่ยม: {thaiDate}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-1">
+                      <span className="text-xs font-semibold text-gray-400">รายละเอียดเพิ่มเติม</span>
+                      <button className="text-xs font-bold px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition-colors">
+                        เปิดดู
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

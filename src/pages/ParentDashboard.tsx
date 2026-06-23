@@ -1,16 +1,16 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
-import { 
-  getParentStudents, 
-  getStudentAttendanceSummary, 
+import {
+  getParentStudents,
+  getStudentAttendanceSummary,
   getStudentLeaveHistory,
   getStudentHomeVisitInfo,
   getStudentSupportSummary
 } from '../services/parentDashboardService'
-import { 
-  Activity, Clock, CheckCircle, XCircle, FileText, 
-  User, Calendar, HeartHandshake, ShieldAlert, 
+import {
+  Activity, Clock, CheckCircle, XCircle, FileText,
+  User, Calendar, HeartHandshake, ShieldAlert,
   AlertTriangle, Home, BarChart2, BookOpen, Heart, CheckSquare
 } from 'lucide-react'
 import { behaviorService } from '../services/studentsupport/behaviorService'
@@ -27,7 +27,7 @@ export default function ParentDashboard() {
 
   // เก็บ ID ของลูกคนที่เลือก
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
-  
+
   // กำหนดปุ่มแท็บข้อมูลของลูกที่เลือก
   const [activeInfoTab, setActiveInfoTab] = useState<'attendance' | 'leaves' | 'homevisit' | 'support' | 'behavior'>('attendance')
 
@@ -137,7 +137,7 @@ export default function ParentDashboard() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
-      
+
       {/* Selector for multiple children */}
       {students.length > 1 && (
         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -150,11 +150,10 @@ export default function ParentDashboard() {
               <button
                 key={std.id}
                 onClick={() => setSelectedStudentId(std.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
-                  selectedStudentId === std.id
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition ${selectedStudentId === std.id
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'bg-gray-150 hover:bg-gray-200 text-gray-700'
-                }`}
+                  }`}
               >
                 {std.prefix}{std.first_name} {std.last_name}
               </button>
@@ -167,7 +166,7 @@ export default function ParentDashboard() {
       <div className="bg-gradient-to-br from-indigo-700 via-blue-700 to-indigo-900 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl transform -translate-x-1/2 translate-y-1/2"></div>
-        
+
         <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border-4 border-white/20 shadow-inner z-10 shrink-0">
           <User size={48} className="text-indigo-200" />
         </div>
@@ -239,51 +238,46 @@ export default function ParentDashboard() {
       <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveInfoTab('attendance')}
-          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${
-            activeInfoTab === 'attendance'
+          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeInfoTab === 'attendance'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           ประวัติเช็คชื่อเรียน
         </button>
         <button
           onClick={() => setActiveInfoTab('leaves')}
-          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${
-            activeInfoTab === 'leaves'
+          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeInfoTab === 'leaves'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           ประวัติการลา
         </button>
         <button
           onClick={() => setActiveInfoTab('behavior')}
-          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${
-            activeInfoTab === 'behavior'
+          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeInfoTab === 'behavior'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           คะแนนความประพฤติ/วินัย
         </button>
         <button
           onClick={() => setActiveInfoTab('homevisit')}
-          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${
-            activeInfoTab === 'homevisit'
+          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeInfoTab === 'homevisit'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           ข้อมูลเยี่ยมบ้าน
         </button>
         <button
           onClick={() => setActiveInfoTab('support')}
-          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${
-            activeInfoTab === 'support'
+          className={`pb-4 px-6 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeInfoTab === 'support'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           ประเมินพฤติกรรม (SDQ/Risk)
         </button>
@@ -296,38 +290,37 @@ export default function ParentDashboard() {
         </div>
       ) : (
         <div className="space-y-6">
-          
+
           {/* 1. Attendance Tab */}
           {activeInfoTab === 'attendance' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
+
               {/* Homeroom List */}
               <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-4 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <CheckSquare className="w-5 h-5 text-indigo-600" />
                   <span>การเข้าแถวโฮมรูมตอนเช้า</span>
                 </h3>
-                
+
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                   {homeroomList.map((h) => (
                     <div key={h.id} className="p-3.5 rounded-xl border border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm">
                       <div className="flex items-center gap-2.5">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="font-semibold text-gray-700">
-                          {new Date(h.attendance_date).toLocaleDateString('th-TH', { 
-                            day: 'numeric', month: 'short', year: 'numeric' 
+                          {new Date(h.attendance_date).toLocaleDateString('th-TH', {
+                            day: 'numeric', month: 'short', year: 'numeric'
                           })}
                         </span>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        h.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' :
-                        h.status === 'LATE' ? 'bg-amber-100 text-amber-800' :
-                        h.status === 'ABSENT' ? 'bg-rose-100 text-rose-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${h.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' :
+                          h.status === 'LATE' ? 'bg-amber-100 text-amber-800' :
+                            h.status === 'ABSENT' ? 'bg-rose-100 text-rose-800' :
+                              'bg-blue-100 text-blue-800'
+                        }`}>
                         {h.status === 'PRESENT' ? 'มาเรียน' :
-                         h.status === 'LATE' ? 'สาย' :
-                         h.status === 'ABSENT' ? 'ขาด' : 'ลา'}
+                          h.status === 'LATE' ? 'สาย' :
+                            h.status === 'ABSENT' ? 'ขาด' : 'ลา'}
                       </span>
                     </div>
                   ))}
@@ -345,7 +338,7 @@ export default function ParentDashboard() {
                   <BookOpen className="w-5 h-5 text-emerald-600" />
                   <span>การเข้าเรียนแต่ละรายวิชา</span>
                 </h3>
-                
+
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                   {subjectList.map((s) => (
                     <div key={s.id} className="p-3.5 rounded-xl border border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm">
@@ -358,15 +351,14 @@ export default function ParentDashboard() {
                           {new Date(s.checkin_time).toLocaleDateString('th-TH')} • {new Date(s.checkin_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                         </p>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        s.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' :
-                        s.status === 'LATE' ? 'bg-amber-100 text-amber-800' :
-                        s.status === 'ABSENT' ? 'bg-rose-100 text-rose-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${s.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' :
+                          s.status === 'LATE' ? 'bg-amber-100 text-amber-800' :
+                            s.status === 'ABSENT' ? 'bg-rose-100 text-rose-800' :
+                              'bg-blue-100 text-blue-800'
+                        }`}>
                         {s.status === 'PRESENT' ? 'เข้าเรียน' :
-                         s.status === 'LATE' ? 'สาย' :
-                         s.status === 'ABSENT' ? 'ขาด' : 'ลา'}
+                          s.status === 'LATE' ? 'สาย' :
+                            s.status === 'ABSENT' ? 'ขาด' : 'ลา'}
                       </span>
                     </div>
                   ))}
@@ -388,7 +380,7 @@ export default function ParentDashboard() {
                 <FileText className="w-5 h-5 text-indigo-600" />
                 <span>คำร้องขอลาหยุดเรียน ({totalLeavesCount} ฉบับ)</span>
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {leaves?.map((l) => (
                   <div key={l.id} className="p-5 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-3.5 flex flex-col justify-between">
@@ -396,16 +388,15 @@ export default function ParentDashboard() {
                       <span className="bg-indigo-100 text-indigo-850 border border-indigo-200 text-xs font-bold px-3 py-1 rounded-lg">
                         ลา{l.leave_type}
                       </span>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-lg ${
-                        l.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                        l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 font-bold' :
-                        'bg-amber-100 text-amber-800'
-                      }`}>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-lg ${l.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                          l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 font-bold' :
+                            'bg-amber-100 text-amber-800'
+                        }`}>
                         {l.status === 'APPROVED' ? 'อนุมัติแล้ว' :
-                         l.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอการพิจารณา'}
+                          l.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอการพิจารณา'}
                       </span>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <p className="text-sm font-bold text-gray-700">
                         ช่วงวันที่ลา: {new Date(l.start_date).toLocaleDateString('th-TH')} ถึง {new Date(l.end_date).toLocaleDateString('th-TH')}
@@ -416,7 +407,7 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                 ))}
-                
+
                 {totalLeavesCount === 0 && (
                   <div className="col-span-2 text-center py-12 text-gray-400 text-sm">
                     ยังไม่มีข้อมูลประวัติใบลา
@@ -460,11 +451,10 @@ export default function ParentDashboard() {
 
                     <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                       <p className="text-xs text-gray-400 font-semibold">ระดับความกังวลความปลอดภัย</p>
-                      <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full mt-1.5 ${
-                        homeVisit.home_visit_assessments?.[0]?.risk_level === 'เสี่ยง' || homeVisit.home_visit_assessments?.[0]?.risk_level === 'ช่วยเหลือเร่งด่วน'
+                      <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full mt-1.5 ${homeVisit.home_visit_assessments?.[0]?.risk_level === 'เสี่ยง' || homeVisit.home_visit_assessments?.[0]?.risk_level === 'ช่วยเหลือเร่งด่วน'
                           ? 'bg-rose-100 text-rose-800'
                           : 'bg-emerald-100 text-emerald-800'
-                      }`}>
+                        }`}>
                         {homeVisit.home_visit_assessments?.[0]?.risk_level || 'ปกติ/ปลอดภัย'}
                       </span>
                     </div>
@@ -515,22 +505,20 @@ export default function ParentDashboard() {
                   <div className="bg-gray-50 rounded-2xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden border border-gray-100">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">คะแนนคงเหลือปัจจุบัน</span>
                     <div className="relative flex items-center justify-center">
-                      <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-black text-2xl shadow-inner ${
-                        (behaviorSummary?.netScore ?? 100) < 50 ? 'border-rose-500 text-rose-650 bg-rose-50' :
-                        (behaviorSummary?.netScore ?? 100) < 80 ? 'border-amber-500 text-amber-650 bg-amber-50' :
-                        'border-emerald-500 text-emerald-650 bg-emerald-50'
-                      }`}>
+                      <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-black text-2xl shadow-inner ${(behaviorSummary?.netScore ?? 100) < 50 ? 'border-rose-500 text-rose-650 bg-rose-50' :
+                          (behaviorSummary?.netScore ?? 100) < 80 ? 'border-amber-500 text-amber-650 bg-amber-50' :
+                            'border-emerald-500 text-emerald-650 bg-emerald-50'
+                        }`}>
                         {behaviorSummary?.netScore ?? 100}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold mt-3 px-2.5 py-0.5 rounded-full border ${
-                      (behaviorSummary?.netScore ?? 100) < 50 ? 'text-rose-700 bg-rose-50 border-rose-200' :
-                      (behaviorSummary?.netScore ?? 100) < 80 ? 'text-amber-700 bg-amber-50 border-amber-200' :
-                      'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    }`}>
+                    <span className={`text-[10px] font-bold mt-3 px-2.5 py-0.5 rounded-full border ${(behaviorSummary?.netScore ?? 100) < 50 ? 'text-rose-700 bg-rose-50 border-rose-200' :
+                        (behaviorSummary?.netScore ?? 100) < 80 ? 'text-amber-700 bg-amber-50 border-amber-200' :
+                          'text-emerald-700 bg-emerald-50 border-emerald-200'
+                      }`}>
                       {(behaviorSummary?.netScore ?? 100) < 50 ? 'ควรปรับปรุง (PROBLEM)' :
-                       (behaviorSummary?.netScore ?? 100) < 80 ? 'เฝ้าระวังพฤติกรรม (RISK)' :
-                       'ปกติ (NORMAL)'}
+                        (behaviorSummary?.netScore ?? 100) < 80 ? 'เฝ้าระวังพฤติกรรม (RISK)' :
+                          'ปกติ (NORMAL)'}
                     </span>
                   </div>
 
@@ -566,19 +554,17 @@ export default function ParentDashboard() {
                         className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex justify-between items-center gap-4 hover:bg-gray-50 transition-all text-sm"
                       >
                         <div className="flex items-start gap-3">
-                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 mt-0.5 ${
-                            item.type === 'PLUS' ? 'bg-emerald-100 text-emerald-800 border border-emerald-250' :
-                            'bg-rose-100 text-rose-800 border border-rose-250'
-                          }`}>
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0 mt-0.5 ${item.type === 'PLUS' ? 'bg-emerald-100 text-emerald-800 border border-emerald-250' :
+                              'bg-rose-100 text-rose-800 border border-rose-250'
+                            }`}>
                             {item.type === 'PLUS' ? '+' : '-'}{item.points}
                           </span>
-                          
+
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                item.type === 'PLUS' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' :
-                                'text-rose-800 bg-rose-50 border-rose-200'
-                              }`}>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.type === 'PLUS' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' :
+                                  'text-rose-800 bg-rose-50 border-rose-200'
+                                }`}>
                                 {item.category}
                               </span>
                               <span className="text-[10px] text-gray-400 font-medium">
@@ -591,7 +577,7 @@ export default function ParentDashboard() {
                               </p>
                             )}
                             <p className="text-[10px] text-gray-400">
-                              ผู้บันทึก: ครู{item.teacher?.first_name || ''} {item.teacher?.last_name || 'ผู้ดูแลระบบ'}
+                              ผู้บันทึก: {item.teacher?.first_name || ''} {item.teacher?.last_name || 'ผู้ดูแลระบบ'}
                             </p>
                           </div>
                         </div>
@@ -606,7 +592,7 @@ export default function ParentDashboard() {
           {/* 4. Student Support Tab */}
           {activeInfoTab === 'support' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
+
               {/* Overall Risk Card */}
               <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-4 shadow-sm text-center">
                 <ShieldAlert className="w-10 h-10 mx-auto text-indigo-600" />
@@ -614,18 +600,17 @@ export default function ParentDashboard() {
                   <h3 className="text-lg font-bold text-gray-800">วิเคราะห์ความเสี่ยงภาพรวม</h3>
                   <p className="text-xs text-gray-400">คำนวณจาก SDQ และ สถิติเข้าเรียน</p>
                 </div>
-                
+
                 <div className="py-4">
                   {support?.risk ? (
-                    <span className={`text-sm font-extrabold px-6 py-2.5 rounded-full inline-block ${
-                      support.risk.risk_level === 'URGENT' ? 'bg-rose-100 text-rose-800' :
-                      support.risk.risk_level === 'RISK' ? 'bg-orange-100 text-orange-850' :
-                      support.risk.risk_level === 'MONITOR' ? 'bg-amber-100 text-amber-800' :
-                      'bg-emerald-100 text-emerald-800'
-                    }`}>
+                    <span className={`text-sm font-extrabold px-6 py-2.5 rounded-full inline-block ${support.risk.risk_level === 'URGENT' ? 'bg-rose-100 text-rose-800' :
+                        support.risk.risk_level === 'RISK' ? 'bg-orange-100 text-orange-850' :
+                          support.risk.risk_level === 'MONITOR' ? 'bg-amber-100 text-amber-800' :
+                            'bg-emerald-100 text-emerald-800'
+                      }`}>
                       {support.risk.risk_level === 'URGENT' ? 'มีสภาวะเสี่ยงเร่งด่วน' :
-                       support.risk.risk_level === 'RISK' ? 'กลุ่มเสี่ยงคัดกรอง' :
-                       support.risk.risk_level === 'MONITOR' ? 'เฝ้าระวังใกล้ชิด' : 'ปกติ / แข็งแรง'}
+                        support.risk.risk_level === 'RISK' ? 'กลุ่มเสี่ยงคัดกรอง' :
+                          support.risk.risk_level === 'MONITOR' ? 'เฝ้าระวังใกล้ชิด' : 'ปกติ / แข็งแรง'}
                     </span>
                   ) : (
                     <span className="text-sm font-bold text-gray-400 bg-gray-50 border px-6 py-2 rounded-full inline-block">
@@ -664,17 +649,16 @@ export default function ParentDashboard() {
                           <span className="text-xs font-bold text-gray-500">
                             ผู้ทำแบบประเมิน: {
                               s.evaluator_type === 'TEACHER' ? 'คุณครูประจำชั้น' :
-                              s.evaluator_type === 'STUDENT' ? 'ตัวนักเรียนประเมินตนเอง' : 'ผู้ปกครอง'
+                                s.evaluator_type === 'STUDENT' ? 'ตัวนักเรียนประเมินตนเอง' : 'ผู้ปกครอง'
                             }
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            s.result_difficulties === 'PROBLEM' ? 'bg-rose-100 text-rose-800' :
-                            s.result_difficulties === 'RISK' ? 'bg-orange-100 text-orange-800' :
-                            'bg-emerald-100 text-emerald-800'
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${s.result_difficulties === 'PROBLEM' ? 'bg-rose-100 text-rose-800' :
+                              s.result_difficulties === 'RISK' ? 'bg-orange-100 text-orange-800' :
+                                'bg-emerald-100 text-emerald-800'
+                            }`}>
                             ผลประเมินพฤติกรรม: {
                               s.result_difficulties === 'PROBLEM' ? 'มีปัญหาพฤติกรรม' :
-                              s.result_difficulties === 'RISK' ? 'กลุ่มเสี่ยงพฤติกรรม' : 'ปกติ'
+                                s.result_difficulties === 'RISK' ? 'กลุ่มเสี่ยงพฤติกรรม' : 'ปกติ'
                             }
                           </span>
                         </div>

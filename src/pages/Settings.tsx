@@ -5,70 +5,23 @@ import { getUsers, adminCreateUser, adminUpdateUser, adminDeleteUser } from '../
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
 
-type SettingsTab = 'appearance' | 'notifications' | 'users'
+type SettingsTab = 'notifications' | 'users'
 
-const themeOptions = [
-  { key: '#f3f4f6', label: 'Slate Light' },
-  { key: '#eef6ff', label: 'Sky Mist' },
-  { key: '#f7f6ff', label: 'Lavender Soft' },
-  { key: '#fff7ed', label: 'Warm Sand' },
-  { key: '#f0fdf4', label: 'Mint Calm' },
-  { key: '#fef2f2', label: 'Rose Blush' },
-  { key: '#ecfeff', label: 'Aqua Breeze' },
-  { key: 'grad_dawn', label: 'Dawn Glow' },
-  { key: 'grad_ocean', label: 'Ocean Breeze' },
-  { key: 'grad_forest', label: 'Forest Mist' },
-  { key: 'grad_midnight', label: 'Midnight Ink' },
-  { key: 'grad_royal', label: 'Royal Velvet' },
-  { key: 'grad_ember', label: 'Ember Night' },
-  { key: 'grad_aurora', label: 'Aurora Deep' },
-]
 
-const gradientThemes: Record<string, { image: string; fallback: string }> = {
-  grad_dawn: { image: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fee2e2 100%)', fallback: '#fff7ed' },
-  grad_ocean: { image: 'linear-gradient(135deg, #ecfeff 0%, #e0f2fe 50%, #e0e7ff 100%)', fallback: '#ecfeff' },
-  grad_forest: { image: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #ecfccb 100%)', fallback: '#f0fdf4' },
-  grad_midnight: { image: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #111827 100%)', fallback: '#111827' },
-  grad_royal: { image: 'linear-gradient(135deg, #3b0764 0%, #4c1d95 45%, #1e1b4b 100%)', fallback: '#312e81' },
-  grad_ember: { image: 'linear-gradient(135deg, #3f1d1d 0%, #7c2d12 50%, #1f2937 100%)', fallback: '#3f1d1d' },
-  grad_aurora: { image: 'linear-gradient(135deg, #052e16 0%, #164e63 48%, #1e293b 100%)', fallback: '#0f172a' },
-}
-
-const applyThemeVars = (themeValue: string) => {
-  const gradient = gradientThemes[themeValue]
-  if (gradient) {
-    document.documentElement.style.setProperty('--app-bg', gradient.fallback)
-    document.documentElement.style.setProperty('--app-bg-image', gradient.image)
-    return
-  }
-  document.documentElement.style.setProperty('--app-bg', themeValue)
-  document.documentElement.style.setProperty('--app-bg-image', 'none')
-}
-
-const resolveHexForColorInput = (themeValue: string) => {
-  const gradient = gradientThemes[themeValue]
-  if (gradient) return gradient.fallback
-  if (/^#([0-9A-Fa-f]{6})$/.test(themeValue)) return themeValue
-  return '#f3f4f6'
-}
 
 export default function Settings() {
   const { role, user } = useAuthStore()
   const isSuperAdmin = role === 'SUPER_ADMIN'
   const hasSettingsAccess = role === 'ADMIN' || role === 'SUPER_ADMIN'
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('appearance')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('notifications')
   const [lineToken, setLineToken] = useState('')
   const [telegramToken, setTelegramToken] = useState('')
   const [telegramChatId, setTelegramChatId] = useState('')
-  const [selectedBgColor, setSelectedBgColor] = useState('#f3f4f6')
-  const [customBgColor, setCustomBgColor] = useState('#f3f4f6')
-  const [isSavingAppearance, setIsSavingAppearance] = useState(false)
   const [isSavingNotify, setIsSavingNotify] = useState(false)
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
-  const [isThemeBgColumnSupported, setIsThemeBgColumnSupported] = useState(false)
 
   // Create User modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -90,64 +43,16 @@ export default function Settings() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null)
 
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettings = () => {
       const savedLine = localStorage.getItem('sams_line_token') || ''
       const savedTgToken = localStorage.getItem('sams_tg_token') || ''
       const savedTgChatId = localStorage.getItem('sams_tg_chat_id') || ''
-      const localBgColor = localStorage.getItem('sams_theme_bg') || '#f3f4f6'
       setLineToken(savedLine)
       setTelegramToken(savedTgToken)
       setTelegramChatId(savedTgChatId)
-
-      let resolvedBgColor = localBgColor
-      if (user?.id) {
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle()
-        const supportsThemeBg = !!(data && Object.prototype.hasOwnProperty.call(data, 'theme_bg'))
-        setIsThemeBgColumnSupported(supportsThemeBg)
-        if (supportsThemeBg && data?.theme_bg && /^#([0-9A-Fa-f]{6})$/.test(data.theme_bg)) {
-          resolvedBgColor = data.theme_bg
-          localStorage.setItem('sams_theme_bg', resolvedBgColor)
-        }
-      }
-
-      setSelectedBgColor(resolvedBgColor)
-      setCustomBgColor(resolveHexForColorInput(resolvedBgColor))
-      applyThemeVars(resolvedBgColor)
     }
     loadSettings()
-  }, [user?.id])
-
-  const handleSaveAppearance = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSavingAppearance(true)
-    try {
-      localStorage.setItem('sams_theme_bg', selectedBgColor)
-      applyThemeVars(selectedBgColor)
-      if (user?.id && isThemeBgColumnSupported) {
-        const { error } = await supabase
-          .from('users')
-          .update({ theme_bg: selectedBgColor })
-          .eq('id', user.id)
-        if (error) {
-          console.warn('save theme_bg to users failed:', error.message)
-        }
-      }
-      setIsSavingAppearance(false)
-      setResultModalType('success')
-      setResultModalMessage('บันทึกธีมเรียบร้อย')
-      setShowResultModal(true)
-    } catch (error) {
-      const err = error as Error
-      setIsSavingAppearance(false)
-      setResultModalType('error')
-      setResultModalMessage(err?.message || 'ไม่สามารถบันทึกธีมได้')
-      setShowResultModal(true)
-    }
-  }
+  }, [])
 
   const handleSaveNotifications = (e: React.FormEvent) => {
     e.preventDefault()
@@ -530,9 +435,6 @@ export default function Settings() {
       </div>
 
       <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex overflow-x-auto mb-6">
-        <button onClick={() => setActiveTab('appearance')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap ${activeTab === 'appearance' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
-          Appearance
-        </button>
         <button onClick={() => setActiveTab('notifications')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap ${activeTab === 'notifications' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
           Notifications
         </button>
@@ -541,81 +443,7 @@ export default function Settings() {
         </button>
       </div>
 
-      {activeTab === 'appearance' && (
-        <form onSubmit={handleSaveAppearance} className="bg-white p-8 rounded-2xl shadow-sm border border-indigo-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-            <div className="bg-indigo-100 p-2 rounded-lg"><Palette className="text-indigo-600" size={24} /></div>
-            <h2 className="text-xl font-bold text-gray-800">Theme & Branding</h2>
-          </div>
-          <p className="text-sm text-gray-500 mb-4">เลือกสีพื้นหลังหลักของระบบให้เหมาะกับโรงเรียน</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {themeOptions.map((theme) => (
-              <button
-                key={theme.key}
-                type="button"
-                onClick={() => {
-                  setSelectedBgColor(theme.key)
-                  setCustomBgColor(resolveHexForColorInput(theme.key))
-                  applyThemeVars(theme.key)
-                }}
-                className={`rounded-xl border p-3 text-left transition ${selectedBgColor === theme.key ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}
-              >
-                <div className="h-10 rounded-lg border border-white/70" style={gradientThemes[theme.key] ? { backgroundImage: gradientThemes[theme.key].image } : { backgroundColor: theme.key }} />
-                <p className="text-xs font-semibold mt-2 text-gray-700">{theme.label}</p>
-              </button>
-            ))}
-          </div>
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm font-semibold text-gray-700 mb-3">กำหนดสีเอง (Custom)</p>
-            <div className="flex flex-col md:flex-row md:items-center gap-3">
-              <input
-                type="color"
-                value={customBgColor}
-                onChange={(e) => {
-                  const color = e.target.value
-                  setCustomBgColor(color)
-                  setSelectedBgColor(color)
-                  document.documentElement.style.setProperty('--app-bg', color)
-                }}
-                className="h-11 w-20 cursor-pointer rounded-lg border border-gray-300 bg-white p-1"
-              />
-              <input
-                type="text"
-                value={customBgColor}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setCustomBgColor(value)
-                  if (/^#([0-9A-Fa-f]{6})$/.test(value)) {
-                    setSelectedBgColor(value)
-                    document.documentElement.style.setProperty('--app-bg', value)
-                  }
-                }}
-                placeholder="#RRGGBB"
-                className="w-full md:w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (/^#([0-9A-Fa-f]{6})$/.test(customBgColor)) {
-                    setSelectedBgColor(customBgColor)
-                    document.documentElement.style.setProperty('--app-bg', customBgColor)
-                  }
-                }}
-                className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
-              >
-                ใช้สีนี้
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">รองรับรหัสสีแบบ Hex เช่น `#dbeafe`</p>
-          </div>
-          <div className="flex justify-end mt-6">
-            <button type="submit" disabled={isSavingAppearance} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50">
-              <Save size={18} />
-              {isSavingAppearance ? 'กำลังบันทึก...' : 'บันทึกธีม'}
-            </button>
-          </div>
-        </form>
-      )}
+
 
       {activeTab === 'notifications' && (
         <form onSubmit={handleSaveNotifications} className="space-y-6">

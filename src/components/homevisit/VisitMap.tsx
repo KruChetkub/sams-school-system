@@ -41,12 +41,145 @@ function MapRecenter({ schoolCoords, studentCoords }: { schoolCoords: [number, n
   useEffect(() => {
     if (studentCoords && studentCoords[0] && studentCoords[1]) {
       const bounds = L.latLngBounds([schoolCoords, studentCoords]);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      // Increased padding (x: 100px, y: 120px) to prevent floating tooltip text labels from being cropped at the map boundaries
+      map.fitBounds(bounds, { 
+        padding: [100, 120], 
+        maxZoom: 15 
+      });
     } else {
       map.setView(schoolCoords, 13);
     }
   }, [schoolCoords, studentCoords]);
   return null;
+}
+
+// Helper component to fix Leaflet size rendering bugs on mount/toggle
+function MapResizeTrigger() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
+// Custom Zoom Slider Control
+function ZoomSlider() {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  const minZoom = map.getMinZoom();
+  const maxZoom = map.getMaxZoom();
+
+  useEffect(() => {
+    const handleZoomEnd = () => {
+      setZoom(map.getZoom());
+    };
+    map.on('zoomend', handleZoomEnd);
+    return () => {
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map]);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
+
+  const handleZoomIn = () => {
+    map.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    map.zoomOut();
+  };
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newZoom = parseInt(e.target.value, 10);
+    map.setZoom(newZoom);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="absolute top-4 left-4 z-[1000] flex flex-col items-center bg-white rounded-xl shadow-md border border-gray-200/80 overflow-hidden select-none"
+    >
+      <style>{`
+        .custom-zoom-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 10px;
+          background: #ffffff;
+          border: 1.5px solid #cbd5e1;
+          border-radius: 3px;
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+        .custom-zoom-slider::-moz-range-thumb {
+          width: 18px;
+          height: 10px;
+          background: #ffffff;
+          border: 1.5px solid #cbd5e1;
+          border-radius: 3px;
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+        .custom-zoom-slider::-webkit-slider-runnable-track {
+          background: transparent;
+        }
+      `}</style>
+
+      {/* Zoom In Button */}
+      <button 
+        onClick={handleZoomIn}
+        disabled={zoom >= maxZoom}
+        className="w-8 h-8 flex items-center justify-center text-gray-700 font-bold hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-45 disabled:hover:bg-transparent cursor-pointer"
+        title="Zoom in"
+      >
+        ＋
+      </button>
+
+      {/* Slider Area */}
+      <div className="h-28 py-2.5 flex items-center justify-center bg-gray-50/50 border-y border-gray-100 w-8">
+        <input 
+          type="range"
+          min={minZoom}
+          max={maxZoom}
+          value={zoom}
+          onChange={handleSliderChange}
+          className="custom-zoom-slider cursor-pointer"
+          style={{
+            writingMode: 'vertical-lr',
+            WebkitWritingMode: 'vertical-lr',
+            direction: 'rtl',
+            width: '4px',
+            height: '100px',
+            background: '#cbd5e1',
+            borderRadius: '2px',
+            outline: 'none',
+            appearance: 'none',
+            WebkitAppearance: 'none'
+          }}
+        />
+      </div>
+
+      {/* Zoom Out Button */}
+      <button 
+        onClick={handleZoomOut}
+        disabled={zoom <= minZoom}
+        className="w-8 h-8 flex items-center justify-center text-gray-700 font-bold hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-45 disabled:hover:bg-transparent cursor-pointer"
+        title="Zoom out"
+      >
+        －
+      </button>
+    </div>
+  );
 }
 
 interface VisitMapProps {
@@ -169,10 +302,22 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
   };
   return (
     <div className="w-full h-[500px] rounded-3xl overflow-hidden border border-gray-200 shadow-sm relative z-0">
+      {selectedVisitId && (
+        <button
+          onClick={() => {
+            setSelectedVisitId(null);
+            setRouteCoords(null);
+            setRouteDistance(null);
+          }}
+          className="absolute top-4 right-4 z-[1000] flex items-center gap-2 px-4 py-2.5 text-sm font-black text-emerald-700 bg-white border border-emerald-100 hover:bg-emerald-50 active:bg-emerald-100 rounded-xl shadow-lg transition-all cursor-pointer"
+        >
+          🔄 กลับสู่ภาพรวม
+        </button>
+      )}
 
-
-
-      <MapContainer center={center} zoom={11} scrollWheelZoom={false} className="w-full h-full z-0">
+      <MapContainer center={center} zoom={11} scrollWheelZoom={false} zoomControl={false} className="w-full h-full z-0">
+        <MapResizeTrigger />
+        <ZoomSlider />
         <MapRecenter schoolCoords={[SCHOOL_LAT, SCHOOL_LNG]} studentCoords={studentCoords} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -200,7 +345,7 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
           <Polyline positions={routeCoords} color="#0ea5e9" weight={4} opacity={0.8} />
         )}
 
-        {visits.map((visit) => {
+        {(selectedVisitId ? visits.filter(v => v.id === selectedVisitId) : visits).map((visit) => {
           if (visit.latitude && visit.longitude) {
             const isSelected = selectedVisitId === visit.id;
             return (
@@ -212,7 +357,7 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
                   click: () => handleMarkerClick(visit.id, visit.latitude!, visit.longitude!)
                 }}
               >
-                <Popup className="font-sans" onClose={() => { setSelectedVisitId(null); setRouteCoords(null); }}>
+                <Popup className="font-sans" onClose={() => { setSelectedVisitId(null); setRouteCoords(null); setRouteDistance(null); }}>
                   <div className="font-sans text-sm min-w-[200px]">
                     <strong className="text-base text-gray-900 block mb-1">
                       {visit.student?.first_name} {visit.student?.last_name}
