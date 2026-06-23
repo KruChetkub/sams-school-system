@@ -293,13 +293,13 @@ const Portal = () => {
           </div>
 
           {/* Right Action Menu: Search, Lang, Theme, Profile */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl px-3 py-2 rounded-2xl md:rounded-[2rem] border border-white/50 dark:border-slate-800/50 shadow-sm mx-auto md:mx-0 w-full sm:w-auto">
+          <div className="flex flex-nowrap items-center justify-between md:justify-start gap-1.5 sm:gap-2 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl px-2 sm:px-3 py-2 rounded-2xl md:rounded-[2rem] border border-white/50 dark:border-slate-800/50 shadow-sm mx-auto md:mx-0 w-full sm:w-auto overflow-hidden">
 
             {/* Lang Button (Accessible Touch Size >=44px) */}
             <button
               onClick={toggleLanguage}
               aria-label="Toggle language"
-              className="w-11 h-11 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
             >
               <Globe className="w-5 h-5" />
               <span className="ml-1 text-xs font-bold uppercase">{lang === 'th' ? 'EN' : 'TH'}</span>
@@ -309,18 +309,18 @@ const Portal = () => {
             <button
               onClick={toggleTheme}
               aria-label="Toggle dark mode"
-              className="w-11 h-11 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl md:rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-purple-500"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
             </button>
 
             {/* User Profile Info */}
-            <div className="h-11 pl-2.5 pr-4 flex items-center gap-2.5 rounded-xl md:rounded-full bg-slate-100 dark:bg-slate-800/70 border border-slate-200/40 dark:border-slate-700/30">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950 dark:to-indigo-950 flex items-center justify-center text-purple-700 dark:text-purple-300 font-black text-xs shadow-inner">
+            <div className="h-11 pl-2 pr-3 sm:pl-2.5 sm:pr-4 flex items-center gap-1.5 sm:gap-2.5 rounded-xl md:rounded-full bg-slate-100 dark:bg-slate-800/70 border border-slate-200/40 dark:border-slate-700/30 min-w-0 flex-1 sm:flex-initial">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950 dark:to-indigo-950 flex items-center justify-center text-purple-700 dark:text-purple-300 font-black text-xs shadow-inner shrink-0">
                 {userName ? userName.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div className="text-left leading-none">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{userName || 'User'}</p>
+              <div className="text-left leading-none min-w-0">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">{userName || 'User'}</p>
                 <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest block mt-0.5">{role || 'GUEST'}</span>
               </div>
             </div>
@@ -329,7 +329,7 @@ const Portal = () => {
             <button
               onClick={handleLogout}
               aria-label="Sign out"
-              className="flex w-11 h-11 items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+              className="flex-shrink-0 flex w-11 h-11 items-center justify-center rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-colors shadow-sm outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
             >
               <LogOut className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             </button>
