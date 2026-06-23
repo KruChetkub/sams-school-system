@@ -6,12 +6,13 @@ import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
-import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud, Compass } from 'lucide-react';
+import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud, Compass, Coins, Heart, Home, ShieldAlert, Gamepad2, Activity, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toJpeg } from 'html-to-image';
 import ReportPrintView from '../../components/homevisit/ReportPrintView';
 import VisitMap from '../../components/homevisit/VisitMap';
 import SignaturePad from '../../components/homevisit/SignaturePad';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
 const INITIAL_FORM_DATA = {
   national_id: '',
@@ -78,6 +79,123 @@ const INITIAL_FORM_DATA = {
 };
 
 type FormData = typeof INITIAL_FORM_DATA;
+
+const calculateAnalysisScores = (fd: FormData) => {
+  // 1. Economic Status (ด้านเศรษฐกิจครอบครัว)
+  let econ = 5.0;
+  if (fd.state_welfare === 'เคย') econ -= 1.5;
+  if (Array.isArray(fd.school_help_needs) && fd.school_help_needs.includes('ด้านเศรษฐกิจ (ทุนการศึกษา)')) econ -= 1.0;
+  if (Array.isArray(fd.health_issues) && fd.health_issues.includes('มีภาวะทุพโภชนาการ')) econ -= 1.5;
+  if (fd.household_income_per_person) {
+    const inc = parseFloat(fd.household_income_per_person);
+    if (!isNaN(inc)) {
+      if (inc <= 1000) econ = Math.min(econ, 2.0);
+      else if (inc <= 3000) econ = Math.min(econ, 3.0);
+    }
+  }
+  econ = Math.max(1.0, Math.min(5.0, econ));
+
+  // 2. Family Relationships (ด้านความสัมพันธ์และบริบทครอบครัว)
+  let family = 5.0;
+  if (fd.time_together_hours) {
+    const hrs = parseFloat(fd.time_together_hours);
+    if (!isNaN(hrs)) {
+      if (hrs < 2) family -= 1.5;
+      else if (hrs < 4) family -= 0.5;
+    }
+  }
+  if (fd.left_with === 'นักเรียนอยู่บ้านด้วยตนเอง') family -= 2.0;
+  if (Array.isArray(fd.welfare_safety)) {
+    if (fd.welfare_safety.includes('พ่อแม่แยกทางกัน หรือแต่งงานใหม่')) family -= 1.0;
+    if (fd.welfare_safety.includes('มีความขัดแย้ง/ทะเลาะกันในครอบครัว') || fd.welfare_safety.includes('มีความขัดแย้งและมีการใช้ความรุนแรงในครอบครัว')) family -= 2.0;
+  }
+  if (fd.relation_with_members && typeof fd.relation_with_members === 'object') {
+    Object.values(fd.relation_with_members).forEach((level) => {
+      if (level === 'ขัดแย้ง') family -= 1.5;
+      else if (level === 'ห่างเหิน') family -= 0.5;
+    });
+  }
+  family = Math.max(1.0, Math.min(5.0, family));
+
+  // 3. Housing & Safety Environment (ด้านสภาพแวดล้อมและความปลอดภัยของที่อยู่อาศัย)
+  let housing = 5.0;
+  if (Array.isArray(fd.housing_condition)) {
+    if (fd.housing_condition.includes('สภาพบ้านทรุดโทรมหรือทำจากวัสดุพื้นบ้าน')) housing -= 2.0;
+    if (fd.housing_condition.includes('ไม่มีห้องส้วมในที่อยู่อาศัยและบริเวณ')) housing -= 2.0;
+  }
+  if (fd.house_type === 'บ้านหรือที่พักประเภท วัด มูลนิธิ หอพัก โรงงาน อยู่กับนายจ้าง') housing -= 1.0;
+  if (Array.isArray(fd.welfare_safety) && fd.welfare_safety.includes('ที่พักอาศัยอยู่ในชุมชนแออัดใกล้แหล่งมั่วสุม/สถานเริงรมย์')) housing -= 2.0;
+  housing = Math.max(1.0, Math.min(5.0, housing));
+
+  // 4. Risk Behaviors & Violence (ด้านพฤติกรรมเสี่ยงและความรุนแรง)
+  let risk = 5.0;
+  if (Array.isArray(fd.violence)) {
+    fd.violence.forEach(item => {
+      if (item === 'ทำร้ายร่างกายตนเอง' || item === 'ทำร้ายร่างกายผู้อื่น' || item === 'ทะเลาะวิวาทเป็นประจำ') risk -= 3.0;
+      else risk -= 1.0;
+    });
+  }
+  if (Array.isArray(fd.substance_abuse)) {
+    fd.substance_abuse.forEach(item => {
+      if (item === 'ปัจจุบันเกี่ยวข้องกับสารเสพติด' || item === 'เป็นผู้ติดบุหรี่/สุรา/สารเสพติดอื่นๆ') risk -= 3.0;
+      else risk -= 1.0;
+    });
+  }
+  if (Array.isArray(fd.welfare_safety) && fd.welfare_safety.includes('เล่นการพนัน')) risk -= 2.0;
+  if (Array.isArray(fd.sexual_behavior)) {
+    fd.sexual_behavior.forEach(item => {
+      if (item === 'ตั้งครรภ์' || item === 'ขายบริการทางเพศ' || item === 'มีการมั่วสุมทางเพศ') risk -= 3.0;
+      else risk -= 1.0;
+    });
+  }
+  risk = Math.max(1.0, Math.min(5.0, risk));
+
+  // 5. Digital & Game Addiction (ด้านการใช้สื่ออิเล็กทรอนิกส์และอินเทอร์เน็ต)
+  let digital = 5.0;
+  if (Array.isArray(fd.gaming_addiction)) {
+    fd.gaming_addiction.forEach(item => {
+      if (item === 'ใช้เงินสิ้นเปลือง โกหก ลักขโมยเงินเพื่อเล่นเกม' || item === 'หมกมุ่น จริงจังกับการเล่นเกม' || item === 'ใช้เวลาเล่นเกมเกิน 2 ชั่วโมง') {
+        digital -= 3.0;
+      } else {
+        digital -= 1.0;
+      }
+    });
+  }
+  if (Array.isArray(fd.device_usage)) {
+    if (fd.device_usage.includes('ใช้ Line/Facebook/Chat (เกินวันละ 2 ชั่วโมง)')) digital -= 1.5;
+    else if (fd.device_usage.includes('ใช้ Line/Facebook/Chat (เกินวันละ 1 ชั่วโมง)')) digital -= 0.5;
+
+    if (fd.device_usage.includes('เคยใช้โทรศัพท์ในระหว่างเรียน') || fd.device_usage.includes('ใช้โทรศัพท์มือถือในระหว่างเรียน 2 – 3 /วัน')) {
+      digital -= 1.5;
+    }
+  }
+  digital = Math.max(1.0, Math.min(5.0, digital));
+
+  // 6. Physical Health & Daily Burden (ด้านสุขภาพร่างกายและภาระงาน)
+  let physical = 5.0;
+  if (Array.isArray(fd.health_issues)) {
+    fd.health_issues.forEach(item => {
+      if (item === 'ป่วยเป็นโรคร้ายแรง/เรื้อรัง') physical -= 2.5;
+      else physical -= 1.0;
+    });
+  }
+  if (Array.isArray(fd.responsibilities)) {
+    fd.responsibilities.forEach(item => {
+      if (item === 'ช่วยดูแลคนป่วย/พิการ' || item === 'ช่วยงานในนา/ไร่') physical -= 1.5;
+      else if (item === 'ช่วยค้าขายเล็กๆน้อยๆ') physical -= 0.5;
+    });
+  }
+  physical = Math.max(1.0, Math.min(5.0, physical));
+
+  return {
+    economic: +econ.toFixed(2),
+    family: +family.toFixed(2),
+    housing: +housing.toFixed(2),
+    risk: +risk.toFixed(2),
+    digital: +digital.toFixed(2),
+    physical: +physical.toFixed(2)
+  };
+};
 
 const Section = ({ title, icon: Icon, children, isOpen, onToggle }: any) => (
   <div className="bg-white rounded-3xl shadow-sm border border-emerald-100 overflow-hidden mb-6 transition-all duration-300">
@@ -198,6 +316,14 @@ export default function VisitForm() {
   const [activeMobileMember, setActiveMobileMember] = useState<string | null>(null); // Mobile relationship selector
 
   const [activeTab, setActiveTab] = useState(1);
+
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Core GPS & Legacy Data
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -625,9 +751,9 @@ export default function VisitForm() {
         className="flex flex-nowrap md:flex-wrap gap-1.5 md:gap-2 mb-8 bg-gray-100 p-1.5 rounded-2xl overflow-x-auto"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {[1, 2, 3, 4, 5].map(tab => {
-          const tabNamesDesktop = ['หน้า 1 (ข้อมูลเบื้องต้น)', 'หน้า 2 (พฤติกรรม)', 'หน้า 3 (ภาพถ่าย)', 'หน้า 4 (แผนที่)', 'หน้า 5 (แสดงรายงาน)'];
-          const tabNamesMobile = ['🪪 ข้อมูล', '📝 พฤติกรรม', '📷 ภาพถ่าย', '📍 พิกัด', '📊 รายงาน'];
+        {[1, 2, 3, 4, 5, 6].map(tab => {
+          const tabNamesDesktop = ['หน้า 1 (ข้อมูลเบื้องต้น)', 'หน้า 2 (พฤติกรรม)', 'หน้า 3 (ภาพถ่าย)', 'หน้า 4 (แผนที่)', 'หน้า 5 (แสดงรายงาน)', 'หน้า 6 (วิเคราะห์ผล)'];
+          const tabNamesMobile = ['🪪 ข้อมูล', '📝 พฤติกรรม', '📷 ภาพถ่าย', '📍 พิกัด', '📊 รายงาน', '🕸️ วิเคราะห์'];
           return (
             <button
               key={tab}
@@ -1438,6 +1564,202 @@ export default function VisitForm() {
           />
         </div>
 
+        {/* Tab 6: Analysis Chart */}
+        <div className={activeTab === 6 ? 'space-y-6 block' : 'hidden'}>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 className="text-xl font-bold text-emerald-700 mb-6 border-b pb-3 flex items-center gap-2"><Activity /> ผลการวิเคราะห์สุขภาวะและความเสี่ยง (6 มิติ)</h3>
+
+            {/* Centered Radar Chart Container */}
+            <div className="flex justify-center bg-gray-50/50 p-6 rounded-3xl border border-gray-100/50 mb-6">
+              <div className={`w-full max-w-[480px] ${windowWidth < 640 ? 'h-[260px]' : 'h-[360px]'}`}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={windowWidth < 640 ? "75%" : "65%"}
+                    margin={windowWidth < 640 ? { top: 10, right: 35, bottom: 10, left: 35 } : { top: 20, right: 60, bottom: 20, left: 60 }}
+                    data={[
+                      { subject: 'เศรษฐกิจ', value: calculateAnalysisScores(formData).economic, fullMark: 5 },
+                      { subject: 'ความสัมพันธ์', value: calculateAnalysisScores(formData).family, fullMark: 5 },
+                      { subject: 'สภาพบ้าน', value: calculateAnalysisScores(formData).housing, fullMark: 5 },
+                      { subject: 'พฤติกรรมเสี่ยง', value: calculateAnalysisScores(formData).risk, fullMark: 5 },
+                      { subject: 'การใช้สื่อ/เกม', value: calculateAnalysisScores(formData).digital, fullMark: 5 },
+                      { subject: 'สุขภาพ/ภาระงาน', value: calculateAnalysisScores(formData).physical, fullMark: 5 }
+                    ]}
+                  >
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: windowWidth < 640 ? 10 : 12, fontWeight: 'bold' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 5]} tickCount={6} tick={{ fill: '#94a3b8' }} />
+                    <Radar name="คะแนนสุขภาวะ" dataKey="value" stroke="#059669" fill="#10b981" fillOpacity={0.3} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* General Analysis Summary Block */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <div className="bg-emerald-50/40 border border-emerald-100 p-5 rounded-2xl">
+                <h4 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                  <Info size={16} /> วิธีการอ่านผลการวิเคราะห์
+                </h4>
+                <ul className="text-xs text-emerald-800 space-y-2 font-medium list-disc pl-4 leading-relaxed">
+                  <li>คะแนนแต่ละแกนอยู่ในช่วง <strong>1 ถึง 5 คะแนน</strong></li>
+                  <li>คะแนนยิ่งมาก (ใกล้เลข 5) = มีสุขภาวะที่ดี มีความปลอดภัยสูง</li>
+                  <li>คะแนนยิ่งน้อย (ใกล้เลข 1) = มีความเสี่ยงหรืออยู่ในสภาวะวิกฤตที่ต้องการการดูแลช่วยเหลืออย่างเร่งด่วน</li>
+                </ul>
+              </div>
+
+              {/* Risk Level Badge */}
+              <div className="p-5 rounded-2xl border flex items-center gap-4 bg-gray-50 border-gray-150">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-white border shadow-sm">
+                  <ShieldAlert className={
+                    riskLevel === 'URGENT' ? 'text-rose-500' :
+                    riskLevel === 'WATCH' ? 'text-amber-500' : 'text-emerald-500'
+                  } size={28} />
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 font-bold block">ระดับความเสี่ยงประเมินโดยครูที่ปรึกษา</span>
+                  <span className={`text-base font-black ${
+                    riskLevel === 'URGENT' ? 'text-rose-600' :
+                    riskLevel === 'WATCH' ? 'text-amber-600' : 'text-emerald-600'
+                  }`}>
+                    {riskLevel === 'URGENT' ? '🔴 กลุ่มมีปัญหา / เสี่ยงสูง (Urgent)' :
+                     riskLevel === 'WATCH' ? '🟡 กลุ่มเสี่ยง (Watch)' : '🟢 กลุ่มปกติ / ส่งเสริม (Normal)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Score Detail Cards */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(() => {
+                const scores = calculateAnalysisScores(formData);
+                
+                // Helper to render score card
+                const renderCard = (title: string, score: number, icon: any, desc: string, details: string[]) => {
+                  const IconComponent = icon;
+                  let colorClass = 'border-emerald-100 bg-emerald-50/20 text-emerald-900';
+                  let badgeColor = 'bg-emerald-500 text-white';
+                  let statusText = 'ดีมาก';
+                  
+                  if (score < 2.5) {
+                    colorClass = 'border-rose-150 bg-rose-50/20 text-rose-900';
+                    badgeColor = 'bg-rose-500 text-white';
+                    statusText = 'วิกฤต / เสี่ยงสูง';
+                  } else if (score < 4.0) {
+                    colorClass = 'border-amber-150 bg-amber-50/20 text-amber-900';
+                    badgeColor = 'bg-amber-500 text-white';
+                    statusText = 'เฝ้าระวัง';
+                  }
+
+                  return (
+                    <div className={`p-5 rounded-2xl border ${colorClass} transition-all duration-300`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center border shadow-sm shrink-0">
+                            <IconComponent size={18} />
+                          </div>
+                          <span className="font-extrabold text-sm">{title}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-black ${badgeColor}`}>{score.toFixed(1)} / 5</span>
+                          <span className="text-[10px] font-bold mt-1 opacity-80">{statusText}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold leading-relaxed opacity-95 mb-2">{desc}</p>
+                      {details.length > 0 && (
+                        <div className="mt-3 border-t border-black/5 pt-2">
+                          <span className="text-[10px] font-black uppercase tracking-wider block mb-1 opacity-70">ปัจจัยชี้วัดความเสี่ยง:</span>
+                          <ul className="list-disc pl-4 text-xs space-y-1 opacity-80">
+                            {details.map((d, i) => <li key={i}>{d}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                };
+
+                // Gather details for each card based on checked items
+                const econDetails: string[] = [];
+                if (formData.state_welfare === 'เคย') econDetails.push('เคยลงทะเบียนสวัสดิการแห่งรัฐ');
+                if (formData.school_help_needs?.includes('ด้านเศรษฐกิจ (ทุนการศึกษา)')) econDetails.push('ผู้ปกครองแจ้งต้องการความช่วยเหลือด้านทุนการศึกษา');
+                if (formData.health_issues?.includes('มีภาวะทุพโภชนาการ')) econDetails.push('มีภาวะทุพโภชนาการ (ขาดสารอาหาร)');
+                if (formData.household_income_per_person) {
+                  const inc = parseFloat(formData.household_income_per_person);
+                  if (!isNaN(inc) && inc <= 3000) econDetails.push(`รายได้ต่อคนเฉลี่ยต่ำ (${inc.toLocaleString()} บาท/เดือน)`);
+                }
+
+                const familyDetails: string[] = [];
+                if (formData.time_together_hours) {
+                  const hrs = parseFloat(formData.time_together_hours);
+                  if (!isNaN(hrs) && hrs < 4) familyDetails.push(`สมาชิกมีเวลาอยู่ด้วยกันน้อย (${hrs} ชม./วัน)`);
+                }
+                if (formData.left_with === 'นักเรียนอยู่บ้านด้วยตนเอง') familyDetails.push('นักเรียนอยู่บ้านตามลำพังไม่มีผู้ดูแล');
+                if (formData.welfare_safety?.includes('พ่อแม่แยกทางกัน หรือแต่งงานใหม่')) familyDetails.push('พ่อแม่แยกทางกันหรือแต่งงานใหม่');
+                if (formData.welfare_safety?.includes('มีความขัดแย้ง/ทะเลาะกันในครอบครัว') || formData.welfare_safety?.includes('มีความขัดแย้งและมีการใช้ความรุนแรงในครอบครัว')) familyDetails.push('มีความขัดแย้ง/รุนแรงในครอบครัว');
+                if (formData.relation_with_members) {
+                  Object.entries(formData.relation_with_members).forEach(([member, level]) => {
+                    if (level === 'ขัดแย้ง' || level === 'ห่างเหิน') {
+                      familyDetails.push(`ความสัมพันธ์กับ${member}เป็นแบบ "${level}"`);
+                    }
+                  });
+                }
+
+                const housingDetails: string[] = [];
+                if (formData.housing_condition?.includes('สภาพบ้านทรุดโทรมหรือทำจากวัสดุพื้นบ้าน')) housingDetails.push('สภาพบ้านชำรุดทรุดโทรม');
+                if (formData.housing_condition?.includes('ไม่มีห้องส้วมในที่อยู่อาศัยและบริเวณ')) housingDetails.push('ไม่มีห้องส้วมที่ถูกสุขลักษณะ');
+                if (formData.house_type === 'บ้านหรือที่พักประเภท วัด มูลนิธิ หอพัก โรงงาน อยู่กับนายจ้าง') housingDetails.push('อาศัยในที่พักลักษณะชั่วคราว/ของผู้อื่น');
+                if (formData.welfare_safety?.includes('ที่พักอาศัยอยู่ในชุมชนแออัดใกล้แหล่งมั่วสุม/สถานเริงรมย์')) housingDetails.push('ที่พักอยู่ในแหล่งมั่วสุม/เสี่ยงภัย');
+
+                const riskDetails: string[] = [];
+                if (formData.violence?.length > 0) {
+                  formData.violence.forEach(v => riskDetails.push(`ความรุนแรง: ${v}`));
+                }
+                if (formData.substance_abuse?.length > 0) {
+                  formData.substance_abuse.forEach(s => riskDetails.push(`สารเสพติด: ${s}`));
+                }
+                if (formData.welfare_safety?.includes('เล่นการพนัน')) riskDetails.push('เกี่ยวข้องกับการพนัน');
+                if (formData.sexual_behavior?.length > 0) {
+                  formData.sexual_behavior.forEach(s => riskDetails.push(`พฤติกรรมทางเพศ: ${s}`));
+                }
+
+                const digitalDetails: string[] = [];
+                if (formData.gaming_addiction?.length > 0) {
+                  formData.gaming_addiction.forEach(g => {
+                    if (g !== 'อื่นๆ') digitalDetails.push(`เกม: ${g}`);
+                  });
+                }
+                if (formData.device_usage?.length > 0) {
+                  formData.device_usage.forEach(d => digitalDetails.push(`การใช้มือถือ: ${d}`));
+                }
+
+                const physicalDetails: string[] = [];
+                if (formData.health_issues?.length > 0) {
+                  formData.health_issues.forEach(h => {
+                    if (h !== 'มีภาวะทุพโภชนาการ') physicalDetails.push(`สุขภาพ: ${h}`);
+                  });
+                }
+                if (formData.responsibilities?.length > 0) {
+                  formData.responsibilities.forEach(r => {
+                    if (r !== 'อื่นๆ') physicalDetails.push(`ภาระรับผิดชอบ: ${r}`);
+                  });
+                }
+
+                return (
+                  <>
+                    {renderCard('ด้านเศรษฐกิจครอบครัว', scores.economic, Coins, 'สภาพความพร้อมทางการเงิน รายได้และรายจ่ายของครัวเรือน', econDetails)}
+                    {renderCard('ด้านความสัมพันธ์และบริบทครอบครัว', scores.family, Heart, 'เวลาการทำกิจกรรมร่วมกันและระดับความสนิทสนมภายในบ้าน', familyDetails)}
+                    {renderCard('ด้านสภาพแวดล้อมที่อยู่อาศัย', scores.housing, Home, 'ความมั่นคงแข็งแรงของที่พัก และความปลอดภัยรอบตัวชุมชน', housingDetails)}
+                    {renderCard('ด้านพฤติกรรมเสี่ยงและความรุนแรง', scores.risk, ShieldAlert, 'พฤติกรรมก้าวร้าว พนัน ทางเพศ และความเกี่ยวข้องกับสิ่งเสพติด', riskDetails)}
+                    {renderCard('ด้านการใช้สื่อและเกม', scores.digital, Gamepad2, 'ภาวะการติดเกม ความหมกมุ่น และการใช้เครื่องมือสื่อสารระหว่างเรียน', digitalDetails)}
+                    {renderCard('ด้านสุขภาพร่างกายและภาระงาน', scores.physical, Activity, 'ประวัติการเจ็บป่วย โรคประจำตัว และความหนักหนาของภาระงานบ้าน', physicalDetails)}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+
         <div className="fixed bottom-4 left-4 right-4 rounded-3xl z-50 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-emerald-50/80 p-4 mt-0 flex flex-row justify-between items-center gap-3 sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:w-auto sm:max-w-none sm:rounded-none sm:border-0 sm:border-t sm:border-gray-200 sm:bg-transparent sm:backdrop-blur-none sm:shadow-none sm:pt-6 sm:mt-8 sm:p-0">
           <div className="flex flex-1 sm:flex-initial sm:w-auto gap-3">
             {activeTab > 1 && (
@@ -1445,12 +1767,12 @@ export default function VisitForm() {
                 ย้อนกลับ
               </button>
             )}
-            {activeTab < 5 && (
+            {activeTab < 6 && (
               <button type="button" onClick={() => { setActiveTab(activeTab + 1); window.scrollTo(0, 0); }} className="flex-1 sm:flex-none px-6 py-4 bg-emerald-100 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-200 transition-colors">
                 ถัดไป
               </button>
             )}
-            {activeTab < 5 && (
+            {activeTab < 6 && (
               <button
                 type="submit"
                 disabled={isLoading}
@@ -1464,7 +1786,7 @@ export default function VisitForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full flex-1 sm:flex-initial sm:w-auto px-6 sm:px-10 py-4 rounded-2xl font-black text-base sm:text-lg transition-all flex justify-center items-center gap-3 ${activeTab === 5 ? 'flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]' : 'hidden sm:flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]'}`}
+            className={`w-full flex-1 sm:flex-initial sm:w-auto px-6 sm:px-10 py-4 rounded-2xl font-black text-base sm:text-lg transition-all flex justify-center items-center gap-3 ${activeTab === 6 ? 'flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]' : 'hidden sm:flex bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02]'}`}
           >
             {isLoading ? <><Loader2 className="animate-spin" /> กำลังบันทึก...</> : existingData ? <><Save size={24} /> บันทึกการแก้ไขข้อมูล</> : <><Save size={24} /> บันทึกข้อมูลการเยี่ยมบ้าน</>}
           </button>

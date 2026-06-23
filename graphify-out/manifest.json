@@ -70,9 +70,9 @@
     "semantic_hash": "20419cad7d7a2c9f9035f555313c6017"
   },
   "src/pages/Dashboard.tsx": {
-    "mtime": 1780416943.937747,
-    "ast_hash": "1f6cd86458c284d50ce9998ffde12fd7",
-    "semantic_hash": "1f6cd86458c284d50ce9998ffde12fd7"
+    "mtime": 1782127809.7888424,
+    "ast_hash": "aa469f01f047e66e856e239268a203c8",
+    "semantic_hash": "aa469f01f047e66e856e239268a203c8"
   },
   "src/pages/Homeroom.tsx": {
     "mtime": 1781778603.5741947,
@@ -85,9 +85,9 @@
     "semantic_hash": "365f62a17c03f4cae245772344fc6af0"
   },
   "src/pages/Login.tsx": {
-    "mtime": 1780238520.058751,
-    "ast_hash": "ee1d93f0ee9d7f626940204e48604e03",
-    "semantic_hash": "ee1d93f0ee9d7f626940204e48604e03"
+    "mtime": 1782134200.8466613,
+    "ast_hash": "89075fc265410b7c8b0ac83c08b4ceea",
+    "semantic_hash": "89075fc265410b7c8b0ac83c08b4ceea"
   },
   "src/pages/ParentDashboard.tsx": {
     "mtime": 1780410283.811402,
@@ -160,24 +160,24 @@
     "semantic_hash": "6adfcf84e23302c048c12d6f031bc134"
   },
   "src/pages/homevisit/VisitForm.tsx": {
-    "mtime": 1781780045.9006562,
-    "ast_hash": "f0b34d7b2f65978bed8840a96a3b1d7a",
-    "semantic_hash": "f0b34d7b2f65978bed8840a96a3b1d7a"
+    "mtime": 1782126004.1194296,
+    "ast_hash": "bdb86e0a2c5b2cc97c7952e3fa04db7d",
+    "semantic_hash": "bdb86e0a2c5b2cc97c7952e3fa04db7d"
   },
   "src/pages/portal/Portal.tsx": {
-    "mtime": 1780305038.8534663,
-    "ast_hash": "40fdae3a5ee6b0a6b8de52f49f2b0fcc",
-    "semantic_hash": "40fdae3a5ee6b0a6b8de52f49f2b0fcc"
+    "mtime": 1782134244.3631375,
+    "ast_hash": "0919bc80f99a7873f9dbb924bc14aa01",
+    "semantic_hash": "0919bc80f99a7873f9dbb924bc14aa01"
   },
   "src/pages/studentsupport/AdvisorDashboard.tsx": {
-    "mtime": 1780475227.1336696,
-    "ast_hash": "b7956590f5d8838c3c42be42c287f9bf",
-    "semantic_hash": "b7956590f5d8838c3c42be42c287f9bf"
+    "mtime": 1782128177.7445357,
+    "ast_hash": "c17b4e2581587872c267312ae01648b5",
+    "semantic_hash": "c17b4e2581587872c267312ae01648b5"
   },
   "src/pages/studentsupport/CaseManagement.tsx": {
-    "mtime": 1780425746.0081334,
-    "ast_hash": "d7bee27503cce5fd53f008bd223439f5",
-    "semantic_hash": "d7bee27503cce5fd53f008bd223439f5"
+    "mtime": 1782128248.4516628,
+    "ast_hash": "889c990a119a1fa676d6b9572a7dfcad",
+    "semantic_hash": "889c990a119a1fa676d6b9572a7dfcad"
   },
   "src/pages/studentsupport/EqForm.tsx": {
     "mtime": 1780419668.1277628,
@@ -205,9 +205,9 @@
     "semantic_hash": "fd11009a4fc81a418b9e470e90ec9727"
   },
   "src/pages/studentsupport/index.tsx": {
-    "mtime": 1780475206.8701441,
-    "ast_hash": "bed86c2a0ff5b69d4a7e505071b3372b",
-    "semantic_hash": "bed86c2a0ff5b69d4a7e505071b3372b"
+    "mtime": 1782128287.509473,
+    "ast_hash": "03999a51356fdce3038c67a90e0131ac",
+    "semantic_hash": "03999a51356fdce3038c67a90e0131ac"
   },
   "src/services/academicYearService.ts": {
     "mtime": 1780422026.7990458,
@@ -363,5 +363,15 @@
     "mtime": 1780135089.8416817,
     "ast_hash": "6d53ca81090c03a32448a5f8c87c93d3",
     "semantic_hash": "6d53ca81090c03a32448a5f8c87c93d3"
+  },
+  "public/pwa-512.png": {
+    "mtime": 1779594658.3519337,
+    "ast_hash": "3656b46f424fb7a16ad10efbf8bfe209",
+    "semantic_hash": "3656b46f424fb7a16ad10efbf8bfe209"
+  },
+  "public/school-logo.png": {
+    "mtime": 1778909044.3810523,
+    "ast_hash": "810c306dbc0e96ddeabd133dd0ef6169",
+    "semantic_hash": "810c306dbc0e96ddeabd133dd0ef6169"
   }
 }

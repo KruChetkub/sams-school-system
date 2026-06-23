@@ -1,31 +1,31 @@
 {
   "communities": {
     "0": [
+      "homevisit_dashboard",
+      "homevisit_dashboard_homevisitdashboard",
       "homevisit_homevisitlayout",
       "homevisit_homevisitlayout_navitem",
       "lib_supabase",
       "lib_supabase_supabase",
       "pages_login",
       "pages_login_login",
+      "pages_parentdashboard",
       "pages_reports_reports",
       "pages_studentscan",
+      "pages_subjects_subjects",
       "portal_portal",
       "portal_portal_portal",
-      "services_activityservice",
-      "services_activityservice_activitygroup",
-      "services_activityservice_addstudenttoactivity",
-      "services_activityservice_getactivitygroups",
-      "services_activityservice_getactivitymembers",
-      "services_activityservice_removestudentfromactivity",
+      "portal_portal_translations",
       "services_auditlogservice",
       "services_auditlogservice_auditloginput",
       "services_auditlogservice_getipaddress",
       "services_auditlogservice_logauditevent",
-      "services_notificationservice",
-      "services_notificationservice_createnotification",
-      "services_notificationservice_notifyabsence",
-      "services_notificationservice_notifyleaveapproved",
-      "services_notificationservice_sendexternalnotification",
+      "services_parentdashboardservice",
+      "services_parentdashboardservice_getparentstudents",
+      "services_parentdashboardservice_getstudentattendancesummary",
+      "services_parentdashboardservice_getstudenthomevisitinfo",
+      "services_parentdashboardservice_getstudentleavehistory",
+      "services_parentdashboardservice_getstudentsupportsummary",
       "services_studentscanservice",
       "services_studentscanservice_submitqrscan",
       "src_app",
@@ -33,13 +33,13 @@
       "src_app_dashboardlayout",
       "src_app_navitem",
       "src_app_rootdashboard",
-      "src_main",
-      "src_main_queryclient",
       "store_academicyearstore_useacademicyearstore",
       "store_authstore",
       "store_authstore_authstate",
+      "store_authstore_useauth",
       "store_authstore_useauthstore",
       "studentsupport_advisordashboard",
+      "studentsupport_behaviorservice",
       "studentsupport_casemanagement",
       "studentsupport_eqform",
       "studentsupport_eqform_eq_questions",
@@ -68,6 +68,57 @@
       "studentsupport_studentsupportstudents"
     ],
     "1": [
+      "rls",
+      "rls_1_1_\u0e15\u0e32\u0e23\u0e32\u0e07_academic_years",
+      "rls_1_2_\u0e15\u0e32\u0e23\u0e32\u0e07_semesters",
+      "rls_1_3_\u0e15\u0e32\u0e23\u0e32\u0e07_subjects",
+      "rls_1_\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e23\u0e30\u0e1a\u0e1a\u0e41\u0e25\u0e30_role",
+      "rls_2_1_\u0e15\u0e32\u0e23\u0e32\u0e07_users",
+      "rls_2_1_\u0e2b\u0e25_\u0e01\u0e04_\u0e14",
+      "rls_2_2_helper_function_\u0e2a_\u0e32\u0e2b\u0e23_\u0e1a\u0e15\u0e23\u0e27\u0e08_role",
+      "rls_2_2_\u0e15\u0e32\u0e23\u0e32\u0e07_teachers",
+      "rls_2_3_\u0e15\u0e32\u0e23\u0e32\u0e07_parents",
+      "rls_2_\u0e2b\u0e25_\u0e01\u0e01\u0e32\u0e23\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a_rls_policy",
+      "rls_3_1_\u0e15\u0e32\u0e23\u0e32\u0e07_classrooms",
+      "rls_3_2_\u0e15\u0e32\u0e23\u0e32\u0e07_students",
+      "rls_3_3_\u0e15\u0e32\u0e23\u0e32\u0e07_student_group_memberships",
+      "rls_3_4_\u0e15\u0e32\u0e23\u0e32\u0e07_activity_groups",
+      "rls_3_5_\u0e15\u0e32\u0e23\u0e32\u0e07_activity_group_members",
+      "rls_3_6_\u0e15\u0e32\u0e23\u0e32\u0e07_student_portfolios",
+      "rls_4_1_\u0e15\u0e32\u0e23\u0e32\u0e07_schedules",
+      "rls_4_2_\u0e15\u0e32\u0e23\u0e32\u0e07_attendance_sessions",
+      "rls_4_3_\u0e15\u0e32\u0e23\u0e32\u0e07_attendance",
+      "rls_4_4_\u0e15\u0e32\u0e23\u0e32\u0e07_homeroom_attendance",
+      "rls_4_5_\u0e15\u0e32\u0e23\u0e32\u0e07_leave_requests",
+      "rls_4_6_\u0e15\u0e32\u0e23\u0e32\u0e07_home_visits",
+      "rls_4_7_\u0e15\u0e32\u0e23\u0e32\u0e07_home_visit_assessments",
+      "rls_4_8_\u0e15\u0e32\u0e23\u0e32\u0e07_home_visit_photos",
+      "rls_5_1_\u0e15\u0e32\u0e23\u0e32\u0e07_student_support_sdq",
+      "rls_5_2_\u0e15\u0e32\u0e23\u0e32\u0e07_student_support_eq",
+      "rls_5_3_\u0e15\u0e32\u0e23\u0e32\u0e07_student_support_risk_analysis",
+      "rls_5_4_\u0e15\u0e32\u0e23\u0e32\u0e07_student_support_cases",
+      "rls_5_6_\u0e15\u0e32\u0e23\u0e32\u0e07_student_behavior_points",
+      "rls_6_1_\u0e15\u0e32\u0e23\u0e32\u0e07_audit_logs",
+      "rls_6_2_\u0e15\u0e32\u0e23\u0e32\u0e07_notifications",
+      "rls_phase_0_\u0e40\u0e15\u0e23_\u0e22\u0e21\u0e04\u0e27\u0e32\u0e21\u0e1e\u0e23_\u0e2d\u0e21",
+      "rls_phase_1_master_data_\u0e2d_\u0e32\u0e19\u0e2d\u0e22_\u0e32\u0e07\u0e40\u0e14_\u0e22\u0e27",
+      "rls_phase_2_\u0e02_\u0e2d\u0e21_\u0e25\u0e1a_\u0e04\u0e25\u0e32\u0e01\u0e23",
+      "rls_phase_3_\u0e02_\u0e2d\u0e21_\u0e25\u0e19_\u0e01\u0e40\u0e23_\u0e22\u0e19\u0e41\u0e25\u0e30\u0e2b_\u0e2d\u0e07\u0e40\u0e23_\u0e22\u0e19",
+      "rls_phase_4_\u0e23\u0e30\u0e1a\u0e1a\u0e40\u0e0a_\u0e04\u0e0a_\u0e2d_\u0e25\u0e32_\u0e40\u0e02_\u0e32\u0e41\u0e16\u0e27",
+      "rls_phase_5_\u0e23\u0e30\u0e1a\u0e1a\u0e14_\u0e41\u0e25\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d\u0e19_\u0e01\u0e40\u0e23_\u0e22\u0e19",
+      "rls_phase_6_audit_logs_notifications",
+      "rls_role_\u0e43\u0e19\u0e23\u0e30\u0e1a\u0e1a",
+      "rls_timeline_\u0e41\u0e19\u0e30\u0e19_\u0e32",
+      "rls_\u0e02_\u0e19\u0e15\u0e2d\u0e19",
+      "rls_\u0e02_\u0e19\u0e15\u0e2d\u0e19\u0e01\u0e32\u0e23\u0e17_\u0e32_\u0e17_\u0e32\u0e17_\u0e25\u0e30\u0e15\u0e32\u0e23\u0e32\u0e07",
+      "rls_\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e02_\u0e2d\u0e21_\u0e25\u0e40\u0e1a_\u0e2d\u0e07\u0e15_\u0e19",
+      "rls_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e17_\u0e07\u0e2b\u0e21\u0e14\u0e43\u0e19\u0e23\u0e30\u0e1a\u0e1a_24_\u0e15\u0e32\u0e23\u0e32\u0e07",
+      "rls_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e17_\u0e40\u0e01_\u0e22\u0e27\u0e02_\u0e2d\u0e07",
+      "rls_\u0e2a\u0e32\u0e23\u0e1a_\u0e0d",
+      "rls_\u0e2b\u0e25_\u0e01\u0e01\u0e32\u0e23",
+      "rls_\u0e41\u0e1c\u0e19\u0e40\u0e1b_\u0e14\u0e43\u0e0a_\u0e07\u0e32\u0e19_row_level_security_rls_\u0e23\u0e30\u0e1a\u0e1a_sams"
+    ],
+    "2": [
       "pages_classrooms",
       "pages_classrooms_classroomcardpalettes",
       "pages_classrooms_classrooms",
@@ -83,8 +134,6 @@
       "pages_schedules_splittime",
       "pages_subjects",
       "pages_subjects_getsubjectpalette",
-      "pages_subjects_subjectcardpalettes",
-      "pages_subjects_subjects",
       "pages_teachers",
       "pages_teachers_teachers",
       "services_classroomservice",
@@ -119,7 +168,54 @@
       "services_teacherservice_teacher",
       "services_teacherservice_updateteacher"
     ],
-    "2": [
+    "3": [
+      "package",
+      "package_dependencies",
+      "package_dependencies_html2canvas",
+      "package_dependencies_html5_qrcode",
+      "package_dependencies_html_to_image",
+      "package_dependencies_leaflet",
+      "package_dependencies_lottie_react",
+      "package_dependencies_lucide_react",
+      "package_dependencies_qrcode_react",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_leaflet",
+      "package_dependencies_react_router_dom",
+      "package_dependencies_recharts",
+      "package_dependencies_supabase_supabase_js",
+      "package_dependencies_tanstack_react_query",
+      "package_dependencies_xlsx",
+      "package_dependencies_zustand",
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_js",
+      "package_devdependencies_eslint_plugin_react_hooks",
+      "package_devdependencies_eslint_plugin_react_refresh",
+      "package_devdependencies_globals",
+      "package_devdependencies_postcss",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_vite",
+      "package_devdependencies_types_leaflet",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_react",
+      "package_devdependencies_typescript",
+      "package_devdependencies_typescript_eslint",
+      "package_devdependencies_vite",
+      "package_devdependencies_vite_plugin_pwa",
+      "package_devdependencies_vitejs_plugin_react",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version"
+    ],
+    "4": [
       "pages_dashboard",
       "pages_dashboard_dashboard",
       "pages_dashboard_gaugechart",
@@ -164,9 +260,80 @@
       "services_dashboardservice_subjectsessiondetail",
       "services_dashboardservice_subjectsessionstudent"
     ],
-    "3": [
-      "homevisit_dashboard",
-      "homevisit_dashboard_homevisitdashboard",
+    "5": [
+      "phane",
+      "phane_1_\u0e2a\u0e23_\u0e32\u0e07_service_\u0e01_\u0e2d\u0e19_page_\u0e40\u0e2a\u0e21\u0e2d",
+      "phane_2_service_pattern_\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19",
+      "phane_3_page_pattern_\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19",
+      "phane_4_\u0e40\u0e1e_\u0e21_route_\u0e43\u0e19_app_tsx",
+      "phane_5_\u0e16_\u0e32\u0e40\u0e1e_\u0e21\u0e40\u0e21\u0e19_\u0e43\u0e2b\u0e21_\u0e43\u0e19_sidebar",
+      "phane_6_\u0e16_\u0e32\u0e15_\u0e2d\u0e07\u0e01\u0e32\u0e23_layout_\u0e41\u0e22\u0e01_\u0e40\u0e0a_\u0e19_\u0e23\u0e30\u0e1a\u0e1a\u0e22_\u0e2d\u0e22\u0e43\u0e2b\u0e21",
+      "phane_commands",
+      "phane_deploy",
+      "phane_env_\u0e04_\u0e32\u0e17_\u0e15_\u0e2d\u0e07\u0e21",
+      "phane_environment_config",
+      "phane_eq_scoring_52_\u0e02_\u0e2d",
+      "phane_patterns_\u0e2a_\u0e32\u0e04_\u0e0d\u0e17_\u0e15_\u0e2d\u0e07\u0e17_\u0e32\u0e15\u0e32\u0e21",
+      "phane_phane_\u0e04_\u0e21_\u0e2d\u0e2a\u0e23_\u0e1b\u0e2a_\u0e32\u0e2b\u0e23_\u0e1a\u0e19_\u0e01\u0e1e_\u0e12\u0e19\u0e32\u0e41\u0e25\u0e30_ai_\u0e43\u0e19\u0e01\u0e32\u0e23\u0e15_\u0e2d\u0e22\u0e2d\u0e14\u0e23\u0e30\u0e1a\u0e1a_sams",
+      "phane_risk_score_0_10",
+      "phane_role_roadmap_\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32\u0e2a_\u0e17\u0e18_\u0e1c_\u0e43\u0e0a_\u0e07\u0e32\u0e19",
+      "phane_sdq_scoring_25_\u0e02_\u0e2d",
+      "phane_tech_stack_\u0e2a\u0e23_\u0e1b\u0e2a_\u0e19",
+      "phane_\u0e01\u0e0e\u0e2a_\u0e32\u0e04_\u0e0d\u0e17_\u0e15_\u0e2d\u0e07\u0e1b\u0e0f_\u0e1a_\u0e15_\u0e15\u0e32\u0e21",
+      "phane_\u0e01\u0e32\u0e23\u0e15_\u0e07\u0e04_\u0e32\u0e02_\u0e2d\u0e21_\u0e25\u0e40\u0e23_\u0e21\u0e15_\u0e19\u0e23\u0e30\u0e1a\u0e1a_initial_data_setup",
+      "phane_\u0e15_\u0e2d\u0e07\u0e17_\u0e32",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07_database_\u0e17_\u0e15_\u0e2d\u0e07\u0e23",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e14_\u0e41\u0e25\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e2a\u0e19_\u0e1a\u0e2a\u0e19_\u0e19",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e2b\u0e25_\u0e01",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e40\u0e0a_\u0e04\u0e0a_\u0e2d",
+      "phane_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e40\u0e22_\u0e22\u0e21\u0e1a_\u0e32\u0e19",
+      "phane_\u0e1b_\u0e0d\u0e2b\u0e32_\u0e41\u0e16\u0e1a\u0e40\u0e25_\u0e2d\u0e01_\u0e1b_\u0e01\u0e32\u0e23\u0e28_\u0e01\u0e29\u0e32_\u0e20\u0e32\u0e04\u0e40\u0e23_\u0e22\u0e19_\u0e02_\u0e19\u0e2a\u0e16\u0e32\u0e19\u0e30_\u0e01_\u0e32\u0e25_\u0e07\u0e42\u0e2b\u0e25\u0e14_\u0e41\u0e25\u0e30\u0e04\u0e25_\u0e01\u0e40\u0e25_\u0e2d\u0e01\u0e44\u0e21_\u0e44\u0e14",
+      "phane_\u0e1b\u0e23\u0e30\u0e27_\u0e15_\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32_development_log",
+      "phane_\u0e1f_\u0e40\u0e08\u0e2d\u0e23_\u0e17_\u0e1e\u0e23_\u0e2d\u0e21\u0e43\u0e0a_\u0e07\u0e32\u0e19\u0e41\u0e25_\u0e27\u0e43\u0e19\u0e1b_\u0e08\u0e08_\u0e1a_\u0e19",
+      "phane_\u0e23\u0e30\u0e1a\u0e1a\u0e19_\u0e04_\u0e2d\u0e2d\u0e30\u0e44\u0e23",
+      "phane_\u0e2a_\u0e15\u0e23\u0e04_\u0e32\u0e19\u0e27\u0e13\u0e2a_\u0e32\u0e04_\u0e0d",
+      "phane_\u0e2b_\u0e32\u0e21\u0e17_\u0e32",
+      "phane_\u0e41\u0e19\u0e27\u0e17\u0e32\u0e07\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32\u0e15_\u0e2d\u0e22\u0e2d\u0e14",
+      "phane_\u0e41\u0e1c\u0e19\u0e07\u0e32\u0e19\u0e02_\u0e19\u0e16_\u0e14\u0e44\u0e1b_phase_3",
+      "phane_\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23_\u0e32\u0e07\u0e44\u0e1f\u0e25_\u0e17_\u0e15_\u0e2d\u0e07\u0e23",
+      "phane_\u0e44\u0e1f\u0e25_\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23\u0e17_\u0e40\u0e01_\u0e22\u0e27\u0e02_\u0e2d\u0e07"
+    ],
+    "6": [
+      "pages_leaverequests",
+      "pages_parents",
+      "pages_parents_parents",
+      "pages_students",
+      "services_leaveservice",
+      "services_leaveservice_getleaverequests",
+      "services_leaveservice_submitleaverequest",
+      "services_leaveservice_updateleavestatus",
+      "services_parentservice",
+      "services_parentservice_assignparenttostudent",
+      "services_parentservice_createparent",
+      "services_parentservice_deleteparent",
+      "services_parentservice_getparents",
+      "services_parentservice_parent",
+      "services_studentgroupservice",
+      "services_studentgroupservice_addmembership",
+      "services_studentgroupservice_getallmemberships",
+      "services_studentgroupservice_getmembershipsbygroup",
+      "services_studentgroupservice_grouptype",
+      "services_studentgroupservice_removemembership",
+      "services_studentservice",
+      "services_studentservice_bulkcreatestudents",
+      "services_studentservice_createstudent",
+      "services_studentservice_deletestudent",
+      "services_studentservice_findstudentbycode",
+      "services_studentservice_getdeletedstudents",
+      "services_studentservice_getstudents",
+      "services_studentservice_harddeletestudent",
+      "services_studentservice_promoteclassroomstudents",
+      "services_studentservice_restorestudent",
+      "services_studentservice_student",
+      "services_studentservice_updatestudent"
+    ],
+    "7": [
       "homevisit_reportprintview",
       "homevisit_signaturepad",
       "homevisit_signaturepad_signaturepadprops",
@@ -198,7 +365,7 @@
       "homevisit_visitservice_updatehomevisit",
       "homevisit_visitservice_uploadvisitphoto"
     ],
-    "4": [
+    "8": [
       "pages_studentportfolio",
       "pages_studentportfolio_categories",
       "pages_studentportfolio_formatthaibeeinputdate",
@@ -215,7 +382,6 @@
       "services_portfolioservice_getstudentportfolios",
       "services_portfolioservice_portfolioitem",
       "services_portfolioservice_updateportfolioitem",
-      "studentsupport_behaviorservice",
       "studentsupport_behaviorservice_behaviorpoint",
       "studentsupport_student360",
       "studentsupport_student360_formatthaibeeinputdate",
@@ -231,63 +397,68 @@
       "studentsupport_student360_thaimonths",
       "studentsupport_student360_thaiweekdays"
     ],
-    "5": [
-      "package",
-      "package_devdependencies",
-      "package_devdependencies_autoprefixer",
-      "package_devdependencies_eslint",
-      "package_devdependencies_eslint_js",
-      "package_devdependencies_eslint_plugin_react_hooks",
-      "package_devdependencies_eslint_plugin_react_refresh",
-      "package_devdependencies_globals",
-      "package_devdependencies_postcss",
-      "package_devdependencies_tailwindcss",
-      "package_devdependencies_tailwindcss_vite",
-      "package_devdependencies_types_leaflet",
-      "package_devdependencies_types_node",
-      "package_devdependencies_types_react",
-      "package_devdependencies_typescript",
-      "package_devdependencies_typescript_eslint",
-      "package_devdependencies_vite",
-      "package_devdependencies_vite_plugin_pwa",
-      "package_devdependencies_vitejs_plugin_react",
-      "package_name",
-      "package_private",
-      "package_scripts",
-      "package_scripts_build",
-      "package_scripts_dev",
-      "package_scripts_lint",
-      "package_scripts_preview",
-      "package_type",
-      "package_version"
+    "9": [
+      "schoolv15",
+      "schoolv15_1_1_eqassessment_interface_v14_dimension_fields",
+      "schoolv15_1_2_calculateeqscore_\u0e40\u0e01\u0e13\u0e11_v14_139_168",
+      "schoolv15_1_3_recalculatealleqscores",
+      "schoolv15_1_4_getclassroomsdqdashboard",
+      "schoolv15_1_5_getclassroomscreeningprogress",
+      "schoolv15_2_1_helper_functions_module_level_\u0e44\u0e21_\u0e2d\u0e22_\u0e43\u0e19_component",
+      "schoolv15_2_2_\u0e15_\u0e27\u0e41\u0e1b\u0e23\u0e43\u0e19_component_\u0e2b\u0e25_\u0e07_profile_destructuring",
+      "schoolv15_2_3_sdq_eq_tab_4_sections",
+      "schoolv15_3_1_state_\u0e40\u0e1e_\u0e21\u0e40\u0e15_\u0e21",
+      "schoolv15_3_2_computed_variables_\u0e08\u0e32\u0e01_students_state_\u0e17_\u0e21_\u0e2d\u0e22_\u0e41\u0e25_\u0e27",
+      "schoolv15_3_3_v14_charts_row_5_column_grid",
+      "schoolv15_3_4_drill_down_interaction",
+      "schoolv15_phase_1_core_logic_service_layer_studentsupportservice_ts",
+      "schoolv15_phase_2_student360_tsx_sdq_eq_donut_charts_triangulation",
+      "schoolv15_phase_3_advisordashboard_tsx_classroom_charts",
+      "schoolv15_priority_1_\u0e1f_\u0e40\u0e08\u0e2d\u0e23_\u0e17_\u0e08_\u0e32\u0e40\u0e1b_\u0e19\u0e40\u0e23_\u0e07\u0e14_\u0e27\u0e19",
+      "schoolv15_priority_2_\u0e1f_\u0e40\u0e08\u0e2d\u0e23_\u0e40\u0e1e_\u0e21\u0e21_\u0e25\u0e04_\u0e32",
+      "schoolv15_sql_migration_\u0e17_\u0e15_\u0e2d\u0e07\u0e23_\u0e19\u0e1a\u0e19_supabase",
+      "schoolv15_v15_1_sdq_form_auto_sequential_flow_sdqform_tsx",
+      "schoolv15_v15_2_advisordashboard_sdq_screening_progress_widget",
+      "schoolv15_v15_3_student360_sdq_history_timeline",
+      "schoolv15_v15_4_eq_recalculate_button_admin_teacher_ui",
+      "schoolv15_v15_5_executive_dashboard_school_wide_overview",
+      "schoolv15_v15_6_case_management_auto_suggest_\u0e08\u0e32\u0e01_sdq_result",
+      "schoolv15_v15_7_pdf_export_\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19_triangulation",
+      "schoolv15_\u0e1e_\u0e21\u0e1e_\u0e40\u0e02_\u0e22\u0e27\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32\u0e23\u0e30\u0e1a\u0e1a\u0e14_\u0e41\u0e25\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d\u0e19_\u0e01\u0e40\u0e23_\u0e22\u0e19_student_support_system_sams_version_15",
+      "schoolv15_\u0e2a\u0e23_\u0e1b\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32_v14_completed",
+      "schoolv15_\u0e41\u0e1c\u0e19\u0e1e_\u0e12\u0e19\u0e32_v15_\u0e1f_\u0e40\u0e08\u0e2d\u0e23_\u0e17_\u0e22_\u0e07\u0e02\u0e32\u0e14",
+      "schoolv15_\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23_\u0e32\u0e07\u0e44\u0e1f\u0e25_\u0e17_\u0e41\u0e01_\u0e44\u0e02\u0e43\u0e19_v14"
     ],
-    "6": [
-      "pages_leaverequests",
-      "pages_students",
-      "services_leaveservice",
-      "services_leaveservice_getleaverequests",
-      "services_leaveservice_submitleaverequest",
-      "services_leaveservice_updateleavestatus",
-      "services_studentgroupservice",
-      "services_studentgroupservice_addmembership",
-      "services_studentgroupservice_getallmemberships",
-      "services_studentgroupservice_getmembershipsbygroup",
-      "services_studentgroupservice_grouptype",
-      "services_studentgroupservice_removemembership",
-      "services_studentservice",
-      "services_studentservice_bulkcreatestudents",
-      "services_studentservice_createstudent",
-      "services_studentservice_deletestudent",
-      "services_studentservice_findstudentbycode",
-      "services_studentservice_getdeletedstudents",
-      "services_studentservice_getstudents",
-      "services_studentservice_harddeletestudent",
-      "services_studentservice_promoteclassroomstudents",
-      "services_studentservice_restorestudent",
-      "services_studentservice_student",
-      "services_studentservice_updatestudent"
+    "10": [
+      "\u0e41\u0e1c\u0e19",
+      "\u0e41\u0e1c\u0e19_10_\u0e15\u0e32\u0e23\u0e32\u0e07_public_attendance",
+      "\u0e41\u0e1c\u0e19_11_\u0e15\u0e32\u0e23\u0e32\u0e07_public_homeroom_attendance",
+      "\u0e41\u0e1c\u0e19_12_\u0e15\u0e32\u0e23\u0e32\u0e07_public_leave_requests",
+      "\u0e41\u0e1c\u0e19_13_\u0e15\u0e32\u0e23\u0e32\u0e07_public_home_visits_\u0e41\u0e25\u0e30\u0e15\u0e32\u0e23\u0e32\u0e07\u0e1e_\u0e27\u0e07_home_visit_assessments_home_visit_photos",
+      "\u0e41\u0e1c\u0e19_14_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e04_\u0e14\u0e01\u0e23\u0e2d\u0e07\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d_student_support_sdq_student_support_eq_student_support_risk_analysis",
+      "\u0e41\u0e1c\u0e19_15_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e1a\u0e23_\u0e2b\u0e32\u0e23\u0e04\u0e27\u0e32\u0e21\u0e2a_\u0e21\u0e1e_\u0e19\u0e18_\u0e41\u0e25\u0e30\u0e2a\u0e21\u0e32\u0e0a_\u0e01\u0e22_\u0e2d\u0e22_student_group_memberships_activity_groups_activity_group_members_notifications",
+      "\u0e41\u0e1c\u0e19_16_\u0e1b\u0e23_\u0e1a\u0e40\u0e1b\u0e25_\u0e22\u0e19\u0e04_\u0e13\u0e2a\u0e21\u0e1a_\u0e15_\u0e02\u0e2d\u0e07\u0e27_\u0e27_public_active_students",
+      "\u0e41\u0e1c\u0e19_1_\u0e15\u0e32\u0e23\u0e32\u0e07_public_audit_logs",
+      "\u0e41\u0e1c\u0e19_2_\u0e15\u0e32\u0e23\u0e32\u0e07_public_users",
+      "\u0e41\u0e1c\u0e19_3_\u0e15\u0e32\u0e23\u0e32\u0e07_public_teachers",
+      "\u0e41\u0e1c\u0e19_4_\u0e15\u0e32\u0e23\u0e32\u0e07_public_classrooms",
+      "\u0e41\u0e1c\u0e19_5_\u0e15\u0e32\u0e23\u0e32\u0e07_public_students",
+      "\u0e41\u0e1c\u0e19_6_\u0e15\u0e32\u0e23\u0e32\u0e07_public_parents",
+      "\u0e41\u0e1c\u0e19_7_\u0e15\u0e32\u0e23\u0e32\u0e07_public_schedules",
+      "\u0e41\u0e1c\u0e19_8_\u0e15\u0e32\u0e23\u0e32\u0e07_public_subjects",
+      "\u0e41\u0e1c\u0e19_9_\u0e15\u0e32\u0e23\u0e32\u0e07_public_attendance_sessions",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_1_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e1a_\u0e19\u0e17_\u0e01\u0e01_\u0e08\u0e01\u0e23\u0e23\u0e21\u0e41\u0e25\u0e30\u0e27_\u0e40\u0e04\u0e23\u0e32\u0e30\u0e2b_\u0e23\u0e30\u0e1a\u0e1a_audit_logs_analytics",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_2_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e02_\u0e2d\u0e21_\u0e25\u0e1c_\u0e43\u0e0a_\u0e41\u0e25\u0e30\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23_\u0e32\u0e07\u0e1a_\u0e04\u0e25\u0e32\u0e01\u0e23_users_teachers",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_3_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23_\u0e32\u0e07\u0e2b_\u0e2d\u0e07\u0e40\u0e23_\u0e22\u0e19\u0e41\u0e25\u0e30\u0e23\u0e32\u0e22\u0e0a_\u0e2d\u0e19_\u0e01\u0e40\u0e23_\u0e22\u0e19_classrooms_students",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_4_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e40\u0e0a_\u0e04\u0e0a_\u0e2d\u0e40\u0e02_\u0e32\u0e41\u0e16\u0e27_\u0e23\u0e32\u0e22\u0e27_\u0e0a\u0e32_\u0e41\u0e25\u0e30\u0e01\u0e32\u0e23\u0e25\u0e32_attendance_schedules",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_5_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e40\u0e22_\u0e22\u0e21\u0e1a_\u0e32\u0e19\u0e41\u0e25\u0e30\u0e14_\u0e41\u0e25\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d_home_visit_student_support",
+      "\u0e41\u0e1c\u0e19_\u0e01\u0e25_\u0e21\u0e17_6_\u0e01\u0e32\u0e23\u0e1b\u0e23_\u0e1a\u0e1b\u0e23_\u0e07_sql_view_\u0e17_\u0e21_\u0e04\u0e27\u0e32\u0e21\u0e40\u0e2a_\u0e22\u0e07\u0e14_\u0e32\u0e19\u0e04\u0e27\u0e32\u0e21\u0e1b\u0e25\u0e2d\u0e14\u0e20_\u0e22",
+      "\u0e41\u0e1c\u0e19_\u0e02_\u0e19\u0e15\u0e2d\u0e19\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19\u0e43\u0e19\u0e01\u0e32\u0e23\u0e08_\u0e14\u0e01\u0e32\u0e23\u0e41\u0e15_\u0e25\u0e30\u0e15\u0e32\u0e23\u0e32\u0e07_standard_operating_procedure",
+      "\u0e41\u0e1c\u0e19_\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e15\u0e32\u0e23\u0e32\u0e07_table_by_table_checklist",
+      "\u0e41\u0e1c\u0e19_\u0e25_\u0e32\u0e14_\u0e1a\u0e02_\u0e19\u0e15\u0e2d\u0e19\u0e01\u0e32\u0e23\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e04\u0e27\u0e32\u0e21\u0e1b\u0e25\u0e2d\u0e14\u0e20_\u0e22\u0e02\u0e2d\u0e07\u0e23\u0e30\u0e1a\u0e1a\u0e42\u0e14\u0e22\u0e2a\u0e23_\u0e1b_full_security_checklist",
+      "\u0e41\u0e1c\u0e19_\u0e41\u0e1c\u0e19\u0e01\u0e32\u0e23\u0e40\u0e1b_\u0e14\u0e43\u0e0a_\u0e07\u0e32\u0e19_rls_\u0e41\u0e25\u0e30\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e04\u0e27\u0e32\u0e21\u0e1b\u0e25\u0e2d\u0e14\u0e20_\u0e22\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e15\u0e32\u0e23\u0e32\u0e07_database_rls_security_verification_plan"
     ],
-    "7": [
+    "11": [
       "pages_homeroom",
       "pages_homeroom_classroomcardpalettes",
       "pages_homeroom_formatinputdate",
@@ -309,28 +480,7 @@
       "services_homeroomservice_homeroomclassroomsummary",
       "services_homeroomservice_savehomeroomattendance"
     ],
-    "8": [
-      "pages_academicyears",
-      "pages_academicyears_formatthaibeeinputdate",
-      "pages_academicyears_getdaysinmonth",
-      "pages_academicyears_pad",
-      "pages_academicyears_parsethaibeinputdate",
-      "pages_academicyears_thaidatepicker",
-      "pages_academicyears_thaimonths",
-      "pages_academicyears_thaiweekdays",
-      "services_academicyearservice",
-      "services_academicyearservice_createacademicyear",
-      "services_academicyearservice_deleteacademicyear",
-      "services_academicyearservice_getacademicyears",
-      "services_academicyearservice_getactiveacademicyear",
-      "services_academicyearservice_semester",
-      "services_academicyearservice_setactivesemester",
-      "services_academicyearservice_setactiveyear",
-      "services_academicyearservice_updateacademicyear",
-      "services_academicyearservice_updatesemester",
-      "store_authstore_useauth"
-    ],
-    "9": [
+    "12": [
       "tsconfig_app",
       "tsconfig_app_compileroptions",
       "tsconfig_app_compileroptions_allowimportingtsextensions",
@@ -351,7 +501,27 @@
       "tsconfig_app_compileroptions_verbatimmodulesyntax",
       "tsconfig_app_include"
     ],
-    "10": [
+    "13": [
+      "pages_academicyears",
+      "pages_academicyears_formatthaibeeinputdate",
+      "pages_academicyears_getdaysinmonth",
+      "pages_academicyears_pad",
+      "pages_academicyears_parsethaibeinputdate",
+      "pages_academicyears_thaidatepicker",
+      "pages_academicyears_thaimonths",
+      "pages_academicyears_thaiweekdays",
+      "services_academicyearservice",
+      "services_academicyearservice_createacademicyear",
+      "services_academicyearservice_deleteacademicyear",
+      "services_academicyearservice_getacademicyears",
+      "services_academicyearservice_getactiveacademicyear",
+      "services_academicyearservice_semester",
+      "services_academicyearservice_setactivesemester",
+      "services_academicyearservice_setactiveyear",
+      "services_academicyearservice_updateacademicyear",
+      "services_academicyearservice_updatesemester"
+    ],
+    "14": [
       "tsconfig_node",
       "tsconfig_node_compileroptions",
       "tsconfig_node_compileroptions_allowimportingtsextensions",
@@ -371,26 +541,26 @@
       "tsconfig_node_compileroptions_verbatimmodulesyntax",
       "tsconfig_node_include"
     ],
-    "11": [
-      "package_dependencies",
-      "package_dependencies_html2canvas",
-      "package_dependencies_html5_qrcode",
-      "package_dependencies_html_to_image",
-      "package_dependencies_leaflet",
-      "package_dependencies_lottie_react",
-      "package_dependencies_lucide_react",
-      "package_dependencies_qrcode_react",
-      "package_dependencies_react",
-      "package_dependencies_react_dom",
-      "package_dependencies_react_leaflet",
-      "package_dependencies_react_router_dom",
-      "package_dependencies_recharts",
-      "package_dependencies_supabase_supabase_js",
-      "package_dependencies_tanstack_react_query",
-      "package_dependencies_xlsx",
-      "package_dependencies_zustand"
+    "15": [
+      "readme",
+      "readme_1_prerequisites_\u0e2a_\u0e07\u0e17_\u0e15_\u0e2d\u0e07\u0e21",
+      "readme_2_installation_\u0e01\u0e32\u0e23\u0e15_\u0e14\u0e15_\u0e07",
+      "readme_3_environment_variables_\u0e01\u0e32\u0e23\u0e15_\u0e07\u0e04_\u0e32\u0e15_\u0e27\u0e41\u0e1b\u0e23\u0e41\u0e27\u0e14\u0e25_\u0e2d\u0e21",
+      "readme_4_running_the_application_\u0e01\u0e32\u0e23\u0e23_\u0e19\u0e23\u0e30\u0e1a\u0e1a",
+      "readme_credits",
+      "readme_school_attendance_management_system_sams",
+      "readme_terms_of_use_\u0e40\u0e07_\u0e2d\u0e19\u0e44\u0e02\u0e40\u0e09\u0e1e\u0e32\u0e30",
+      "readme_\u0e01\u0e32\u0e23\u0e15_\u0e07\u0e04_\u0e32\u0e23\u0e30\u0e1a\u0e1a\u0e2b\u0e25_\u0e07\u0e1a_\u0e32\u0e19\u0e40\u0e1e_\u0e21\u0e40\u0e15_\u0e21_configuration_deployment",
+      "readme_\u0e02_\u0e19\u0e15\u0e2d\u0e19\u0e01\u0e32\u0e23\u0e40\u0e23_\u0e21\u0e43\u0e0a_\u0e07\u0e32\u0e19_getting_started",
+      "readme_\u0e04_\u0e13\u0e2a\u0e21\u0e1a_\u0e15_\u0e40\u0e14_\u0e19\u0e02\u0e2d\u0e07\u0e23\u0e30\u0e1a\u0e1a_key_features",
+      "readme_\u0e1c_\u0e1e_\u0e12\u0e19\u0e32\u0e41\u0e25\u0e30\u0e40\u0e07_\u0e2d\u0e19\u0e44\u0e02\u0e2a_\u0e17\u0e18_\u0e01\u0e32\u0e23\u0e43\u0e0a_\u0e07\u0e32\u0e19_credits_terms_of_use",
+      "readme_\u0e23\u0e30\u0e1a\u0e1a\u0e08_\u0e14\u0e01\u0e32\u0e23\u0e41\u0e25\u0e30\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19_management_reports",
+      "readme_\u0e23\u0e30\u0e1a\u0e1a\u0e1a_\u0e19\u0e17_\u0e01\u0e40\u0e27\u0e25\u0e32\u0e40\u0e23_\u0e22\u0e19\u0e41\u0e25\u0e30\u0e40\u0e02_\u0e32\u0e41\u0e16\u0e27_attendance_homeroom",
+      "readme_\u0e2b\u0e19_\u0e32\u0e41\u0e2a\u0e14\u0e07\u0e1c\u0e25\u0e41\u0e25\u0e30\u0e2a\u0e23_\u0e1b_executive_dashboard",
+      "readme_\u0e40\u0e17\u0e04\u0e42\u0e19\u0e42\u0e25\u0e22_\u0e17_\u0e43\u0e0a_tech_stack",
+      "readme_\u0e42\u0e04\u0e23\u0e07\u0e2a\u0e23_\u0e32\u0e07\u0e02\u0e2d\u0e07\u0e42\u0e1b\u0e23\u0e40\u0e08\u0e01\u0e15_project_structure"
     ],
-    "12": [
+    "16": [
       "pages_attendance",
       "pages_attendance_attendance_calendar_themes",
       "pages_attendance_days",
@@ -402,11 +572,12 @@
       "pages_attendance_parseinputdate",
       "pages_attendance_thaimonths",
       "pages_attendance_thaiweekdays",
+      "pages_subjects_subjectcardpalettes",
       "services_attendanceservice",
       "services_attendanceservice_getstudentsforschedule",
       "services_attendanceservice_saveclassroomattendance"
     ],
-    "13": [
+    "17": [
       "pages_settings",
       "pages_settings_applythemevars",
       "pages_settings_gradientthemes",
@@ -422,7 +593,21 @@
       "services_userservice_getusers",
       "services_userservice_updateuserrole"
     ],
-    "14": [
+    "18": [
+      "implementation_plan",
+      "implementation_plan_1_\u0e1b\u0e23_\u0e1a\u0e1b\u0e23_\u0e07\u0e10\u0e32\u0e19\u0e02_\u0e2d\u0e21_\u0e25_supabase_sql",
+      "implementation_plan_2_\u0e1b\u0e23_\u0e1a\u0e1b\u0e23_\u0e07\u0e23\u0e30\u0e14_\u0e1a\u0e2a_\u0e17\u0e18_\u0e1d_\u0e07_react_authstore_ts",
+      "implementation_plan_3_\u0e1b\u0e23_\u0e1a\u0e1b\u0e23_\u0e07\u0e23\u0e30\u0e14_\u0e1a_service_userservice_ts",
+      "implementation_plan_4_\u0e1b\u0e23_\u0e1a\u0e1b\u0e23_\u0e07\u0e2b\u0e19_\u0e32_ui_\u0e15_\u0e07\u0e04_\u0e32\u0e1c_\u0e43\u0e0a_\u0e07\u0e32\u0e19_settings_tsx",
+      "implementation_plan_modify_authstore_ts_file_d_sams_school_system_main_frontend_src_store_authstore_ts",
+      "implementation_plan_modify_settings_tsx_file_d_sams_school_system_main_frontend_src_pages_settings_tsx",
+      "implementation_plan_modify_userservice_ts_file_d_sams_school_system_main_frontend_src_services_userservice_ts",
+      "implementation_plan_\u0e01\u0e32\u0e23\u0e17\u0e14\u0e2a\u0e2d\u0e1a\u0e14_\u0e27\u0e22\u0e15\u0e19\u0e40\u0e2d\u0e07_manual_verification",
+      "implementation_plan_\u0e02_\u0e19\u0e15\u0e2d\u0e19\u0e41\u0e25\u0e30\u0e2a_\u0e07\u0e17_\u0e15_\u0e2d\u0e07\u0e14_\u0e32\u0e40\u0e19_\u0e19\u0e01\u0e32\u0e23",
+      "implementation_plan_\u0e41\u0e1c\u0e19\u0e01\u0e32\u0e23\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e41\u0e25\u0e30\u0e17\u0e14\u0e2a\u0e2d\u0e1a_verification_plan",
+      "implementation_plan_\u0e41\u0e1c\u0e19\u0e01\u0e32\u0e23\u0e1e_\u0e12\u0e19\u0e32_\u0e23\u0e30\u0e1a\u0e1a\u0e2a_\u0e17\u0e18_\u0e1c_\u0e14_\u0e41\u0e25\u0e23\u0e30\u0e1a\u0e1a\u0e40\u0e2a\u0e23_\u0e21_is_admin_allowed_\u0e2a_\u0e32\u0e2b\u0e23_\u0e1a\u0e1a\u0e17\u0e1a\u0e32\u0e17\u0e04\u0e23"
+    ],
+    "19": [
       "pages_teacherdashboard",
       "services_teacherdashboardservice",
       "services_teacherdashboardservice_getteacherbyuserid",
@@ -434,77 +619,131 @@
       "services_teacherdashboardservice_getteachersubjectattendancetoday",
       "services_teacherdashboardservice_teacherprofile"
     ],
-    "15": [
-      "pages_parents",
-      "pages_parents_parents",
-      "services_parentservice",
-      "services_parentservice_assignparenttostudent",
-      "services_parentservice_createparent",
-      "services_parentservice_deleteparent",
-      "services_parentservice_getparents",
-      "services_parentservice_parent"
+    "20": [
+      "rls_checklist_\u0e17\u0e14\u0e2a\u0e2d\u0e1a\u0e23\u0e32\u0e22\u0e40\u0e1f\u0e2a",
+      "rls_checklist_\u0e17\u0e14\u0e2a\u0e2d\u0e1a\u0e2b\u0e25_\u0e07\u0e40\u0e1b_\u0e14_rls",
+      "rls_phase_0",
+      "rls_phase_1_master_data",
+      "rls_phase_2_\u0e1a_\u0e04\u0e25\u0e32\u0e01\u0e23",
+      "rls_phase_3_\u0e19_\u0e01\u0e40\u0e23_\u0e22\u0e19",
+      "rls_phase_4_\u0e40\u0e0a_\u0e04\u0e0a_\u0e2d_\u0e25\u0e32_\u0e40\u0e22_\u0e22\u0e21\u0e1a_\u0e32\u0e19",
+      "rls_phase_5_\u0e14_\u0e41\u0e25\u0e0a_\u0e27\u0e22\u0e40\u0e2b\u0e25_\u0e2d",
+      "rls_phase_6_audit_notification",
+      "rls_\u0e27_\u0e18_\u0e01\u0e32\u0e23_rollback_\u0e09_\u0e01\u0e40\u0e09_\u0e19_\u0e16_\u0e32\u0e1e_\u0e07"
     ],
-    "16": [
-      "pages_parentdashboard",
-      "services_parentdashboardservice",
-      "services_parentdashboardservice_getparentstudents",
-      "services_parentdashboardservice_getstudentattendancesummary",
-      "services_parentdashboardservice_getstudenthomevisitinfo",
-      "services_parentdashboardservice_getstudentleavehistory",
-      "services_parentdashboardservice_getstudentsupportsummary"
+    "21": [
+      "changelog_md",
+      "dashboard_tsx",
+      "lottie_background",
+      "portal_tsx",
+      "smart_school_platform",
+      "supabase_classrooms",
+      "supabase_service",
+      "supabase_students",
+      "supabase_teachers"
     ],
-    "17": [
+    "22": [
+      "services_activityservice",
+      "services_activityservice_activitygroup",
+      "services_activityservice_addstudenttoactivity",
+      "services_activityservice_getactivitygroups",
+      "services_activityservice_getactivitymembers",
+      "services_activityservice_removestudentfromactivity"
+    ],
+    "23": [
+      "favicon_svg",
+      "index_html",
+      "index_sams",
+      "src_main",
+      "src_main_queryclient"
+    ],
+    "24": [
+      "services_notificationservice",
+      "services_notificationservice_createnotification",
+      "services_notificationservice_notifyabsence",
+      "services_notificationservice_notifyleaveapproved",
+      "services_notificationservice_sendexternalnotification"
+    ],
+    "25": [
       "get_admin_email",
       "get_admin_email_getteachers",
       "get_admin_email_supabase"
     ],
-    "18": [
+    "26": [
       "tsconfig",
       "tsconfig_files",
       "tsconfig_references"
     ],
-    "19": [
+    "27": [
       "vercel",
       "vercel_rewrites"
     ],
-    "20": [
+    "28": [
       "eslint_config"
     ],
-    "21": [
+    "29": [
+      "hero_image"
+    ],
+    "30": [
+      "pwa_192_image"
+    ],
+    "31": [
       "pwa_512_icon"
     ],
-    "22": [
+    "32": [
       "school_logo_logo"
     ],
-    "23": [
+    "33": [
+      "security_advisor"
+    ],
+    "34": [
       "vite_config"
+    ],
+    "35": [
+      "\u0e04_\u0e32\u0e2a_\u0e07"
+    ],
+    "36": [
+      "\u0e25_\u0e32\u0e14_\u0e1a\u0e01\u0e32\u0e23\u0e25\u0e1a\u0e02_\u0e2d\u0e21_\u0e25_\u0e08\u0e32\u0e01\u0e15_\u0e19\u0e17\u0e32\u0e07\u0e44\u0e1b\u0e1b\u0e25\u0e32\u0e22\u0e17\u0e32\u0e07"
     ]
   },
   "cohesion": {
-    "0": 0.06394230769230769,
-    "1": 0.0653061224489796,
-    "2": 0.07751937984496124,
-    "3": 0.10483870967741936,
-    "4": 0.0967741935483871,
-    "5": 0.07142857142857142,
-    "6": 0.14855072463768115,
-    "7": 0.15263157894736842,
-    "8": 0.17543859649122806,
-    "9": 0.10526315789473684,
-    "10": 0.1111111111111111,
-    "11": 0.11764705882352941,
-    "12": 0.17582417582417584,
-    "13": 0.18681318681318682,
-    "14": 0.3333333333333333,
-    "15": 0.39285714285714285,
-    "16": 0.5238095238095238,
-    "17": 0.6666666666666666,
-    "18": 0.6666666666666666,
-    "19": 1.0,
-    "20": 1.0,
-    "21": 1.0,
-    "22": 1.0,
-    "23": 1.0
+    "0": 0.07067307692307692,
+    "1": 0.045068027210884355,
+    "2": 0.06826241134751773,
+    "3": 0.044444444444444446,
+    "4": 0.07751937984496124,
+    "5": 0.05405405405405406,
+    "6": 0.10887096774193548,
+    "7": 0.1103448275862069,
+    "8": 0.09885057471264368,
+    "9": 0.06666666666666667,
+    "10": 0.07407407407407407,
+    "11": 0.15263157894736842,
+    "12": 0.10526315789473684,
+    "13": 0.1895424836601307,
+    "14": 0.1111111111111111,
+    "15": 0.11764705882352941,
+    "16": 0.1619047619047619,
+    "17": 0.18681318681318682,
+    "18": 0.16666666666666666,
+    "19": 0.3333333333333333,
+    "20": 0.2,
+    "21": 0.2222222222222222,
+    "22": 0.3333333333333333,
+    "23": 0.4,
+    "24": 0.4,
+    "25": 0.6666666666666666,
+    "26": 0.6666666666666666,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0
   },
   "gods": [
     {
@@ -516,6 +755,11 @@
       "id": "store_academicyearstore_useacademicyearstore",
       "label": "useAcademicYearStore",
       "degree": 31
+    },
+    {
+      "id": "rls_\u0e15\u0e32\u0e23\u0e32\u0e07\u0e17_\u0e40\u0e01_\u0e22\u0e27\u0e02_\u0e2d\u0e07",
+      "label": "\u0e15\u0e32\u0e23\u0e32\u0e07\u0e17\u0e35\u0e48\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e02\u0e49\u0e2d\u0e07",
+      "degree": 30
     },
     {
       "id": "store_authstore_useauthstore",
@@ -533,6 +777,16 @@
       "degree": 16
     },
     {
+      "id": "phane_phane_\u0e04_\u0e21_\u0e2d\u0e2a\u0e23_\u0e1b\u0e2a_\u0e32\u0e2b\u0e23_\u0e1a\u0e19_\u0e01\u0e1e_\u0e12\u0e19\u0e32\u0e41\u0e25\u0e30_ai_\u0e43\u0e19\u0e01\u0e32\u0e23\u0e15_\u0e2d\u0e22\u0e2d\u0e14\u0e23\u0e30\u0e1a\u0e1a_sams",
+      "label": "Phane \u2014 \u0e04\u0e39\u0e48\u0e21\u0e37\u0e2d\u0e2a\u0e23\u0e38\u0e1b\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e19\u0e31\u0e01\u0e1e\u0e31\u0e12\u0e19\u0e32\u0e41\u0e25\u0e30 AI \u0e43\u0e19\u0e01\u0e32\u0e23\u0e15\u0e48\u0e2d\u0e22\u0e2d\u0e14\u0e23\u0e30\u0e1a\u0e1a SAMS",
+      "degree": 14
+    },
+    {
+      "id": "rls_\u0e41\u0e1c\u0e19\u0e40\u0e1b_\u0e14\u0e43\u0e0a_\u0e07\u0e32\u0e19_row_level_security_rls_\u0e23\u0e30\u0e1a\u0e1a_sams",
+      "label": "\ud83d\udd10 \u0e41\u0e1c\u0e19\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19 Row Level Security (RLS) \u2014 \u0e23\u0e30\u0e1a\u0e1a SAMS",
+      "degree": 13
+    },
+    {
       "id": "studentsupport_student360_student360",
       "label": "Student360()",
       "degree": 8
@@ -541,24 +795,31 @@
       "id": "services_dashboardservice_getstartdate",
       "label": "getStartDate()",
       "degree": 8
-    },
-    {
-      "id": "pages_classrooms_classrooms",
-      "label": "Classrooms()",
-      "degree": 6
-    },
-    {
-      "id": "pages_homeroom_homeroom",
-      "label": "Homeroom()",
-      "degree": 6
-    },
-    {
-      "id": "package_scripts",
-      "label": "scripts",
-      "degree": 5
     }
   ],
   "surprises": [
+    {
+      "source": "Changelog - Smart School Platform",
+      "target": "Dashboard Component",
+      "source_files": [
+        "CHANGELOG.md",
+        "frontend/src/pages/Dashboard.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "crosses file types (doc \u2194 code); connects across different repos/directories"
+    },
+    {
+      "source": "Changelog - Smart School Platform",
+      "target": "Portal Component",
+      "source_files": [
+        "CHANGELOG.md",
+        "frontend/src/pages/portal/Portal.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "crosses file types (doc \u2194 code); connects across different repos/directories"
+    },
     {
       "source": "Dashboard()",
       "target": "useAcademicYearStore",
@@ -591,32 +852,10 @@
       "confidence": "EXTRACTED",
       "relation": "calls",
       "why": "bridges separate communities; peripheral node `Settings()` unexpectedly reaches hub `useAuthStore`"
-    },
-    {
-      "source": "Subjects()",
-      "target": "useAcademicYearStore",
-      "source_files": [
-        "src/pages/Subjects.tsx",
-        "src/store/academicYearStore.ts"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "bridges separate communities; peripheral node `Subjects()` unexpectedly reaches hub `useAcademicYearStore`"
-    },
-    {
-      "source": "HomeVisitDashboard()",
-      "target": "useAuthStore",
-      "source_files": [
-        "src/pages/homevisit/Dashboard.tsx",
-        "src/store/authStore.ts"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "bridges separate communities; peripheral node `HomeVisitDashboard()` unexpectedly reaches hub `useAuthStore`"
     }
   ],
   "tokens": {
-    "input": 26015,
-    "output": 4532
+    "input": 17310,
+    "output": 8793
   }
 }

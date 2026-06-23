@@ -2,6 +2,8 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Prompt", sans-serif;
   --font-sarabun: "Sarabun", sans-serif;
