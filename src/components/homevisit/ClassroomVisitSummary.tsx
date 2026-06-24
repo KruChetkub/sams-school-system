@@ -417,7 +417,11 @@ export default function ClassroomVisitSummary() {
             <span style={{ minWidth: 32, flexShrink: 0 }}>5.</span>
             <div style={{ flex: 1 }}>
               สาเหตุที่ไม่ได้ออกเยี่ยมบ้าน
-              <BlankLines count={2} />
+              {descFields.notVisitedReason ? (
+                <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22, marginTop: 2 }}>{descFields.notVisitedReason}</div>
+              ) : (
+                <BlankLines count={2} />
+              )}
             </div>
           </div>
 
@@ -482,27 +486,47 @@ export default function ClassroomVisitSummary() {
           {/* Items 23–27 */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 15, marginBottom: 4 }}>23. หน่วยงาน/สหวิชาชีพ/องค์กร ที่ร่วมเยี่ยมบ้าน</div>
-            <BlankLines count={2} />
+            {descFields.jointAgencies ? (
+              <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22 }}>{descFields.jointAgencies}</div>
+            ) : (
+              <BlankLines count={2} />
+            )}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 15, marginBottom: 4 }}>24. นำข้อมูลเยี่ยมบ้านนักเรียนไปใช้ประโยชน์อย่างไร</div>
-            <BlankLines count={3} />
+            {descFields.dataUtilization ? (
+              <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22 }}>{descFields.dataUtilization}</div>
+            ) : (
+              <BlankLines count={3} />
+            )}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 15, marginBottom: 4 }}>25. ข้อห่วงใยของผู้ปกครองที่มีต่อนักเรียน</div>
-            <BlankLines count={3} />
+            {descFields.parentConcerns ? (
+              <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22 }}>{descFields.parentConcerns}</div>
+            ) : (
+              <BlankLines count={3} />
+            )}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 15, marginBottom: 4 }}>26. ปัญหา/อุปสรรค</div>
-            <BlankLines count={3} />
+            {descFields.obstacles ? (
+              <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22 }}>{descFields.obstacles}</div>
+            ) : (
+              <BlankLines count={3} />
+            )}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 15, marginBottom: 4 }}>27. ความคิดเห็นและข้อเสนอแนะ</div>
-            <BlankLines count={3} />
+            {descFields.suggestions ? (
+              <div style={{ fontSize: 15, padding: '2px 0', whiteSpace: 'pre-wrap', borderBottom: '1px dotted #555', minHeight: 22 }}>{descFields.suggestions}</div>
+            ) : (
+              <BlankLines count={3} />
+            )}
           </div>
 
           {/* Signatures */}
