@@ -631,6 +631,7 @@ export default function VisitForm() {
         const visit = await createHomeVisit({
           student_id: studentId,
           teacher_id: user.id,
+          academic_year_id: selectedYear?.id || undefined,
           visit_date: formattedDate,
           status: 'COMPLETED',
           latitude: latitude || undefined,

@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
-import { Home, Users, LayoutDashboard, Menu, X, ArrowLeft, LogOut, Globe, Sun, Moon } from 'lucide-react'
+import { Home, Users, LayoutDashboard, Menu, X, ArrowLeft, LogOut, Globe, Sun, Moon, FileSpreadsheet, FileText } from 'lucide-react'
 
 const translations = {
   th: {
     title: 'ระบบเยี่ยมบ้าน',
     dashboard: 'ภาพรวม (Dashboard)',
     students: 'รายชื่อนักเรียน',
+    analysis: 'วิเคราะห์สรุปการเยี่ยมบ้าน (Excel)',
+    summary: 'สรุปการเยี่ยมบ้านนักเรียน (Word)',
     switchApp: 'สลับแอปพลิเคชัน',
     logout: 'ออกจากระบบ',
     admin: 'แอดมิน',
@@ -18,6 +20,8 @@ const translations = {
     title: 'Home Visit System',
     dashboard: 'Dashboard Overview',
     students: 'Student Roster',
+    analysis: 'Home Visit Analysis (Excel)',
+    summary: 'Home Visit Summary (Word)',
     switchApp: 'Switch Application',
     logout: 'Sign Out',
     admin: 'Admin',
@@ -139,6 +143,8 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <NavItem to="/homevisit/dashboard" icon={LayoutDashboard} onClick={closeSidebar}>{t.dashboard}</NavItem>
           <NavItem to="/homevisit/students" icon={Users} onClick={closeSidebar}>{t.students}</NavItem>
+          <NavItem to="/homevisit/analysis" icon={FileSpreadsheet} onClick={closeSidebar}>{t.analysis}</NavItem>
+          <NavItem to="/homevisit/summary" icon={FileText} onClick={closeSidebar}>{t.summary}</NavItem>
         </nav>
 
         <div className="p-5 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-950/20">

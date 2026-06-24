@@ -24,6 +24,8 @@ import HomeVisitDashboard from './pages/homevisit/Dashboard'
 import HomeVisitStudents from './pages/homevisit/StudentsList'
 import HomeVisitForm from './pages/homevisit/VisitForm'
 import HomeVisitLayout from './components/homevisit/HomeVisitLayout'
+import ClassroomVisitAnalysis from './components/homevisit/ClassroomVisitAnalysis'
+import ClassroomVisitSummary from './components/homevisit/ClassroomVisitSummary'
 
 // Student Support System (SAMS v13)
 import StudentSupportPortal from './pages/studentsupport/index'
@@ -175,9 +177,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     setSelectedSemester
   } = useAcademicYearStore()
 
-  useEffect(() => {
-    initializeStore()
-  }, [initializeStore])
 
   const handleYearChange = (yearId: string) => {
     setSelectedYear(yearId)
@@ -450,6 +449,11 @@ const RootDashboard = () => {
 
 function App() {
   const { user, role, setUser, fetchRole, isLoading } = useAuthStore()
+  const { initializeStore } = useAcademicYearStore()
+
+  useEffect(() => {
+    initializeStore()
+  }, [initializeStore])
 
   useEffect(() => {
     let isMounted = true
@@ -543,6 +547,8 @@ function App() {
         <Route path="/homevisit/dashboard" element={user ? <HomeVisitLayout><HomeVisitDashboard /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/students" element={user ? <HomeVisitLayout><HomeVisitStudents /></HomeVisitLayout> : <Navigate to="/login" />} />
         <Route path="/homevisit/visit/:studentId" element={user ? <HomeVisitLayout><HomeVisitForm /></HomeVisitLayout> : <Navigate to="/login" />} />
+        <Route path="/homevisit/analysis" element={user ? <HomeVisitLayout><ClassroomVisitAnalysis /></HomeVisitLayout> : <Navigate to="/login" />} />
+        <Route path="/homevisit/summary" element={user ? <HomeVisitLayout><ClassroomVisitSummary /></HomeVisitLayout> : <Navigate to="/login" />} />
 
         {/* Student Support System (SAMS v13) */}
         <Route path="/studentsupport" element={user ? <StudentSupportLayout><StudentSupportPortal /></StudentSupportLayout> : <Navigate to="/login" />} />
