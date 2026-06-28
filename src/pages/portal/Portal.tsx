@@ -490,7 +490,7 @@ const Portal = () => {
         {/* Footer */}
         <footer className="w-full py-6 mt-auto flex flex-col items-center gap-4 border-t border-slate-200/30 dark:border-slate-800/30 z-10">
           <p className="text-[10px] md:text-xs font-semibold text-slate-400 dark:text-slate-500 text-center mt-2 leading-none">
-            © {new Date().getFullYear()} School Portal Ckw. All rights reserved. Powered by Pichet Sripichai Smart School Operating System. v2.3.0
+            © {new Date().getFullYear()} School Portal Ckw. All rights reserved. Powered by Pichet Sripichai Smart School Operating System. v2.4.0
           </p>
         </footer>
 

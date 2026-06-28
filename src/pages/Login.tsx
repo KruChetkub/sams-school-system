@@ -261,7 +261,7 @@ export default function Login() {
 
             <div className="mt-6 text-center">
               <p className="text-[10px] font-semibold text-[#8b7f9d]">
-                v2.3.0
+                v2.4.0
               </p>
             </div>
           </section>

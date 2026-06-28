@@ -4,12 +4,19 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createPortal } from 'react-dom';
-import { FileText, Printer, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Printer, Loader2, AlertCircle, Save } from 'lucide-react';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { saveAs } from 'file-saver';
 
 export default function ClassroomVisitSummary() {
   const { user, role } = useAuthStore();
   const { selectedYear } = useAcademicYearStore();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Editable descriptive fields saved in localStorage
   const [descFields, setDescFields] = useState({
@@ -21,33 +28,98 @@ export default function ClassroomVisitSummary() {
     suggestions: ''
   });
 
-  // Load descFields from localStorage when classroom changes
+  // Load descFields from Supabase when classroom changes
   useEffect(() => {
-    if (selectedClassroomId) {
-      const saved = localStorage.getItem(`homevisit_summary_${selectedClassroomId}`);
-      if (saved) {
-        try {
-          setDescFields(JSON.parse(saved));
-        } catch (_) { }
-      } else {
-        setDescFields({
-          notVisitedReason: '',
-          jointAgencies: '',
-          dataUtilization: '',
-          parentConcerns: '',
-          obstacles: '',
-          suggestions: ''
-        });
+    async function loadSummary() {
+      if (!selectedClassroomId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('classroom_visit_summaries')
+          .select('*')
+          .eq('classroom_id', selectedClassroomId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setDescFields({
+            notVisitedReason: data.not_visited_reason || '',
+            jointAgencies: data.joint_agencies || '',
+            dataUtilization: data.data_utilization || '',
+            parentConcerns: data.parent_concerns || '',
+            obstacles: data.obstacles || '',
+            suggestions: data.suggestions || ''
+          });
+        } else {
+          // Try local storage draft fallback
+          const saved = localStorage.getItem(`homevisit_summary_${selectedClassroomId}`);
+          if (saved) {
+            try {
+              setDescFields(JSON.parse(saved));
+              return;
+            } catch (_) { }
+          }
+          setDescFields({
+            notVisitedReason: '',
+            jointAgencies: '',
+            dataUtilization: '',
+            parentConcerns: '',
+            obstacles: '',
+            suggestions: ''
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load classroom summary:', err);
+        // Fallback to localStorage draft
+        const saved = localStorage.getItem(`homevisit_summary_${selectedClassroomId}`);
+        if (saved) {
+          try {
+            setDescFields(JSON.parse(saved));
+          } catch (_) { }
+        }
       }
     }
+
+    loadSummary();
   }, [selectedClassroomId]);
 
-  // Save descFields to localStorage on change
+  // Save descFields draft to localStorage on change
   const handleDescChange = (key: keyof typeof descFields, val: string) => {
     const updated = { ...descFields, [key]: val };
     setDescFields(updated);
     if (selectedClassroomId) {
       localStorage.setItem(`homevisit_summary_${selectedClassroomId}`, JSON.stringify(updated));
+    }
+  };
+
+  // Save descFields to Supabase
+  const handleSaveSummary = async () => {
+    if (!selectedClassroomId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('classroom_visit_summaries')
+        .upsert({
+          classroom_id: selectedClassroomId,
+          not_visited_reason: descFields.notVisitedReason,
+          joint_agencies: descFields.jointAgencies,
+          data_utilization: descFields.dataUtilization,
+          parent_concerns: descFields.parentConcerns,
+          obstacles: descFields.obstacles,
+          suggestions: descFields.suggestions,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'classroom_id'
+        });
+
+      if (error) throw error;
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Failed to save classroom summary:', error);
+      setErrorMsg(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -337,6 +409,73 @@ export default function ClassroomVisitSummary() {
 
   const isLoading = isLoadingClassrooms || isLoadingStudents || isLoadingVisits;
 
+  const handleExportWord = async () => {
+    if (!selectedClassroomId || completedVisitsCount === 0) return;
+    setIsExporting(true);
+    try {
+      const response = await fetch('/templates/แบบสรุปการเยี่ยมบ้านนักเรียน.docx');
+      if (!response.ok) {
+        throw new Error('ไม่สามารถโหลดเทมเพลต Word ได้');
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const zip = new PizZip(arrayBuffer);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      const academicYear = selectedYear?.year_name || '';
+
+      doc.render({
+        classroom_name: classroomName || '',
+        academic_year: academicYear,
+        advisor1: advisor1Name || '',
+        advisor2: advisor2Name || '',
+        total_students: String(totalStudentsCount),
+        female_visited: String(stats.femaleVisited),
+        male_visited: String(stats.maleVisited),
+        not_visited: String(stats.notVisited),
+        not_visited_reason: descFields.notVisitedReason || 'ไม่มี',
+        warm_family: String(stats.warmFamily),
+        broken_family: String(stats.brokenFamily),
+        both_deceased: String(stats.bothDeceased),
+        one_deceased: String(stats.oneDeceased),
+        divorced_parents: String(stats.divorcedParents),
+        not_with_parents: String(stats.notWithParents),
+        risk_study: String(stats.riskStudy),
+        risk_health_problem: String(stats.riskHealthProblem),
+        risk_health_behavior: String(stats.riskHealthBehavior),
+        risk_drug: String(stats.riskDrug),
+        risk_violence: String(stats.riskViolence),
+        risk_commute: String(stats.riskCommute),
+        risk_sex: String(stats.riskSex),
+        risk_game: String(stats.riskGame),
+        risk_economic: String(stats.riskEconomic),
+        risk_other: String(stats.riskOther || 0),
+        urgent_help: String(stats.urgentHelp),
+        joint_agencies: descFields.jointAgencies || 'ไม่มี',
+        data_utilization: descFields.dataUtilization || 'ไม่มี',
+        parent_concerns: descFields.parentConcerns || 'ไม่มี',
+        obstacles: descFields.obstacles || 'ไม่มี',
+        suggestions: descFields.suggestions || 'ไม่มี',
+      });
+
+      const out = doc.getZip().generate({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+
+      const fileLevel = activeClassroomDetail ? activeClassroomDetail.level : '';
+      const fileRoom = activeClassroomDetail ? activeClassroomDetail.room : '';
+      saveAs(out, `แบบสรุปการเยี่ยมบ้านนักเรียน_ม_${fileLevel}_${fileRoom}.docx`);
+    } catch (error) {
+      console.error('Export Word failed:', error);
+      alert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Word: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Print layout wrapper
   const renderPrintContent = (forPreview = false) => {
     if (!selectedClassroomId) return null;
@@ -592,6 +731,15 @@ export default function ClassroomVisitSummary() {
           )}
 
           <button
+            onClick={handleExportWord}
+            disabled={completedVisitsCount === 0 || isExporting}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-300 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+            <span>โหลดเป็นไฟล์ Word</span>
+          </button>
+
+          <button
             onClick={() => window.print()}
             disabled={completedVisitsCount === 0}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-300 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -619,7 +767,17 @@ export default function ClassroomVisitSummary() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form details section */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-6 md:p-8 space-y-5 shadow-sm">
-            <h2 className="text-lg font-black border-b border-gray-100 dark:border-slate-800 pb-2 mb-4 text-emerald-600 dark:text-emerald-400">กรอกข้อมูลเพิ่มเติมเพื่อจัดเตรียมก่อนพิมพ์</h2>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2 mb-4">
+              <h2 className="text-lg font-black text-emerald-600 dark:text-emerald-400">กรอกข้อมูลเพิ่มเติมเพื่อจัดเตรียมก่อนพิมพ์</h2>
+              <button
+                onClick={handleSaveSummary}
+                disabled={isSaving}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition duration-300 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                <span>บันทึกข้อมูล (Save)</span>
+              </button>
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-gray-500 dark:text-gray-400">กรณีมีนักเรียนที่ไม่ได้ออกเยี่ยมบ้าน โปรดระบุเหตุผล:</label>
@@ -773,6 +931,44 @@ export default function ClassroomVisitSummary() {
                 {renderPrintContent(true)}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center relative border border-gray-100 dark:border-slate-800">
+            <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center rounded-full mx-auto mb-4 animate-bounce">
+              <Save size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">บันทึกสำเร็จ</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">บันทึกข้อมูลสรุปการเยี่ยมบ้านลงระบบเรียบร้อยแล้วครับ</p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl transition duration-300 shadow-md cursor-pointer"
+            >
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {errorMsg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center relative border border-gray-100 dark:border-slate-800">
+            <div className="h-16 w-16 bg-red-100 dark:bg-red-950/40 text-red-650 dark:text-red-400 flex items-center justify-center rounded-full mx-auto mb-4">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">เกิดข้อผิดพลาด</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">{errorMsg}</p>
+            <button
+              onClick={() => setErrorMsg(null)}
+              className="w-full bg-red-650 hover:bg-red-700 text-white font-bold text-sm py-3 rounded-xl transition duration-300 shadow-md cursor-pointer"
+            >
+              ตกลง
+            </button>
           </div>
         </div>
       )}

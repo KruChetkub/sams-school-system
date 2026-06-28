@@ -5,12 +5,15 @@ import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createPortal } from 'react-dom';
 import { FileSpreadsheet, Printer, Loader2, AlertCircle } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 export default function ClassroomVisitAnalysis() {
   const { user, role } = useAuthStore();
   const { selectedYear } = useAcademicYearStore();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'student-parent' | 'family' | 'risk'>('student-parent');
+  const [isExporting, setIsExporting] = useState(false);
 
   // 1. Fetch classrooms
   const { data: classrooms = [], isLoading: isLoadingClassrooms } = useQuery({
@@ -606,6 +609,221 @@ export default function ClassroomVisitAnalysis() {
   const advisorsText = [advisor1Name, advisor2Name].filter(Boolean).join(' และ ');
 
   const isLoading = isLoadingClassrooms || isLoadingStudents || isLoadingVisits;
+
+  const handleExportExcel = async () => {
+    if (!selectedClassroomId || completedVisitsCount === 0) return;
+    setIsExporting(true);
+    try {
+      const response = await fetch('/templates/วิเคราะห์สรุปการเยี่ยมบ้าน.xlsx');
+      if (!response.ok) {
+        throw new Error('ไม่สามารถโหลดเทมเพลต Excel ได้');
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+      const worksheet = workbook.getWorksheet(1);
+
+      if (!worksheet) {
+        throw new Error('ไม่พบแผ่นงานในเทมเพลต');
+      }
+
+      // 1. หัวรายงาน
+      worksheet.getCell('A1').value = `สรุปการเยี่ยมบ้าน ปีการศึกษา ${selectedYear?.year_name || ''}`;
+      worksheet.getCell('A2').value = `ระดับชั้นมัธยมศึกษาปีที่  ${classroomName || ''} โรงเรียนเชียงของวิทยาคม`;
+      worksheet.getCell('A3').value = `ครูที่ปรึกษา ${advisorsText || ''}`;
+
+      // ฟังก์ชันช่วยใส่จำนวนและร้อยละ
+      const setCellVal = (qtyCell: string, pctCell: string, qtyVal: number, pctVal: string) => {
+        worksheet.getCell(qtyCell).value = qtyVal;
+        worksheet.getCell(pctCell).value = parseFloat(pctVal) || 0;
+      };
+
+      // 1. ข้อมูลนักเรียน
+      setCellVal('K6', 'L6', stats.maleCount, stats.maleCountPercent);
+      setCellVal('K7', 'L7', stats.femaleCount, stats.femaleCountPercent);
+
+      // 2. ข้อมูลผู้ปกครอง
+      setCellVal('K9', 'L9', stats.hasParentCount, stats.hasParentCountPercent);
+      setCellVal('K10', 'L10', stats.noParentCount, stats.noParentCountPercent);
+      setCellVal('K11', 'L11', stats.stateWelfareCount, stats.stateWelfareCountPercent);
+
+      // 3. ความสัมพันธ์ในครอบครัว
+      // 3.1 เวลาสมาชิกในครอบครัวมีเวลาอยู่ร่วมกัน
+      setCellVal('K14', 'L14', stats.timeMoreThan10, stats.timeMoreThan10Percent);
+      setCellVal('K15', 'L15', stats.time7To9, stats.time7To9Percent);
+      setCellVal('K16', 'L16', stats.time4To6, stats.time4To6Percent);
+      setCellVal('K17', 'L17', stats.timeLessThan4, stats.timeLessThan4Percent);
+
+      // 3.2 ความสัมพันธ์ระหว่างนักเรียนกับสมาชิกในครอบครัว
+      const relationMembers = ['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'];
+      const relationRows: Record<string, number> = {
+        'บิดา': 21,
+        'มารดา': 22,
+        'พี่ชาย/น้องชาย': 23,
+        'พี่สาว/น้องสาว': 24,
+        'ปู่/ย่า/ตา/ยาย': 25,
+        'ญาติ': 26,
+        'อื่นๆ': 27
+      };
+
+      relationMembers.forEach(member => {
+        const row = relationRows[member];
+        if (row && stats.relationGrid[member]) {
+          const grid = stats.relationGrid[member];
+          const totalMemberVisits = Object.values(grid).reduce((a, b) => a + b, 0);
+          const getRelPercent = (val: number) => {
+            if (totalMemberVisits === 0) return 0;
+            return parseFloat(((val / totalMemberVisits) * 100).toFixed(1)) || 0;
+          };
+
+          worksheet.getCell(`D${row}`).value = grid['สนิทสนม'];
+          worksheet.getCell(`E${row}`).value = getRelPercent(grid['สนิทสนม']);
+          worksheet.getCell(`F${row}`).value = grid['เฉย'];
+          worksheet.getCell(`G${row}`).value = getRelPercent(grid['เฉย']);
+          worksheet.getCell(`H${row}`).value = grid['ห่างหิน'];
+          worksheet.getCell(`I${row}`).value = getRelPercent(grid['ห่างหิน']);
+          worksheet.getCell(`J${row}`).value = grid['ขัดแย้ง'];
+          worksheet.getCell(`K${row}`).value = getRelPercent(grid['ขัดแย้ง']);
+          worksheet.getCell(`L${row}`).value = grid['ไม่มี'];
+          worksheet.getCell(`M${row}`).value = getRelPercent(grid['ไม่มี']);
+        }
+      });
+
+      // 3.3 กรณีที่ผู้ปกครองไม่อยู่บ้านฝากเด็กนักเรียนอยู่บ้านกับใคร
+      setCellVal('K29', 'L29', stats.leftWithRelative, stats.leftWithRelativePercent);
+      setCellVal('K30', 'L30', stats.leftWithNeighbor, stats.leftWithNeighborPercent);
+      setCellVal('K31', 'L31', stats.leftWithSelf, stats.leftWithSelfPercent);
+      setCellVal('K32', 'L32', stats.leftWithOther, stats.leftWithOtherPercent);
+
+      // 3.4 รายได้ครัวเรือนเฉลี่ยต่อคน
+      setCellVal('K39', 'L39', stats.incMoreThan100k, stats.incMoreThan100kPercent);
+      setCellVal('K40', 'L40', stats.inc50kTo100k, stats.inc50kTo100kPercent);
+      setCellVal('K41', 'L41', stats.inc30kTo50k, stats.inc30kTo50kPercent);
+      setCellVal('K42', 'L42', stats.inc20kTo30k, stats.inc20kTo30kPercent);
+      setCellVal('K43', 'L43', stats.inc10kTo20k, stats.inc10kTo20kPercent);
+      setCellVal('K44', 'L44', stats.incLessThan10k, stats.incLessThan10kPercent);
+
+      // 3.5 สิ่งที่ผู้ปกครองต้องการให้โรงเรียนช่วยเหลือนักเรียน
+      setCellVal('K46', 'L46', stats.needStudy, stats.needStudyPercent);
+      setCellVal('K47', 'L47', stats.needBehavior, stats.needBehaviorPercent);
+      setCellVal('K48', 'L48', stats.needEcon, stats.needEconPercent);
+      setCellVal('K49', 'L49', stats.needOther, stats.needOtherPercent);
+
+      // 3.6 ความช่วยเหลือที่ครอบครัวเคยได้รับจากหน่วยงานหรือต้องการได้รับการช่วยเหลือ
+      setCellVal('K51', 'L51', stats.welfareElderly, stats.welfareElderlyPercent);
+      setCellVal('K52', 'L52', stats.welfareDisable, stats.welfareDisablePercent);
+      setCellVal('K53', 'L53', stats.welfareOther, stats.welfareOtherPercent);
+
+      // 4. พฤติกรรมและความเสี่ยง
+      // 4.1 สุขภาพ
+      setCellVal('K56', 'L56', stats.healthUnhealthy, stats.healthUnhealthyPercent);
+      setCellVal('K57', 'L57', stats.healthCongenital, stats.healthCongenitalPercent);
+      setCellVal('K58', 'L58', stats.healthMalnutrition, stats.healthMalnutritionPercent);
+      setCellVal('K59', 'L59', stats.healthSerious, stats.healthSeriousPercent);
+      setCellVal('K60', 'L60', stats.healthLowPhysical, stats.healthLowPhysicalPercent);
+
+      // 4.2 สวัสดิการหรือความปลอดภัย
+      setCellVal('K62', 'L62', stats.safetyDivorced, stats.safetyDivorcedPercent);
+      setCellVal('K63', 'L63', stats.safetySlum, stats.safetySlumPercent);
+      setCellVal('K64', 'L64', stats.safetyChronicSick, stats.safetyChronicSickPercent);
+      setCellVal('K65', 'L65', stats.safetyDrugsFamily, stats.safetyDrugsFamilyPercent);
+      setCellVal('K66', 'L66', stats.safetyGambleFamily, stats.safetyGambleFamilyPercent);
+      setCellVal('K67', 'L67', stats.safetyConflict, stats.safetyConflictPercent);
+      setCellVal('K68', 'L68', stats.safetyNoGuardian, stats.safetyNoGuardianPercent);
+      setCellVal('K69', 'L69', stats.safetyViolence, stats.safetyViolencePercent);
+      setCellVal('K70', 'L70', stats.safetyAbused, stats.safetyAbusedPercent);
+      setCellVal('K71', 'L71', stats.safetySexHarassed, stats.safetySexHarassedPercent);
+      setCellVal('K72', 'L72', stats.safetyGamble, stats.safetyGamblePercent);
+
+      // 4.3 การเดินทางของนักเรียนไปโรงเรียน
+      setCellVal('K75', 'L75', stats.commuteParent, stats.commuteParentPercent);
+      setCellVal('K76', 'L76', stats.commuteBus, stats.commuteBusPercent);
+      setCellVal('K77', 'L77', stats.commuteMoto, stats.commuteMotoPercent);
+      setCellVal('K78', 'L78', stats.commuteSchoolVan, stats.commuteSchoolVanPercent);
+      setCellVal('K79', 'L79', stats.commuteCar, stats.commuteCarPercent);
+      setCellVal('K80', 'L80', stats.commuteBike, stats.commuteBikePercent);
+      setCellVal('K81', 'L81', stats.commuteWalk, stats.commuteWalkPercent);
+      setCellVal('K82', 'L82', stats.commuteOther, stats.commuteOtherPercent);
+
+      // 4.4 สภาพที่อยู่อาศัย
+      setCellVal('K84', 'L84', stats.houseRuined, stats.houseRuinedPercent);
+      setCellVal('K85', 'L85', stats.houseNoToilet, stats.houseNoToiletPercent);
+
+      // 4.5 ภาระงานความรับผิดชอบของนักเรียนที่มีต่อครอบครัว
+      setCellVal('K87', 'L87', stats.respHousework, stats.respHouseworkPercent);
+      setCellVal('K88', 'L88', stats.respCareSick, stats.respCareSickPercent);
+      setCellVal('K89', 'L89', stats.respTrade, stats.respTradePercent);
+      setCellVal('K90', 'L90', stats.respWorkNearby, stats.respWorkNearbyPercent);
+      setCellVal('K91', 'L91', stats.respFarm, stats.respFarmPercent);
+      setCellVal('K92', 'L92', stats.respOther, stats.respOtherPercent);
+
+      // 4.6 กิจกรรมยามว่างหรืองานอดิเรก
+      setCellVal('K94', 'L94', stats.hobbyTvMusic, stats.hobbyTvMusicPercent);
+      setCellVal('K95', 'L95', stats.hobbyRead, stats.hobbyReadPercent);
+      setCellVal('K96', 'L96', stats.hobbyRacing, stats.hobbyRacingPercent);
+      setCellVal('K97', 'L97', stats.hobbyPark, stats.hobbyParkPercent);
+      setCellVal('K98', 'L98', stats.hobbyMallMovie, stats.hobbyMallMoviePercent);
+      setCellVal('K99', 'L99', stats.hobbyFriends, stats.hobbyFriendsPercent);
+      setCellVal('K100', 'L100', stats.hobbyGames, stats.hobbyGamesPercent);
+      setCellVal('K101', 'L101', stats.hobbySnooker, stats.hobbySnookerPercent);
+      setCellVal('K102', 'L102', stats.hobbyOther, stats.hobbyOtherPercent);
+
+      // 4.7 พฤติกรรมการใช้สารเสพติด
+      setCellVal('K104', 'L104', stats.drugFriends, stats.drugFriendsPercent);
+      setCellVal('K105', 'L105', stats.drugFamily, stats.drugFamilyPercent);
+      setCellVal('K106', 'L106', stats.drugEnvironment, stats.drugEnvironmentPercent);
+      setCellVal('K107', 'L107', stats.drugInvolved, stats.drugInvolvedPercent);
+      setCellVal('K108', 'L108', stats.drugAddict, stats.drugAddictPercent);
+
+      // 4.8 พฤติกรรมการใช้ความรุนแรง
+      setCellVal('K110', 'L110', stats.vioQuarrels, stats.vioQuarrelsPercent);
+      setCellVal('K111', 'L111', stats.vioAggressive, stats.vioAggressivePercent);
+      setCellVal('K112', 'L112', stats.vioFightsRegular, stats.vioFightsRegularPercent);
+      setCellVal('K113', 'L113', stats.vioAssault, stats.vioAssaultPercent);
+      setCellVal('K114', 'L114', stats.vioSelfHarm, stats.vioSelfHarmPercent);
+
+      // 4.9 พฤติกรรมทางเพศ
+      setCellVal('K116', 'L116', stats.sexProstitutionGroup, stats.sexProstitutionGroupPercent);
+      setCellVal('K117', 'L117', stats.sexDeviceTime, stats.sexDeviceTimePercent);
+      setCellVal('K118', 'L118', stats.sexPregnant, stats.sexPregnantPercent);
+      setCellVal('K119', 'L119', stats.sexSell, stats.sexSellPercent);
+      setCellVal('K120', 'L120', stats.sexObsessed, stats.sexObsessedPercent);
+      setCellVal('K121', 'L121', stats.sexAssembly, stats.sexAssemblyPercent);
+
+      // 4.10 การติดเกม
+      setCellVal('K123', 'L123', stats.gameMoreThan1h, stats.gameMoreThan1hPercent);
+      setCellVal('K124', 'L124', stats.gameNoCreative, stats.gameNoCreativePercent);
+      setCellVal('K125', 'L125', stats.gameIsolate, stats.gameIsolatePercent);
+      setCellVal('K126', 'L126', stats.gameSpending, stats.gameSpendingPercent);
+      setCellVal('K127', 'L127', stats.gameFriendGroup, stats.gameFriendGroupPercent);
+      setCellVal('K128', 'L128', stats.gameShopNearby, stats.gameShopNearbyPercent);
+      setCellVal('K129', 'L129', stats.gameMoreThan2h, stats.gameMoreThan2hPercent);
+      setCellVal('K130', 'L130', stats.gameObsessed, stats.gameObsessedPercent);
+      setCellVal('K131', 'L131', stats.gameStealMoney, stats.gameStealMoneyPercent);
+      setCellVal('K132', 'L132', stats.gameOther, stats.gameOtherPercent);
+
+      // 4.11 การเข้าถึงสื่อคอมพิวเตอร์และอินเตอร์เน็ตที่บ้าน
+      setCellVal('K134', 'L134', stats.netYes, stats.netYesPercent);
+      setCellVal('K135', 'L135', stats.netNo, stats.netNoPercent);
+
+      // 4.12 การใช้เครื่องมือสื่อสารอิเล็กทรอนิกส์
+      setCellVal('K137', 'L137', stats.devInClass, stats.devInClassPercent);
+      setCellVal('K138', 'L138', stats.devLineFbMoreThan1h, stats.devLineFbMoreThan1hPercent);
+      setCellVal('K139', 'L139', stats.devInClass2_3times, stats.devInClass2_3timesPercent);
+      setCellVal('K140', 'L140', stats.devLineFbMoreThan2h, stats.devLineFbMoreThan2hPercent);
+
+      // ส่งออกไฟล์
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileLevel = activeClassroomDetail ? activeClassroomDetail.level : '';
+      const fileRoom = activeClassroomDetail ? activeClassroomDetail.room : '';
+      saveAs(new Blob([buffer]), `วิเคราะห์สรุปการเยี่ยมบ้าน_ม_${fileLevel}_${fileRoom}.xlsx`);
+    } catch (error) {
+      console.error('Export Excel failed:', error);
+      alert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Excel: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const renderPrintContent = (forPreview = false) => {
     if (!selectedClassroomId) return null;
@@ -1272,6 +1490,15 @@ export default function ClassroomVisitAnalysis() {
               </select>
             )
           )}
+
+          <button
+            onClick={handleExportExcel}
+            disabled={completedVisitsCount === 0 || isExporting}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-300 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
+            <span>โหลดเป็นไฟล์ Excel</span>
+          </button>
 
           <button
             onClick={() => window.print()}
