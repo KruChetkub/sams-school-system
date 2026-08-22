@@ -122,7 +122,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
         <div className="doc-code">ด.ล 01</div>
         <div className="photo-box">
           {photoStudent ? (
-            <img src={photoStudent} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
+            <img src={sanitizeImageUrl(photoStudent)} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
           ) : (
             <span>รูปถ่าย<br />นักเรียน</span>
           )}
@@ -433,7 +433,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
         <div className="footer-sign">
           ขอรับรองว่าข้อมูลการเยี่ยมบ้านทั้งหมดข้างต้นเป็นความจริงทุกประการ<br /><br />
           ลงชื่อผู้ปกครอง/ผู้แทนนักเรียน <div style={{ display: 'inline-block', width: '180px', borderBottom: '1px solid #000', margin: '0 8px', position: 'relative', height: '22px' }}>
-            {signatureParent && <img src={signatureParent} alt="ลายเซ็นผู้ปกครอง" style={{ position: 'absolute', bottom: '-4px', height: '35px', left: '50%', transform: 'translateX(-50%)' }} />}
+            {signatureParent && <img src={sanitizeImageUrl(signatureParent)} alt="ลายเซ็นผู้ปกครอง" style={{ position: 'absolute', bottom: '-4px', height: '35px', left: '50%', transform: 'translateX(-50%)' }} />}
           </div><br />
           ( <span style={{ display: 'inline-block', minWidth: '160px', textAlign: 'center' }}>{fd.no_parent ? '......................................................' : (fd.parent_name || '......................................................')}</span> )<br />
           วันที่ <span style={{ display: 'inline-block', minWidth: '120px', textAlign: 'center' }}>{formatDate(visit.visit_date)}</span>
@@ -461,7 +461,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 6px 0', textAlign: 'left' }}>รูปที่ 1 ภาพถ่ายสภาพบ้านนักเรียน (ภายนอก)</h3>
           <div className="photo-container">
             {photoExterior ? (
-              <img src={photoExterior} className="w-full h-full object-contain" alt="ภาพถ่ายสภาพบ้านภายนอก" />
+              <img src={sanitizeImageUrl(photoExterior)} className="w-full h-full object-contain" alt="ภาพถ่ายสภาพบ้านภายนอก" />
             ) : (
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>[ รูปที่ 1 ยังไม่ได้อัปโหลดภาพถ่ายสภาพบ้านภายนอก ]</span>
             )}
@@ -472,7 +472,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 6px 0', textAlign: 'left' }}>รูปที่ 2 ภาพถ่ายภายในบ้านนักเรียน (บริเวณที่อ่านหนังสือ/นอน)</h3>
           <div className="photo-container">
             {photoInterior ? (
-              <img src={photoInterior} className="w-full h-full object-contain" alt="ภาพถ่ายภายในบ้าน" />
+              <img src={sanitizeImageUrl(photoInterior)} className="w-full h-full object-contain" alt="ภาพถ่ายภายในบ้าน" />
             ) : (
               <span style={{ color: '#94a3b8', fontSize: '13px' }}>[ รูปที่ 2 ยังไม่ได้อัปโหลดภาพถ่ายภายในบ้าน ]</span>
             )}
@@ -484,7 +484,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           <div style={{ maxWidth: '450px', marginLeft: 'auto', marginRight: '0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '8px' }}>
               ลงชื่อ <div style={{ flex: 1, borderBottom: '1px solid #000', margin: '0 8px', position: 'relative', height: '24px' }}>
-                {signatureTeacher && <img src={signatureTeacher} alt="ลายเซ็นครูที่ปรึกษา" style={{ position: 'absolute', bottom: '-4px', height: '40px', left: '50%', transform: 'translateX(-50%)' }} />}
+                {signatureTeacher && <img src={sanitizeImageUrl(signatureTeacher)} alt="ลายเซ็นครูที่ปรึกษา" style={{ position: 'absolute', bottom: '-4px', height: '40px', left: '50%', transform: 'translateX(-50%)' }} />}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '8px' }}>
@@ -510,7 +510,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
 
         <div className="map-container" style={{ flex: 1, minHeight: '500px', marginTop: '10px' }}>
           {mapPhoto ? (
-            <img src={mapPhoto} alt="แผนที่การเดินทาง" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={sanitizeImageUrl(mapPhoto)} alt="แผนที่การเดินทาง" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : visit.latitude && visit.longitude ? (
             <div className="w-full h-full relative z-0">
               <VisitMap
