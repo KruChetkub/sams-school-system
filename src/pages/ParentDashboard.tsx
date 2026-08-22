@@ -14,6 +14,7 @@ import {
   AlertTriangle, Home, BarChart2, BookOpen, Heart, CheckSquare
 } from 'lucide-react'
 import { behaviorService } from '../services/studentsupport/behaviorService'
+import { sanitizeImageUrl } from '../lib/sanitize'
 
 export default function ParentDashboard() {
   const { user } = useAuthStore()
@@ -480,7 +481,7 @@ export default function ParentDashboard() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {homeVisit.home_visit_photos.map((p: any) => (
                           <div key={p.id} className="rounded-xl overflow-hidden aspect-video bg-gray-100 border">
-                            <img src={p.photo_url} alt="เยี่ยมบ้าน" className="w-full h-full object-cover" />
+                            <img src={sanitizeImageUrl(p.photo_url)} alt="เยี่ยมบ้าน" className="w-full h-full object-cover" />
                           </div>
                         ))}
                       </div>

@@ -13,6 +13,7 @@ import ReportPrintView from '../../components/homevisit/ReportPrintView';
 import VisitMap from '../../components/homevisit/VisitMap';
 import SignaturePad from '../../components/homevisit/SignaturePad';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { sanitizeImageUrl } from '../../lib/sanitize';
 
 const INITIAL_FORM_DATA = {
   national_id: '',
@@ -483,13 +484,13 @@ export default function VisitForm() {
         const interiorPhoto = existingData.photos.find((p: any) => p.description === 'ภาพถ่ายภายในบ้าน');
         const mapPhotoDb = existingData.photos.find((p: any) => p.description === 'แผนที่การเดินทาง');
         const studentPhotoDb = existingData.photos.find((p: any) => p.description === 'รูปถ่ายนักเรียน');
-        if (exteriorPhoto) setPhotoExteriorPreview(exteriorPhoto.photo_url);
+        if (exteriorPhoto) setPhotoExteriorPreview(sanitizeImageUrl(exteriorPhoto.photo_url) || null);
         else if (existingData.photos[0] && existingData.photos[0].description !== 'รูปถ่ายนักเรียน' && existingData.photos[0].description !== 'ภาพถ่ายภายในบ้าน' && existingData.photos[0].description !== 'แผนที่การเดินทาง') {
-          setPhotoExteriorPreview(existingData.photos[0].photo_url);
+          setPhotoExteriorPreview(sanitizeImageUrl(existingData.photos[0].photo_url) || null);
         }
-        if (interiorPhoto) setPhotoInteriorPreview(interiorPhoto.photo_url);
-        if (mapPhotoDb) setMapPhotoPreview(mapPhotoDb.photo_url);
-        if (studentPhotoDb) setStudentPhotoPreview(studentPhotoDb.photo_url);
+        if (interiorPhoto) setPhotoInteriorPreview(sanitizeImageUrl(interiorPhoto.photo_url) || null);
+        if (mapPhotoDb) setMapPhotoPreview(sanitizeImageUrl(mapPhotoDb.photo_url) || null);
+        if (studentPhotoDb) setStudentPhotoPreview(sanitizeImageUrl(studentPhotoDb.photo_url) || null);
       }
     }
   }, [existingData]);
@@ -801,7 +802,7 @@ export default function VisitForm() {
                 <div className="flex items-center gap-4">
                   <div className="relative w-[102px] h-[126px] border border-gray-300 rounded-2xl overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 shadow-sm">
                     {studentPhotoPreview ? (
-                      <img src={studentPhotoPreview} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
+                      <img src={sanitizeImageUrl(studentPhotoPreview)} alt="รูปถ่ายนักเรียน" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-gray-400 text-xs text-center font-medium">รูปถ่าย<br />นักเรียน</span>
                     )}
@@ -1396,7 +1397,7 @@ export default function VisitForm() {
                 <label className="flex flex-col items-center justify-center w-full h-56 border-2 border-emerald-200 border-dashed rounded-2xl cursor-pointer bg-emerald-50/30 hover:bg-emerald-50 transition-colors overflow-hidden relative">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     {photoExteriorPreview ? (
-                      <img src={photoExteriorPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                      <img src={sanitizeImageUrl(photoExteriorPreview)} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
                       <>
                         <UploadCloud className="w-10 h-10 text-emerald-400 mb-3" />
@@ -1413,7 +1414,7 @@ export default function VisitForm() {
                 <label className="flex flex-col items-center justify-center w-full h-56 border-2 border-emerald-200 border-dashed rounded-2xl cursor-pointer bg-emerald-50/30 hover:bg-emerald-50 transition-colors overflow-hidden relative">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     {photoInteriorPreview ? (
-                      <img src={photoInteriorPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                      <img src={sanitizeImageUrl(photoInteriorPreview)} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
                       <>
                         <UploadCloud className="w-10 h-10 text-emerald-400 mb-3" />
@@ -1498,7 +1499,7 @@ export default function VisitForm() {
                     <div className="mt-4 w-full">
                       <p className="text-sm font-bold text-gray-700 mb-2 text-center">ตัวอย่างภาพแผนที่ที่จะใช้พิมพ์ในรายงาน:</p>
                       <div className="border-4 border-white shadow-lg rounded-xl overflow-hidden max-w-lg mx-auto">
-                        <img src={mapPhotoPreview} alt="Map Preview" className="w-full h-auto" />
+                        <img src={sanitizeImageUrl(mapPhotoPreview)} alt="Map Preview" className="w-full h-auto" />
                       </div>
                     </div>
                   )}

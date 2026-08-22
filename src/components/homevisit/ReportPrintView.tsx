@@ -1,6 +1,7 @@
 import React from 'react';
 import type { HomeVisit, HomeVisitAssessment, HomeVisitPhoto } from '../../services/homevisit/visitService';
 import VisitMap from './VisitMap';
+import { sanitizeImageUrl } from '../../lib/sanitize';
 
 interface ReportPrintViewProps {
   visit: HomeVisit;
@@ -32,13 +33,13 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
   };
 
-  const getPhoto = (desc: string) => photos.find(p => p.description === desc)?.photo_url;
-  const photoStudent = liveSignatures?.student || getPhoto('รูปถ่ายนักเรียน');
-  const signatureParent = liveSignatures?.parent || getPhoto('ลายเซ็นผู้ให้ข้อมูล');
-  const signatureTeacher = liveSignatures?.teacher || getPhoto('ลายเซ็นครูที่ปรึกษา');
-  const photoExterior = liveSignatures?.exterior || getPhoto('ภาพถ่ายสภาพบ้านภายนอก');
-  const photoInterior = liveSignatures?.interior || getPhoto('ภาพถ่ายภายในบ้าน');
-  const mapPhoto = liveSignatures?.map || getPhoto('แผนที่การเดินทาง');
+  const getPhoto = (desc: string) => sanitizeImageUrl(photos.find(p => p.description === desc)?.photo_url);
+  const photoStudent = sanitizeImageUrl(liveSignatures?.student) || getPhoto('รูปถ่ายนักเรียน');
+  const signatureParent = sanitizeImageUrl(liveSignatures?.parent) || getPhoto('ลายเซ็นผู้ให้ข้อมูล');
+  const signatureTeacher = sanitizeImageUrl(liveSignatures?.teacher) || getPhoto('ลายเซ็นครูที่ปรึกษา');
+  const photoExterior = sanitizeImageUrl(liveSignatures?.exterior) || getPhoto('ภาพถ่ายสภาพบ้านภายนอก');
+  const photoInterior = sanitizeImageUrl(liveSignatures?.interior) || getPhoto('ภาพถ่ายภายในบ้าน');
+  const mapPhoto = sanitizeImageUrl(liveSignatures?.map) || getPhoto('แผนที่การเดินทาง');
 
   const wrapperClass = isPreviewMode
     ? "w-full font-sarabun text-black overflow-y-auto max-h-[85vh] bg-slate-200 p-4 sm:p-8 rounded-2xl flex flex-col gap-6 items-center shadow-inner"
