@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 import { getAnalyticsData, getClassroomReport, getHomeroomClassroomDetailReport, getHomeroomReport, getStudentDetailReport, getStudentReport, getSubjectDetailReport, getSubjectReport } from '../services/dashboardService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
@@ -79,6 +81,7 @@ export default function Reports() {
   const [studentTablePage, setStudentTablePage] = useState(1)
   const [subjectHistoryPage, setSubjectHistoryPage] = useState(1)
   const [homeroomHistoryPage, setHomeroomHistoryPage] = useState(1)
+  const [isExportingSubject, setIsExportingSubject] = useState(false)
   const historyPageSize = 10
   const studentPageSize = 10
 
@@ -207,6 +210,389 @@ export default function Reports() {
     })
     return Array.from(map.values()).sort((a, b) => a.studentCode.localeCompare(b.studentCode))
   })()
+
+  const handleExportSubjectExcel = async () => {
+    if (!subjectDetail || subjectSessions.length === 0) return
+    setIsExportingSubject(true)
+
+    try {
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'SAMS School System'
+      workbook.created = new Date()
+
+      const currentSubjectRow = subjectRows.find(r => r.subjectId === selectedSubjectId)
+      const classroomLabel = currentSubjectRow?.classroomLabel || subjectSessions[0]?.classroomLabel || ''
+
+      // ----------------------------------------------------
+      // SHEET 1: สรุปผลการเข้าเรียน (Summary Sheet)
+      // ----------------------------------------------------
+      const summarySheet = workbook.addWorksheet('สรุปผลการเข้าเรียน', {
+        views: [{ showGridLines: true }]
+      })
+
+      summarySheet.columns = [
+        { key: 'no', width: 8 },
+        { key: 'studentCode', width: 16 },
+        { key: 'fullName', width: 30 },
+        { key: 'present', width: 12 },
+        { key: 'absent', width: 12 },
+        { key: 'late', width: 12 },
+        { key: 'leave', width: 12 },
+        { key: 'totalChecked', width: 18 },
+        { key: 'totalSessions', width: 18 },
+        { key: 'percent', width: 14 },
+        { key: 'evaluation', width: 22 },
+      ]
+
+      // Header Block
+      summarySheet.mergeCells('A1:K1')
+      const titleCell = summarySheet.getCell('A1')
+      titleCell.value = 'รายงานสรุปผลการเข้าเรียนรายวิชา'
+      titleCell.font = { name: 'TH Sarabun New', size: 16, bold: true, color: { argb: 'FFFFFFFF' } }
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } }
+      summarySheet.getRow(1).height = 36
+
+      summarySheet.mergeCells('A2:K2')
+      const subTitleCell = summarySheet.getCell('A2')
+      subTitleCell.value = `รหัสวิชา: ${subjectDetail.subjectCode}  |  ชื่อวิชา: ${subjectDetail.subjectName}  |  ระดับชั้น/ห้อง: ${classroomLabel ? `${classroomLabel}` : '-'}`
+      subTitleCell.font = { name: 'TH Sarabun New', size: 13, bold: true, color: { argb: 'FF1E1B4B' } }
+      subTitleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      subTitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2FF' } }
+      summarySheet.getRow(2).height = 26
+
+      summarySheet.mergeCells('A3:K3')
+      const metaCell = summarySheet.getCell('A3')
+      metaCell.value = `ปีการศึกษา: ${selectedYear?.year_name || '-'}  |  ภาคเรียน: ${selectedSemester?.semester_name || '-'}  |  จำนวนคาบที่บันทึก: ${subjectSessionColumns.length} คาบ  |  วันที่ออกรายงาน: ${new Date().toLocaleDateString('th-TH')}`
+      metaCell.font = { name: 'TH Sarabun New', size: 11, color: { argb: 'FF475569' } }
+      metaCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }
+      summarySheet.getRow(3).height = 22
+
+      summarySheet.getRow(4).height = 10
+
+      // Table Headers
+      const summaryHeaderRow = summarySheet.getRow(5)
+      summaryHeaderRow.values = [
+        'ลำดับ',
+        'รหัสนักเรียน',
+        'ชื่อ - นามสกุล',
+        'มา (ครั้ง)',
+        'ขาด (ครั้ง)',
+        'สาย (ครั้ง)',
+        'ลา (ครั้ง)',
+        'รวมเข้าเรียน (ครั้ง)',
+        'จำนวนคาบทั้งหมด',
+        'คิดเป็น %',
+        'ผลการประเมินเวลาเรียน'
+      ]
+      summaryHeaderRow.height = 28
+      summaryHeaderRow.eachCell((cell) => {
+        cell.font = { name: 'TH Sarabun New', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF312E81' } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        }
+      })
+
+      // Add Data Rows
+      let totalAllPresent = 0
+      let totalAllAbsent = 0
+      let totalAllLate = 0
+      let totalAllLeave = 0
+      const totalSessionsCount = subjectSessionColumns.length
+
+      subjectStudents.forEach((student, index) => {
+        let pCount = 0
+        let aCount = 0
+        let lCount = 0
+        let leCount = 0
+
+        subjectSessionColumns.forEach((col) => {
+          const st = student.bySession[col.sessionId]
+          if (st === 'PRESENT') pCount++
+          else if (st === 'ABSENT') aCount++
+          else if (st === 'LATE') lCount++
+          else if (st === 'LEAVE') leCount++
+        })
+
+        const attendedCount = pCount + lCount + leCount
+        const percent = totalSessionsCount > 0 ? Math.round((attendedCount / totalSessionsCount) * 100) : 0
+        const isPass = percent >= 80
+
+        totalAllPresent += pCount
+        totalAllAbsent += aCount
+        totalAllLate += lCount
+        totalAllLeave += leCount
+
+        const row = summarySheet.addRow([
+          index + 1,
+          student.studentCode,
+          student.fullName,
+          pCount,
+          aCount,
+          lCount,
+          leCount,
+          attendedCount,
+          totalSessionsCount,
+          `${percent}%`,
+          isPass ? 'เวลาเรียนครบ (ผ่าน)' : 'มส. (เวลาเรียนไม่ถึง 80%)'
+        ])
+        row.height = 24
+
+        row.eachCell((cell, colNumber) => {
+          cell.font = { name: 'TH Sarabun New', size: 11 }
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          }
+          if (colNumber === 1 || colNumber === 2 || colNumber >= 4) {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          } else {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' }
+          }
+          if (colNumber === 10) {
+            cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: isPass ? 'FF059669' : 'FFDC2626' } }
+          }
+          if (colNumber === 11) {
+            cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: isPass ? 'FF059669' : 'FFDC2626' } }
+          }
+        })
+      })
+
+      // Footer Summary Row
+      const grandAttended = totalAllPresent + totalAllLate + totalAllLeave
+      const grandTotalSessionsAll = subjectStudents.length * totalSessionsCount
+      const overallPercent = grandTotalSessionsAll > 0 ? Math.round((grandAttended / grandTotalSessionsAll) * 100) : 0
+
+      const footerRow = summarySheet.addRow([
+        'รวม / ค่าเฉลี่ยทั้งห้อง',
+        `นักเรียน ${subjectStudents.length} คน`,
+        '',
+        totalAllPresent,
+        totalAllAbsent,
+        totalAllLate,
+        totalAllLeave,
+        grandAttended,
+        grandTotalSessionsAll,
+        `${overallPercent}%`,
+        overallPercent >= 80 ? 'ผ่านเกณฑ์ภาพรวม' : 'ต่ำกว่าเกณฑ์ 80%'
+      ])
+      footerRow.height = 28
+      summarySheet.mergeCells(`A${footerRow.number}:B${footerRow.number}`)
+      footerRow.eachCell((cell, colNumber) => {
+        cell.font = { name: 'TH Sarabun New', size: 11, bold: true }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
+        cell.border = {
+          top: { style: 'medium', color: { argb: 'FF94A3B8' } },
+          bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        }
+        if (colNumber >= 3) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        }
+      })
+
+      // ----------------------------------------------------
+      // SHEET 2: ข้อมูลการเช็คชื่อรายครั้ง (Attendance Matrix / Raw Data)
+      // ----------------------------------------------------
+      const matrixSheet = workbook.addWorksheet('ข้อมูลการเช็คชื่อรายครั้ง', {
+        views: [{ showGridLines: true }]
+      })
+
+      const matrixCols: any[] = [
+        { key: 'no', width: 8 },
+        { key: 'studentCode', width: 16 },
+        { key: 'fullName', width: 30 },
+      ]
+      subjectSessionColumns.forEach((col) => {
+        matrixCols.push({ key: `session_${col.sessionId}`, width: 14 })
+      })
+      matrixCols.push({ key: 'checkedCount', width: 16 })
+      matrixCols.push({ key: 'percent', width: 14 })
+
+      matrixSheet.columns = matrixCols
+
+      const lastColIndex = matrixCols.length
+      matrixSheet.mergeCells(1, 1, 1, lastColIndex)
+      const mTitleCell = matrixSheet.getCell(1, 1)
+      mTitleCell.value = `ตารางการเช็คชื่อรายครั้ง (รายบุคคล) — ${subjectDetail.subjectCode} ${subjectDetail.subjectName} ${classroomLabel ? `${classroomLabel}` : ''}`
+      mTitleCell.font = { name: 'TH Sarabun New', size: 15, bold: true, color: { argb: 'FFFFFFFF' } }
+      mTitleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      mTitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0284C7' } }
+      matrixSheet.getRow(1).height = 34
+
+      matrixSheet.mergeCells(2, 1, 2, lastColIndex)
+      const mSubTitleCell = matrixSheet.getCell(2, 1)
+      mSubTitleCell.value = `ปีการศึกษา: ${selectedYear?.year_name || '-'}  |  ภาคเรียน: ${selectedSemester?.semester_name || '-'}  |  จำนวนคาบที่เช็ค: ${subjectSessionColumns.length} คาบ  |  วันที่ออกรายงาน: ${new Date().toLocaleDateString('th-TH')}`
+      mSubTitleCell.font = { name: 'TH Sarabun New', size: 11, color: { argb: 'FF0369A1' } }
+      mSubTitleCell.alignment = { horizontal: 'center', vertical: 'middle' }
+      mSubTitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } }
+      matrixSheet.getRow(2).height = 22
+
+      matrixSheet.getRow(3).height = 10
+
+      // Matrix Header Row 4
+      const headerValues = ['ลำดับ', 'รหัสนักเรียน', 'ชื่อ - นามสกุล']
+      subjectSessionColumns.forEach((col) => {
+        headerValues.push(formatThaiDate(col.sessionDate))
+      })
+      headerValues.push('รวมเช็ค/ครั้ง', 'คิดเป็น %')
+
+      const matrixHeaderRow = matrixSheet.getRow(4)
+      matrixHeaderRow.values = headerValues
+      matrixHeaderRow.height = 28
+      matrixHeaderRow.eachCell((cell) => {
+        cell.font = { name: 'TH Sarabun New', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0369A1' } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFBAE6FD' } },
+          bottom: { style: 'thin', color: { argb: 'FFBAE6FD' } },
+          left: { style: 'thin', color: { argb: 'FFBAE6FD' } },
+          right: { style: 'thin', color: { argb: 'FFBAE6FD' } },
+        }
+      })
+
+      // Matrix Data Rows
+      subjectStudents.forEach((student, index) => {
+        let checkedCount = 0
+        const rowValues: any[] = [
+          index + 1,
+          student.studentCode,
+          student.fullName
+        ]
+
+        subjectSessionColumns.forEach((col) => {
+          const status = student.bySession[col.sessionId]
+          if (status === 'PRESENT') {
+            checkedCount++
+            rowValues.push('มา')
+          } else if (status === 'ABSENT') {
+            rowValues.push('ขาด')
+          } else if (status === 'LATE') {
+            checkedCount++
+            rowValues.push('สาย')
+          } else if (status === 'LEAVE') {
+            checkedCount++
+            rowValues.push('ลา')
+          } else {
+            rowValues.push('-')
+          }
+        })
+
+        const percent = totalSessionsCount > 0 ? Math.round((checkedCount / totalSessionsCount) * 100) : 0
+        rowValues.push(checkedCount, `${percent}%`)
+
+        const row = matrixSheet.addRow(rowValues)
+        row.height = 24
+
+        row.eachCell((cell, colNumber) => {
+          cell.font = { name: 'TH Sarabun New', size: 11 }
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          }
+
+          if (colNumber === 1 || colNumber === 2) {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          } else if (colNumber === 3) {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' }
+          } else {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+            const val = cell.value?.toString()
+            if (val === 'มา') {
+              cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: 'FF059669' } }
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } }
+            } else if (val === 'ขาด') {
+              cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: 'FFDC2626' } }
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } }
+            } else if (val === 'สาย') {
+              cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: 'FFD97706' } }
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFBEB' } }
+            } else if (val === 'ลา') {
+              cell.font = { name: 'TH Sarabun New', size: 11, bold: true, color: { argb: 'FF0284C7' } }
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F9FF' } }
+            }
+          }
+        })
+      })
+
+      // Matrix Footer Summary Rows
+      const sessionPresentRow: any[] = ['สรุป', 'มาเรียน (คน)', '']
+      const sessionAbsentRow: any[] = ['สรุป', 'ขาดเรียน (คน)', '']
+      const sessionLateRow: any[] = ['สรุป', 'มาสาย (คน)', '']
+      const sessionLeaveRow: any[] = ['สรุป', 'ลา (คน)', '']
+
+      subjectSessionColumns.forEach((col) => {
+        let p = 0, a = 0, l = 0, le = 0
+        subjectStudents.forEach((student) => {
+          const st = student.bySession[col.sessionId]
+          if (st === 'PRESENT') p++
+          else if (st === 'ABSENT') a++
+          else if (st === 'LATE') l++
+          else if (st === 'LEAVE') le++
+        })
+        sessionPresentRow.push(p)
+        sessionAbsentRow.push(a)
+        sessionLateRow.push(l)
+        sessionLeaveRow.push(le)
+      })
+
+      sessionPresentRow.push(totalAllPresent, '')
+      sessionAbsentRow.push(totalAllAbsent, '')
+      sessionLateRow.push(totalAllLate, '')
+      sessionLeaveRow.push(totalAllLeave, '')
+
+      const fRows = [
+        matrixSheet.addRow(sessionPresentRow),
+        matrixSheet.addRow(sessionAbsentRow),
+        matrixSheet.addRow(sessionLateRow),
+        matrixSheet.addRow(sessionLeaveRow)
+      ]
+
+      fRows.forEach((r, rIdx) => {
+        r.height = 22
+        r.eachCell((cell, colNumber) => {
+          cell.font = { name: 'TH Sarabun New', size: 10, bold: true }
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rIdx % 2 === 0 ? 'FFF8FAFC' : 'FFF1F5F9' } }
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          }
+          if (colNumber === 2) {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' }
+          } else {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          }
+        })
+      })
+
+      // Generate buffer and trigger download
+      const buffer = await workbook.xlsx.writeBuffer()
+      const sanitizedSubjectCode = subjectDetail.subjectCode.replace(/[/\\?%*:|"<>]/g, '-')
+      const sanitizedClassroom = classroomLabel ? classroomLabel.replace(/[/\\?%*:|"<>]/g, '-') : ''
+      const fileName = `รายงานการเข้าเรียน_${sanitizedSubjectCode}_${sanitizedClassroom || 'รวม'}_${selectedYear?.year_name || ''}.xlsx`
+
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
+    } catch (error) {
+      console.error('Error exporting subject attendance excel:', error)
+      alert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Excel')
+    } finally {
+      setIsExportingSubject(false)
+    }
+  }
 
   const subjectCardPalettes = [
     {
@@ -1155,16 +1541,40 @@ export default function Reports() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setSelectedSubjectId(null)} />
               <div className="relative z-10 w-full max-w-[95vw] max-h-[92vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800">
-                      {subjectDetail ? `${subjectDetail.subjectCode} — ${subjectDetail.subjectName}` : 'กำลังโหลด...'}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">ตารางการเช็คชื่อรายครั้ง แยกตามนักเรียน</p>
+                <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">
+                        {subjectDetail ? (
+                          `${subjectDetail.subjectCode} — ${subjectDetail.subjectName}${
+                            subjectRows.find((r) => r.subjectId === selectedSubjectId)?.classroomLabel ||
+                            subjectSessions[0]?.classroomLabel
+                              ? ` ${subjectRows.find((r) => r.subjectId === selectedSubjectId)?.classroomLabel || subjectSessions[0]?.classroomLabel}`
+                              : ''
+                          }`
+                        ) : 'กำลังโหลด...'}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">ตารางการเช็คชื่อรายครั้ง แยกตามนักเรียน</p>
+                    </div>
+                    {subjectDetail && subjectSessions.length > 0 && (
+                      <button
+                        onClick={handleExportSubjectExcel}
+                        disabled={isExportingSubject}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                        title="Export ข้อมูลการเช็คชื่อเป็นไฟล์ Excel (.xlsx)"
+                      >
+                        {isExportingSubject ? (
+                          <RefreshCw size={15} className="animate-spin" />
+                        ) : (
+                          <FileSpreadsheet size={15} />
+                        )}
+                        Export Excel
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => setSelectedSubjectId(null)}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     ปิด
                   </button>
