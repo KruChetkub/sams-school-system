@@ -1,3 +1,12 @@
+/**
+ * @file App.tsx
+ * @description Core Application router, layout, and role-based dashboard rendering
+ * @author KruChet (https://github.com/KruChetkub)
+ * @repository https://github.com/KruChetkub/sams-school-system
+ * @copyright 2024-2026 KruChet (KruChetkub). All rights reserved.
+ * Protected under the Thai Copyright Act B.E. 2537 and international copyright conventions.
+ */
+
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
@@ -427,8 +436,28 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
 
         {/* Scrollable Content */}
-        <div id="main-scroll-container" className="flex-1 overflow-auto bg-[#F8FAFC] dark:bg-[#0f172a]">
-          {children}
+        <div id="main-scroll-container" className="flex-1 overflow-auto bg-[#F8FAFC] dark:bg-[#0f172a] flex flex-col justify-between">
+          <div className="flex-1">
+            {children}
+          </div>
+          {/* Footer Attribution & Copyright */}
+          <footer className="py-4 px-6 text-center text-xs text-gray-500 dark:text-slate-400 border-t border-gray-200/60 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/40 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3">
+              <span>© {new Date().getFullYear()} SAMS School Management System. สงวนลิขสิทธิ์ตาม พ.ร.บ. ลิขสิทธิ์</span>
+              <span className="hidden sm:inline text-gray-300 dark:text-slate-600">•</span>
+              <span>
+                ผู้พัฒนาและเจ้าของลิขสิทธิ์:{' '}
+                <a
+                  href="https://github.com/KruChetkub"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  KruChet (KruChetkub)
+                </a>
+              </span>
+            </div>
+          </footer>
         </div>
       </main>
     </div>
