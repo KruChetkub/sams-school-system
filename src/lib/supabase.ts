@@ -7,10 +7,18 @@ if (!rawSupabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase Environment Variables')
 }
 
-// In the browser, use the same-origin reverse proxy (/supabase-api) to eliminate
-// cross-domain requests and prevent CORS wildcard (*) alerts in security scanners (ZAP).
+// In local development / preview (localhost or 127.0.0.1), route through the Vite dev proxy
+// (/supabase-api) to eliminate cross-origin headers during local security scanning (ZAP / Qpent).
+// In production (Vercel / live domain), connect directly to Supabase over HTTPS.
 const isBrowser = typeof window !== 'undefined'
-const supabaseUrl = isBrowser ? `${window.location.origin}/supabase-api` : rawSupabaseUrl
+const isLocalhost =
+  isBrowser &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0' ||
+    window.location.hostname.endsWith('.local'))
+
+const supabaseUrl = isLocalhost ? `${window.location.origin}/supabase-api` : rawSupabaseUrl
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -18,3 +26,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
   },
 })
+
