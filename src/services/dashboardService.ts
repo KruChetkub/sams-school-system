@@ -91,7 +91,8 @@ export interface HomeroomClassroomDetailReport {
 export const getHomeroomReport = async (
   timeFilter: string = 'month',
   academicYearId?: string,
-  teacherId?: string
+  teacherId?: string,
+  semesterId?: string
 ): Promise<HomeroomReportRow[]> => {
   const startDate = getStartDate(timeFilter).split('T')[0]
   let selectStr = `
@@ -112,6 +113,10 @@ export const getHomeroomReport = async (
 
   if (academicYearId) {
     query = query.eq('academic_year_id', academicYearId)
+  }
+
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
   }
 
   if (teacherId) {
@@ -224,20 +229,25 @@ export const getHomeroomClassroomDetailReport = async (
 export const getClassroomReport = async (
   timeFilter: string = 'month',
   academicYearId?: string,
-  teacherId?: string
+  teacherId?: string,
+  semesterId?: string
 ): Promise<ClassroomReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   let selectStr = `
     status,
     students ( classroom_id, classrooms(id, level, room) )
   `
-  if (teacherId || academicYearId) {
+  if (teacherId || academicYearId || semesterId) {
     const classroomJoin = academicYearId 
       ? `classrooms!inner(id, level, room, academic_year_id)`
       : `classrooms(id, level, room)`
+    const sessionJoin = semesterId
+      ? `, attendance_sessions!inner(subjects!inner(semester_id))`
+      : ''
     selectStr = `
       status,
       students!inner ( classroom_id, ${classroomJoin} )
+      ${sessionJoin}
     `
   }
 
@@ -248,6 +258,10 @@ export const getClassroomReport = async (
 
   if (academicYearId) {
     query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  if (semesterId) {
+    query = query.eq('attendance_sessions.subjects.semester_id', semesterId)
   }
 
   if (teacherId) {
@@ -297,20 +311,25 @@ export const getStudentReport = async (
   timeFilter: string = 'month',
   classroomId?: string,
   academicYearId?: string,
-  teacherId?: string
+  teacherId?: string,
+  semesterId?: string
 ): Promise<StudentReportRow[]> => {
   const startDate = getStartDate(timeFilter)
   let selectStr = `
     status,
     students ( id, student_code, prefix, first_name, last_name, classroom_id, classrooms(level, room) )
   `
-  if (teacherId || academicYearId) {
+  if (teacherId || academicYearId || semesterId) {
     const classroomJoin = academicYearId
       ? `classrooms!inner(level, room, academic_year_id)`
       : `classrooms(level, room)`
+    const sessionJoin = semesterId
+      ? `, attendance_sessions!inner(subjects!inner(semester_id))`
+      : ''
     selectStr = `
       status,
       students!inner ( id, student_code, prefix, first_name, last_name, classroom_id, ${classroomJoin} )
+      ${sessionJoin}
     `
   }
 
@@ -319,8 +338,16 @@ export const getStudentReport = async (
     .select(selectStr)
     .gte('checkin_time', startDate)
 
+  if (classroomId) {
+    query = query.eq('students.classroom_id', classroomId)
+  }
+
   if (academicYearId) {
     query = query.eq('students.classrooms.academic_year_id', academicYearId)
+  }
+
+  if (semesterId) {
+    query = query.eq('attendance_sessions.subjects.semester_id', semesterId)
   }
 
   if (teacherId) {
@@ -710,7 +737,7 @@ export const getSubjectReport = async (
     })
 }
 
-export const getDashboardStats = async (academicYearId?: string) => {
+export const getDashboardStats = async (academicYearId?: string, semesterId?: string) => {
   let studentQuery = supabase.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null)
   let classroomQuery = supabase.from('classrooms').select('*', { count: 'exact', head: true })
   let subjectQuery = supabase.from('subjects').select('*', { count: 'exact', head: true })
@@ -723,6 +750,10 @@ export const getDashboardStats = async (academicYearId?: string) => {
 
     classroomQuery = classroomQuery.eq('academic_year_id', academicYearId)
     subjectQuery = subjectQuery.eq('academic_year_id', academicYearId)
+  }
+
+  if (semesterId) {
+    subjectQuery = subjectQuery.eq('semester_id', semesterId)
   }
 
   const [
@@ -1201,7 +1232,8 @@ export const getPendingClassroomChecksToday = async (academicYearId?: string): P
 export const getAnalyticsData = async (
   timeFilter: string = 'month',
   academicYearId?: string,
-  teacherId?: string
+  teacherId?: string,
+  semesterId?: string
 ) => {
   // คำนวณวันที่เริ่มต้นตาม timeFilter
   const now = new Date()
@@ -1230,18 +1262,18 @@ export const getAnalyticsData = async (
       students!inner ( student_code, first_name, last_name, classroom_id, classrooms(level, room) ),
       attendance_sessions ( session_date, subjects(subject_name) )
     `
-    if (academicYearId) {
+    if (academicYearId || semesterId) {
       selectStr = `
         id, checkin_time, status,
         students!inner ( student_code, first_name, last_name, classroom_id, classrooms(level, room) ),
-        attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id) )
+        attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id, semester_id) )
       `
     }
-  } else if (academicYearId) {
+  } else if (academicYearId || semesterId) {
     selectStr = `
       id, checkin_time, status,
       students ( student_code, first_name, last_name, classrooms(level, room) ),
-      attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id) )
+      attendance_sessions!inner ( session_date, subjects!inner(subject_name, academic_year_id, semester_id) )
     `
   }
 
@@ -1252,6 +1284,10 @@ export const getAnalyticsData = async (
 
   if (academicYearId) {
     query = query.eq('attendance_sessions.subjects.academic_year_id', academicYearId)
+  }
+
+  if (semesterId) {
+    query = query.eq('attendance_sessions.subjects.semester_id', semesterId)
   }
 
   if (teacherId) {

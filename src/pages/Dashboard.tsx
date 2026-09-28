@@ -74,8 +74,9 @@ const StackedBar = ({ data }: { data: any[] }) => {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { selectedYear } = useAcademicYearStore()
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
   const academicYearId = selectedYear?.id
+  const semesterId = selectedSemester?.id
   const [now, setNow] = useState(new Date())
   const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedSummaryDateInput, setSelectedSummaryDateInput] = useState('')
@@ -171,7 +172,7 @@ export default function Dashboard() {
     setSelectedSummaryDateError('รูปแบบวันที่ไม่ถูกต้อง โปรดใช้ วว/ดด/ปปปป')
   }
 
-  const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats', academicYearId], queryFn: () => getDashboardStats(academicYearId) })
+  const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats', academicYearId, semesterId], queryFn: () => getDashboardStats(academicYearId, semesterId) })
   const { data: pendingChecks, isLoading: loadingPendingChecks } = useQuery({
     queryKey: ['dashboard_pending_checks_today', academicYearId],
     queryFn: () => getPendingClassroomChecksToday(academicYearId),
@@ -187,8 +188,8 @@ export default function Dashboard() {
     staleTime: 30000,
   })
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({
-    queryKey: ['dashboard_analytics', 'month', academicYearId],
-    queryFn: () => getAnalyticsData('month', academicYearId),
+    queryKey: ['dashboard_analytics', 'month', academicYearId, semesterId],
+    queryFn: () => getAnalyticsData('month', academicYearId, undefined, semesterId),
     enabled: showAdvancedAnalytics,
   })
   const { data: trendToday, isLoading: loadingTrendToday } = useQuery({
@@ -200,8 +201,8 @@ export default function Dashboard() {
     enabled: showAdvancedAnalytics,
   })
   const { data: classroomWeekRows = [], isLoading: loadingClassroomWeekRows } = useQuery({
-    queryKey: ['dashboard_classroom_report_week', academicYearId],
-    queryFn: () => getClassroomReport('week', academicYearId),
+    queryKey: ['dashboard_classroom_report_week', academicYearId, semesterId],
+    queryFn: () => getClassroomReport('week', academicYearId, undefined, semesterId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,

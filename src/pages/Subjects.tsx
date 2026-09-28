@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject } from '../services/subjectService'
+import { getSubjects, createSubject, updateSubject, deleteSubject, cloneSubjects, type Subject } from '../services/subjectService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
-import { Plus, Trash2, AlertTriangle, Pencil } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Pencil, Copy } from 'lucide-react'
 
 const subjectCardPalettes = [
   { card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70', title: 'text-rose-900', meta: 'text-rose-800' },
@@ -38,6 +38,30 @@ export default function Subjects() {
   const [errorMessage, setErrorMessage] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
+
+  const [isCloning, setIsCloning] = useState(false)
+  const otherSemesters = React.useMemo(() => {
+    if (!selectedYear?.semesters || !selectedSemester) return []
+    return selectedYear.semesters.filter(s => s.id !== selectedSemester.id)
+  }, [selectedYear, selectedSemester])
+
+  const handleCloneSubjects = async () => {
+    if (!selectedSemester || otherSemesters.length === 0 || !selectedYear) return
+    const srcSem = otherSemesters[0]
+    const confirmed = window.confirm(`คุณต้องการคัดลอกรายวิชาจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะรหัสวิชาที่ยังไม่มีในภาคเรียนนี้)`)
+    if (!confirmed) return
+
+    setIsCloning(true)
+    try {
+      const count = await cloneSubjects(srcSem.id, selectedSemester.id, selectedYear.id)
+      queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      window.alert(`คัดลอกรายวิชาสำเร็จ (${count} วิชา)`)
+    } catch (err: any) {
+      window.alert('เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err))
+    } finally {
+      setIsCloning(false)
+    }
+  }
 
   const totalSubjects = subjects?.length || 0
   const totalPages = Math.ceil(totalSubjects / pageSize) || 1
@@ -145,21 +169,35 @@ export default function Subjects() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการวิชาเรียน (Subjects)</h1>
-        <button 
-          onClick={() => {
-            setErrorMessage('')
-            if (!showForm) {
-              setEditingSubjectId(null)
-              setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '', academic_year_id: selectedYear?.id || '', semester_id: selectedSemester?.id || '' })
-            }
-            setShowForm(!showForm)
-          }}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm font-semibold"
-        >
-          <Plus size={20} /> เพิ่มรายวิชา
-        </button>
+        <div className="flex items-center gap-3">
+          {otherSemesters.length > 0 && (
+            <button
+              type="button"
+              disabled={isCloning}
+              onClick={handleCloneSubjects}
+              className="border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-sm transition shadow-sm disabled:opacity-50"
+              title={`คัดลอกรายวิชาจาก ${otherSemesters[0].label || 'ภาคเรียนก่อนหน้า'}`}
+            >
+              <Copy size={18} />
+              <span>{isCloning ? 'กำลังคัดลอก...' : `คัดลอกวิชาจาก ${otherSemesters[0].label || 'ภาคเรียนที่ 1'}`}</span>
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              setErrorMessage('')
+              if (!showForm) {
+                setEditingSubjectId(null)
+                setFormData({ subject_code: '', subject_name: '', department: '', credit: '', teacher_id: '', academic_year_id: selectedYear?.id || '', semester_id: selectedSemester?.id || '' })
+              }
+              setShowForm(!showForm)
+            }}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm font-semibold text-sm"
+          >
+            <Plus size={20} /> เพิ่มรายวิชา
+          </button>
+        </div>
       </div>
 
       {errorMessage && (

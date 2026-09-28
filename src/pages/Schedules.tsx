@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSchedules, createSchedule, deleteSchedule, updateSchedule } from '../services/scheduleService'
+import { getSchedules, createSchedule, deleteSchedule, updateSchedule, cloneSchedules } from '../services/scheduleService'
 import { getSubjects } from '../services/subjectService'
 import { getClassrooms } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
-import { Plus, Trash2, Pencil, Users, ClipboardCheck, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, Pencil, Users, ClipboardCheck, AlertCircle, ArrowLeft, Copy } from 'lucide-react'
 
 const DAYS = [
   { value: 1, label: 'จันทร์' },
@@ -151,8 +151,8 @@ export default function Schedules() {
   const { role } = useAuthStore()
 
   const { data: schedules, isLoading } = useQuery({
-    queryKey: ['schedules', selectedYear?.id],
-    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id)
+    queryKey: ['schedules', selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id, selectedSemester?.id)
   })
   const { data: subjects } = useQuery({
     queryKey: ['subjects', selectedYear?.id, selectedSemester?.id],
@@ -287,6 +287,30 @@ export default function Schedules() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schedules'] })
   })
 
+  const [isCloning, setIsCloning] = useState(false)
+  const otherSemesters = React.useMemo(() => {
+    if (!selectedYear?.semesters || !selectedSemester) return []
+    return selectedYear.semesters.filter(s => s.id !== selectedSemester.id)
+  }, [selectedYear, selectedSemester])
+
+  const handleCloneSchedules = async () => {
+    if (!selectedSemester || otherSemesters.length === 0 || !selectedYear) return
+    const srcSem = otherSemesters[0]
+    const confirmed = window.confirm(`คุณต้องการคัดลอกตารางสอนจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะคาบที่ยังไม่มีในภาคเรียนนี้โดยอัตโนมัติ)`)
+    if (!confirmed) return
+
+    setIsCloning(true)
+    try {
+      const count = await cloneSchedules(srcSem.id, selectedSemester.id, selectedYear.id)
+      queryClient.invalidateQueries({ queryKey: ['schedules'] })
+      window.alert(`คัดลอกตารางสอนสำเร็จเรียบร้อย (${count} คาบ)`)
+    } catch (err: any) {
+      window.alert('เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err))
+    } finally {
+      setIsCloning(false)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const multiClassroomMeta = extraClassroomIds.length > 0 ? `${MULTI_CLASSROOM_PREFIX}${extraClassroomIds.join(',')}` : ''
@@ -296,6 +320,8 @@ export default function Schedules() {
       day_of_week: parseInt(formData.day_of_week),
       period: parseInt(formData.period),
       room_name: mergedRoomName || null,
+      academic_year_id: selectedYear?.id || null,
+      semester_id: selectedSemester?.id || null,
     }
     if (editingScheduleId) {
       updateMutation.mutate({ id: editingScheduleId, payload })
@@ -634,7 +660,7 @@ export default function Schedules() {
                 </div>
               </div>
 
-              <div className="flex gap-3 w-full md:w-auto">
+              <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
                 <select
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
@@ -645,6 +671,19 @@ export default function Schedules() {
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
                 </select>
+
+                {otherSemesters.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isCloning}
+                    onClick={handleCloneSchedules}
+                    className="px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-2 whitespace-nowrap shadow-sm disabled:opacity-50"
+                    title={`คัดลอกตารางสอนจาก ${otherSemesters[0].label || 'ภาคเรียนก่อนหน้า'}`}
+                  >
+                    <Copy size={16} />
+                    <span>{isCloning ? 'กำลังคัดลอก...' : `คัดลอกตารางจาก ${otherSemesters[0].label || 'ภาคเรียนที่ 1'}`}</span>
+                  </button>
+                )}
               </div>
             </div>
 

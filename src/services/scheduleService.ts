@@ -5,6 +5,8 @@ export interface Schedule {
   subject_id: string
   teacher_id: string
   classroom_id: string
+  academic_year_id?: string
+  semester_id?: string
   day_of_week: number
   period: number
   start_time: string
@@ -12,10 +14,15 @@ export interface Schedule {
   room_name?: string
   subject?: { subject_code: string; subject_name: string }
   teacher?: { first_name: string; last_name: string }
-  classroom?: { level: string; room: string }
+  classroom?: { level: string; room: string; academic_year_id?: string }
 }
 
-export const getSchedules = async (classroomId?: string, teacherId?: string, academicYearId?: string) => {
+export const getSchedules = async (
+  classroomId?: string,
+  teacherId?: string,
+  academicYearId?: string,
+  semesterId?: string
+) => {
   let selectStr = `
     *,
     subject:subject_id (subject_code, subject_name),
@@ -37,10 +44,58 @@ export const getSchedules = async (classroomId?: string, teacherId?: string, aca
   if (classroomId) query = query.eq('classroom_id', classroomId)
   if (teacherId) query = query.eq('teacher_id', teacherId)
   if (academicYearId && !classroomId) query = query.eq('classroom.academic_year_id', academicYearId)
+  if (semesterId) query = query.eq('semester_id', semesterId)
 
   const { data, error } = await query
   if (error) throw error
   return data as Schedule[]
+}
+
+export const cloneSchedules = async (
+  sourceSemesterId: string,
+  targetSemesterId: string,
+  targetAcademicYearId: string
+) => {
+  // 1. First attempt to call the RPC function in Supabase
+  try {
+    const { data: count, error: rpcError } = await supabase.rpc('clone_schedules_between_semesters', {
+      source_semester_id: sourceSemesterId,
+      target_semester_id: targetSemesterId,
+      target_academic_year_id: targetAcademicYearId
+    })
+    if (!rpcError) return count as number
+  } catch (_) {}
+
+  // 2. Fallback: Client-side cloning if RPC not executed yet
+  const sourceSchedules = await getSchedules(undefined, undefined, undefined, sourceSemesterId)
+  if (!sourceSchedules || sourceSchedules.length === 0) return 0
+
+  const targetSchedules = await getSchedules(undefined, undefined, undefined, targetSemesterId)
+  const existingKeys = new Set(
+    (targetSchedules || []).map(s => `${s.classroom_id}_${s.day_of_week}_${s.period}`)
+  )
+
+  const toInsert = sourceSchedules
+    .filter(s => !existingKeys.has(`${s.classroom_id}_${s.day_of_week}_${s.period}`))
+    .map(s => ({
+      subject_id: s.subject_id,
+      teacher_id: s.teacher_id,
+      classroom_id: s.classroom_id,
+      day_of_week: s.day_of_week,
+      period: s.period,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      room_name: s.room_name || '',
+      academic_year_id: targetAcademicYearId,
+      semester_id: targetSemesterId
+    }))
+
+  if (toInsert.length === 0) return 0
+
+  const { error: insertError } = await supabase.from('schedules').insert(toInsert)
+  if (insertError) throw insertError
+
+  return toInsert.length
 }
 
 export const createSchedule = async (schedule: Omit<Schedule, 'id' | 'subject' | 'teacher' | 'classroom'>) => {
