@@ -130,14 +130,6 @@ export default function Login() {
         </div>
       )}
       {/* Background Lottie Animation */}
-      <style>{`
-        @keyframes lightningDraw {
-          0% { opacity: 0; stroke-dashoffset: 160; }
-          20% { opacity: 1; }
-          75% { opacity: 1; }
-          100% { opacity: 0; stroke-dashoffset: 0; }
-        }
-      `}</style>
       <div className="absolute inset-0 z-0 opacity-90 pointer-events-none">
         <Lottie
           animationData={animationData}

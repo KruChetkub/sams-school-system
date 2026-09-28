@@ -829,22 +829,6 @@ export default function ClassroomVisitAnalysis() {
     if (!selectedClassroomId) return null;
     return (
       <div className={forPreview ? 'sarabun-print' : 'print-only sarabun-print'} style={{ color: 'black', background: 'white', width: '100%', padding: 32, fontFamily: "'Sarabun', sans-serif" }}>
-        <style type="text/css">
-          {`
-            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-            .print-only { display: none; }
-            .sarabun-print { font-family: 'Sarabun', sans-serif; color: black; }
-            .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            .print-table th, .print-table td { border: 1px solid black !important; padding: 4px 8px; font-size: 13px; color: black !important; }
-            .print-table th { background-color: #f2f2f2 !important; font-weight: bold; }
-            .print-table td:nth-child(2), .print-table td:nth-child(3) { text-align: center; }
-            @media print {
-              body { background: white !important; color: black !important; }
-              .print-only { display: block !important; }
-              .no-print { display: none !important; }
-            }
-          `}
-        </style>
 
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold">วิเคราะห์สรุปการเยี่ยมบ้าน ปีการศึกษา {selectedYear?.year_name || '..........'}</h2>

@@ -1,4 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+@import "@fontsource/prompt/300.css";
+@import "@fontsource/prompt/400.css";
+@import "@fontsource/prompt/500.css";
+@import "@fontsource/prompt/600.css";
+@import "@fontsource/prompt/700.css";
+@import "@fontsource/sarabun/300.css";
+@import "@fontsource/sarabun/400.css";
+@import "@fontsource/sarabun/500.css";
+@import "@fontsource/sarabun/600.css";
+@import "@fontsource/sarabun/700.css";
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
@@ -257,3 +266,98 @@ html.dark .home-visit-layout {
     color: #fbbf24 !important;
   }
 }
+
+/* ==========================================================================
+   GLOBAL UTILITIES, KEYFRAMES & REPORT PRINT STYLES
+   ========================================================================== */
+
+@keyframes lightningDraw {
+  0% { opacity: 0; stroke-dashoffset: 160; }
+  20% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; stroke-dashoffset: 0; }
+}
+
+.custom-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 10px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 3px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.custom-zoom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 10px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 3px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.custom-zoom-slider::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.sarabun-print { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; color: black; }
+.print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.print-table th, .print-table td { border: 1px solid black !important; padding: 4px 8px; font-size: 13px; color: black !important; }
+.print-table th { background-color: #f2f2f2 !important; font-weight: bold; }
+.print-table td:nth-child(2), .print-table td:nth-child(3) { text-align: center; }
+
+/* Report print styles */
+.sarabun { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; color: black; }
+.page { 
+  width: 210mm; 
+  min-height: 297mm; 
+  background: #fff; 
+  margin: 10px auto; 
+  padding: 12mm 20mm 12mm 20mm; 
+  box-sizing: border-box; 
+  page-break-after: always; 
+  position: relative;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.page.is-preview {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+@media print {
+  .page { 
+    margin: 0 !important; 
+    border: none !important; 
+    box-shadow: none !important; 
+    page-break-after: always !important; 
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 12mm 20mm 12mm 20mm !important;
+  }
+}
+.header { text-align: center; position: relative; }
+.header h1 { margin: 0; font-size: 21px; font-weight: bold; }
+.header h2 { margin: 3px 0 8px 0; font-size: 16px; font-weight: normal; }
+.doc-code { position: absolute; right: 20mm; top: 12mm; width: 28mm; height: 14mm; border: 1px solid #000; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 15px; }
+.photo-box { position: absolute; right: 20mm; top: 30mm; width: 26mm; height: 32mm; border: 1px solid #000; display: flex; justify-content: center; align-items: center; text-align: center; font-size: 11px; overflow: hidden; }
+.line { display: flex; align-items: flex-end; margin-bottom: 4px; }
+.dotted { flex: 1; border-bottom: 1px dotted #000; min-height: 18px; margin: 0 4px; padding-left: 8px; font-weight: 500; font-size: 13.5px; color: #1e293b; }
+.short { width: 100px; flex: none; }
+.medium { width: 200px; flex: none; }
+.cb, .rb { display: inline-flex; justify-content: center; align-items: center; width: 14px; height: 14px; border: 1px solid #000; margin-right: 5px; font-size: 10px; font-weight: bold; font-family: sans-serif; shrink-0: 1; vertical-align: middle; line-height: 1; }
+.rb { border-radius: 50%; }
+.section { margin-top: 8px; }
+.sub-section { padding-left: 4.5mm; }
+.section-title { font-weight: bold; font-size: 14.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; margin: 4px 0; }
+.column-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 15px; }
+.column-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 12px; }
+.multiline { height: 20px; border-bottom: 1px dotted #000; margin-bottom: 6px; }
+.footer-sign { text-align: right; margin-top: 20px; line-height: 1.5; }
+.page-number { position: absolute; right: 15mm; top: 8mm; font-size: 11px; color: #64748b; }
+.photo-container { border: 1px solid #000; height: 260px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background-color: #f8fafc; }
+.map-container { border: 1px solid #000; height: 480px; position: relative; overflow: hidden; }

@@ -36,6 +36,15 @@ export default function Classrooms() {
   const topRef = useRef<HTMLDivElement | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+
+  const totalClassrooms = classrooms?.length || 0
+  const totalPages = Math.ceil(totalClassrooms / pageSize) || 1
+  const safePage = Math.min(Math.max(1, currentPage), totalPages)
+  const startIndex = (safePage - 1) * pageSize
+  const paginatedClassrooms = classrooms?.slice(startIndex, startIndex + pageSize) || []
+
   const [formData, setFormData] = useState({
     level: '',
     room: '',
@@ -197,12 +206,17 @@ export default function Classrooms() {
         <>
           {/* Mobile Card View */}
           <div className="block md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {classrooms?.map(classroom => {
+            {paginatedClassrooms.map((classroom, index) => {
               const palette = getClassroomPalette(`${classroom.id}-${classroom.level}/${classroom.room}`)
               return (
                 <div key={classroom.id} className={`p-5 rounded-2xl border shadow-sm flex justify-between items-start gap-4 ${palette.card}`}>
                   <div className="flex flex-col gap-1">
-                    <div className={`font-bold text-xl ${palette.title}`}>{classroom.level}/{classroom.room}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70 text-gray-700">
+                        #{startIndex + index + 1}
+                      </span>
+                      <div className={`font-bold text-xl ${palette.title}`}>{classroom.level}/{classroom.room}</div>
+                    </div>
                     <div className={`text-sm mt-1 font-medium ${palette.meta}`}>
                       <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษาคนที่ 1:</span> {classroom.advisor ? `${classroom.advisor.first_name} ${classroom.advisor.last_name}` : '-'}</div>
                       <div className="mb-0.5"><span className="opacity-80">ที่ปรึกษาคนที่ 2:</span> {classroom.advisor2 ? `${classroom.advisor2.first_name} ${classroom.advisor2.last_name}` : '-'}</div>
@@ -238,6 +252,7 @@ export default function Classrooms() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">ลำดับ</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ระดับชั้น</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้อง</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ครูที่ปรึกษาคนที่ 1</th>
@@ -247,8 +262,11 @@ export default function Classrooms() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {classrooms?.map(classroom => (
+                {paginatedClassrooms.map((classroom, index) => (
                   <tr key={classroom.id} className="hover:bg-indigo-50/40 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-medium">
+                      {startIndex + index + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">{classroom.level}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{classroom.room}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -281,11 +299,54 @@ export default function Classrooms() {
                   </tr>
                 ))}
                 {classrooms?.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลห้องเรียนในระบบ</td></tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-4 px-6 py-4 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-sm text-gray-600">
+                หน้าที่ <span className="font-semibold text-gray-800">{safePage}</span> จาก <span className="font-semibold text-gray-800">{totalPages}</span> (แสดง {pageSize} รายการต่อหน้า จากทั้งหมด {totalClassrooms} ห้องเรียน)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={safePage <= 1}
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                >
+                  ก่อนหน้า
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                        safePage === pageNum
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                >
+                  ถัดไป
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

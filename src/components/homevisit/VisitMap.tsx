@@ -109,32 +109,6 @@ function ZoomSlider() {
       ref={containerRef}
       className="absolute top-4 left-4 z-[1000] flex flex-col items-center bg-white rounded-xl shadow-md border border-gray-200/80 overflow-hidden select-none"
     >
-      <style>{`
-        .custom-zoom-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 10px;
-          background: #ffffff;
-          border: 1.5px solid #cbd5e1;
-          border-radius: 3px;
-          cursor: pointer;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-        }
-        .custom-zoom-slider::-moz-range-thumb {
-          width: 18px;
-          height: 10px;
-          background: #ffffff;
-          border: 1.5px solid #cbd5e1;
-          border-radius: 3px;
-          cursor: pointer;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-        }
-        .custom-zoom-slider::-webkit-slider-runnable-track {
-          background: transparent;
-        }
-      `}</style>
-
       {/* Zoom In Button */}
       <button 
         onClick={handleZoomIn}

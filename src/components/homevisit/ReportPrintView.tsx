@@ -45,79 +45,12 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
     ? "w-full font-sarabun text-black overflow-y-auto max-h-[85vh] bg-slate-200 p-4 sm:p-8 rounded-2xl flex flex-col gap-6 items-center shadow-inner"
     : "print:block hidden font-sarabun bg-white text-black w-full min-h-screen absolute top-0 left-0 z-[9999]";
 
+  const pageClass = `page sarabun ${isPreviewMode ? 'is-preview' : ''}`;
+
   return (
     <div className={wrapperClass}>
-      <style type="text/css" media="print, screen">
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
-          .sarabun { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; color: black; }
-          
-          /* Page size layout */
-          .page { 
-            width: 210mm; 
-            min-height: 297mm; 
-            background: #fff; 
-            margin: 10px auto; 
-            padding: 12mm 20mm 12mm 20mm; 
-            box-sizing: border-box; 
-            page-break-after: always; 
-            position: relative;
-            box-shadow: ${isPreviewMode ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none'};
-            border: ${isPreviewMode ? '1px solid #e2e8f0' : 'none'};
-            font-size: 13.5px;
-            line-height: 1.35;
-          }
-          
-          @media print {
-            body { background: white !important; margin: 0 !important; }
-            .page { 
-              margin: 0 !important; 
-              border: none !important; 
-              box-shadow: none !important; 
-              page-break-after: always !important; 
-              width: 210mm !important;
-              height: 297mm !important;
-              padding: 12mm 20mm 12mm 20mm !important;
-            }
-          }
-
-          .header { text-align: center; position: relative; }
-          .header h1 { margin: 0; font-size: 21px; font-weight: bold; }
-          .header h2 { margin: 3px 0 8px 0; font-size: 16px; font-weight: normal; }
-          
-          .doc-code { position: absolute; right: 20mm; top: 12mm; width: 28mm; height: 14mm; border: 1px solid #000; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 15px; }
-          .photo-box { position: absolute; right: 20mm; top: 30mm; width: 26mm; height: 32mm; border: 1px solid #000; display: flex; justify-content: center; align-items: center; text-align: center; font-size: 11px; overflow: hidden; }
-          
-          .line { display: flex; align-items: flex-end; margin-bottom: 4px; }
-          .dotted { flex: 1; border-bottom: 1px dotted #000; min-height: 18px; margin: 0 4px; padding-left: 8px; font-weight: 500; font-size: 13.5px; color: #1e293b; }
-          .short { width: 100px; flex: none; }
-          .medium { width: 200px; flex: none; }
-          
-          .cb, .rb { display: inline-flex; justify-content: center; align-items: center; width: 14px; height: 14px; border: 1px solid #000; margin-right: 5px; font-size: 10px; font-weight: bold; font-family: sans-serif; shrink-0: 1; vertical-align: middle; line-height: 1; }
-          .rb { border-radius: 50%; }
-          
-          table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-          table th, table td { border: 1px solid #000; padding: 3px 4px; text-align: center; font-size: 12.5px; height: 20px; }
-          table td:first-child { text-align: left; font-weight: 500; }
-          
-          .section { margin-top: 8px; }
-          .sub-section { padding-left: 4.5mm; }
-          .section-title { font-weight: bold; font-size: 14.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; pb: 2px; }
-          .row { display: flex; flex-wrap: wrap; gap: 12px; margin: 4px 0; }
-          .column-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 15px; }
-          .column-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 12px; }
-          
-          .multiline { height: 20px; border-bottom: 1px dotted #000; margin-bottom: 6px; }
-          .footer-sign { text-align: right; margin-top: 20px; line-height: 1.5; }
-          .page-number { position: absolute; right: 15mm; top: 8mm; font-size: 11px; color: #64748b; }
-          
-          .photo-container { border: 1px solid #000; height: 260px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background-color: #f8fafc; }
-          .map-container { border: 1px solid #000; height: 480px; position: relative; overflow: hidden; }
-        `}
-      </style>
-
       {/* ===================== PAGE 1 ===================== */}
-      <div className="page sarabun">
+      <div className={pageClass}>
         <div className="page-number">หน้า 1/4</div>
         <div className="doc-code">ด.ล 01</div>
         <div className="photo-box">
@@ -292,7 +225,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
       </div>
 
       {/* ===================== PAGE 2 ===================== */}
-      <div className="page sarabun">
+      <div className={pageClass}>
         <div className="page-number">หน้า 2/4</div>
         <div className="header">
           <h1>บันทึกการเยี่ยมบ้าน</h1>
@@ -441,7 +374,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
       </div>
 
       {/* ===================== PAGE 3 ===================== */}
-      <div className="page sarabun">
+      <div className={pageClass}>
         <div className="page-number">หน้า 3/4</div>
         <div className="header">
           <h1>บันทึกการเยี่ยมบ้าน</h1>
@@ -501,7 +434,7 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
       </div>
 
       {/* ===================== PAGE 4 ===================== */}
-      <div className="page sarabun" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className={pageClass} style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="page-number">หน้า 4/4</div>
         <div className="header">
           <h1>แผนที่การเดินทางจากโรงเรียนไปบ้านนักเรียน</h1>

@@ -21,7 +21,9 @@ const getIpAddress = async (): Promise<string> => {
     const timeoutId = setTimeout(() => controller.abort(), 2000)
 
     const res = await fetch('https://api.ipify.org?format=json', {
-      signal: controller.signal
+      signal: controller.signal,
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer'
     })
     clearTimeout(timeoutId)
 

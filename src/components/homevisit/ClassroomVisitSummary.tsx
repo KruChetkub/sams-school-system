@@ -503,17 +503,6 @@ export default function ClassroomVisitSummary() {
 
     return (
       <div className={forPreview ? '' : 'print-only'} style={{ fontFamily: "'Sarabun', 'TH Sarabun New', sans-serif", color: 'black', background: 'white', fontSize: 15 }}>
-        <style type="text/css">
-          {`
-            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-            .print-only { display: none; }
-            @media print {
-              body { background: white !important; color: black !important; margin: 0; }
-              .print-only { display: block !important; }
-              .no-print { display: none !important; }
-            }
-          `}
-        </style>
 
         {/* === PAGE 1 === */}
         <div style={{ padding: '1.5cm 2.5cm' }}>

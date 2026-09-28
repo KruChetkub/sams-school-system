@@ -9,7 +9,7 @@ import { getUsers } from '../services/userService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
-import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Edit3, Upload, Download, Users, AlertTriangle, CheckCircle, Info, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Students() {
@@ -73,6 +73,10 @@ export default function Students() {
   const [promoteSourceClassroomId, setPromoteSourceClassroomId] = useState('')
   const [promoteTargetClassroomId, setPromoteTargetClassroomId] = useState('')
   const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject' | 'deleted_history'>('list')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [sortField, setSortField] = useState<'student_code' | 'name' | 'gender' | 'classroom'>('student_code')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -113,6 +117,73 @@ export default function Students() {
       opt.category.toLowerCase().includes(q)
     )
   }, [filterOptions, filterSearchQuery])
+
+  // Reset page when filter or sorting changes
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [filterClassroomId, bottomSearchKeyword, pageSize, sortField, sortDirection])
+
+  const displayStudents = React.useMemo(() => {
+    if (!students || !filterClassroomId) return []
+
+    const filtered = students.filter(s => {
+      let matchGroup = true
+      if (filterClassroomId) {
+        if (filterClassroomId.startsWith('CLASSROOM:')) {
+          const cid = filterClassroomId.replace('CLASSROOM:', '')
+          matchGroup = s.classroom_id === cid
+        } else if (filterClassroomId.startsWith('SUBJECT:')) {
+          const sid = filterClassroomId.replace('SUBJECT:', '')
+          matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
+        }
+      }
+
+      let matchSearch = true
+      if (bottomSearchKeyword.trim()) {
+        const kw = bottomSearchKeyword.toLowerCase().trim()
+        const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
+        const code = (s.student_code || '').toLowerCase()
+        const nick = (s.nickname || '').toLowerCase()
+        matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
+      }
+
+      return matchGroup && matchSearch
+    })
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0
+      if (sortField === 'student_code') {
+        comparison = (a.student_code || '').localeCompare(b.student_code || '', undefined, { numeric: true })
+      } else if (sortField === 'name') {
+        const nameA = `${a.first_name || ''} ${a.last_name || ''}`
+        const nameB = `${b.first_name || ''} ${b.last_name || ''}`
+        comparison = nameA.localeCompare(nameB, 'th')
+      } else if (sortField === 'gender') {
+        comparison = (a.gender || '').localeCompare(b.gender || '')
+      } else if (sortField === 'classroom') {
+        const classA = a.classroom ? `${a.classroom.level}/${a.classroom.room}` : ''
+        const classB = b.classroom ? `${b.classroom.level}/${b.classroom.room}` : ''
+        comparison = classA.localeCompare(classB, 'th', { numeric: true })
+      }
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }, [students, filterClassroomId, allMemberships, bottomSearchKeyword, sortField, sortDirection])
+
+  const totalStudents = displayStudents.length
+  const totalPages = Math.ceil(totalStudents / pageSize) || 1
+  const safePage = Math.min(Math.max(1, currentPage), totalPages)
+  const startIndex = (safePage - 1) * pageSize
+  const paginatedStudents = displayStudents.slice(startIndex, startIndex + pageSize)
+
+  const handleSort = (field: 'student_code' | 'name' | 'gender' | 'classroom') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
   const [moveClassroomId, setMoveClassroomId] = useState('')
   const groupType = 'SUBJECT' as const
   const [groupId, setGroupId] = useState('')
@@ -1181,27 +1252,126 @@ export default function Students() {
                     placeholder="พิมพ์ค้นหารหัส/ชื่อนักเรียน..."
                     value={bottomSearchKeyword}
                     onChange={e => setBottomSearchKeyword(e.target.value)}
-                    className="border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-full sm:min-w-[200px] w-full sm:w-auto shadow-sm font-medium"
+                    className="border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-full sm:min-w-[180px] w-full sm:w-auto shadow-sm font-medium"
                   />
+                </div>
+
+                {/* Sort Block */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                  <label className="text-[11px] sm:text-sm font-bold sm:font-semibold text-gray-500 sm:text-gray-600 uppercase tracking-wider sm:normal-case sm:tracking-normal whitespace-nowrap flex items-center gap-1">
+                    <ArrowUpDown size={14} className="text-gray-400" /> จัดลำดับ:
+                  </label>
+                  <select
+                    value={`${sortField}-${sortDirection}`}
+                    onChange={(e) => {
+                      const [field, dir] = e.target.value.split('-') as [typeof sortField, typeof sortDirection]
+                      setSortField(field)
+                      setSortDirection(dir)
+                    }}
+                    className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                  >
+                    <option value="student_code-asc">รหัสประจำตัว (น้อย ➔ มาก)</option>
+                    <option value="student_code-desc">รหัสประจำตัว (มาก ➔ น้อย)</option>
+                    <option value="name-asc">ชื่อ-สกุล (ก ➔ ฮ)</option>
+                    <option value="name-desc">ชื่อ-สกุล (ฮ ➔ ก)</option>
+                    <option value="gender-asc">เพศ (ชาย ➔ หญิง)</option>
+                    <option value="gender-desc">เพศ (หญิง ➔ ชาย)</option>
+                    <option value="classroom-asc">ห้องเรียน (น้อย ➔ มาก)</option>
+                  </select>
+                </div>
+
+                {/* Page Size Selector */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                  <label className="text-[11px] sm:text-sm font-bold sm:font-semibold text-gray-500 sm:text-gray-600 uppercase tracking-wider sm:normal-case sm:tracking-normal whitespace-nowrap">
+                    แสดง:
+                  </label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                  >
+                    <option value={10}>10 รายการ</option>
+                    <option value={50}>50 รายการ</option>
+                    <option value={100}>100 รายการ</option>
+                  </select>
                 </div>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50 border-b border-gray-200 select-none">
                   <tr>
-                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">คำนำหน้า</th>
-                    <th className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">เพศ</th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                    <th className="px-3 sm:px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-16">
+                      ลำดับ
+                    </th>
+                    <th 
+                      onClick={() => handleSort('student_code')}
+                      className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      title="คลิกเพื่อจัดลำดับตามรหัส"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>รหัส</span>
+                        {sortField === 'student_code' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} className="text-indigo-600" /> : <ArrowDown size={14} className="text-indigo-600" />
+                        ) : (
+                          <ArrowUpDown size={14} className="text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      คำนำหน้า
+                    </th>
+                    <th 
+                      onClick={() => handleSort('name')}
+                      className="px-3 sm:px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      title="คลิกเพื่อจัดลำดับตามชื่อ-สกุล"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>ชื่อ-สกุล</span>
+                        {sortField === 'name' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} className="text-indigo-600" /> : <ArrowDown size={14} className="text-indigo-600" />
+                        ) : (
+                          <ArrowUpDown size={14} className="text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('gender')}
+                      className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      title="คลิกเพื่อจัดลำดับตามเพศ"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>เพศ</span>
+                        {sortField === 'gender' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} className="text-indigo-600" /> : <ArrowDown size={14} className="text-indigo-600" />
+                        ) : (
+                          <ArrowUpDown size={14} className="text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('classroom')}
+                      className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      title="คลิกเพื่อจัดลำดับตามห้องเรียน"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>ห้องเรียน</span>
+                        {sortField === 'classroom' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} className="text-indigo-600" /> : <ArrowDown size={14} className="text-indigo-600" />
+                        ) : (
+                          <ArrowUpDown size={14} className="text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="hidden sm:table-cell px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      จัดการ
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {!filterClassroomId ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
+                      <td colSpan={7} className="px-6 py-20 text-center text-gray-500 bg-gray-50/20 font-medium">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
                             <Users size={24} />
@@ -1213,31 +1383,7 @@ export default function Students() {
                     </tr>
                   ) : (
                     <>
-                      {students?.filter(s => {
-                        // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                        let matchGroup = true
-                        if (filterClassroomId) {
-                          if (filterClassroomId.startsWith('CLASSROOM:')) {
-                            const cid = filterClassroomId.replace('CLASSROOM:', '')
-                            matchGroup = s.classroom_id === cid
-                          } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                            const sid = filterClassroomId.replace('SUBJECT:', '')
-                            matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                          }
-                        }
-
-                        // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                        let matchSearch = true
-                        if (bottomSearchKeyword.trim()) {
-                          const kw = bottomSearchKeyword.toLowerCase().trim()
-                          const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                          const code = (s.student_code || '').toLowerCase()
-                          const nick = (s.nickname || '').toLowerCase()
-                          matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                        }
-
-                        return matchGroup && matchSearch
-                      }).map(student => {
+                      {paginatedStudents.map((student, index) => {
                         const subjectMembershipIds = allMemberships
                           .filter((m) => m.student_id === student.id && m.group_type === 'SUBJECT')
                           .map((m) => m.group_id)
@@ -1247,6 +1393,9 @@ export default function Students() {
                           .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
                         return (
                           <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
+                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-medium">
+                              {startIndex + index + 1}
+                            </td>
                             <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
                             <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
                             <td
@@ -1309,38 +1458,70 @@ export default function Students() {
                           </tr>
                         )
                       })}
-                      {students?.filter(s => {
-                        // 1. กรองตามห้องเรียน / กิจกรรมรวม
-                        let matchGroup = true
-                        if (filterClassroomId) {
-                          if (filterClassroomId.startsWith('CLASSROOM:')) {
-                            const cid = filterClassroomId.replace('CLASSROOM:', '')
-                            matchGroup = s.classroom_id === cid
-                          } else if (filterClassroomId.startsWith('SUBJECT:')) {
-                            const sid = filterClassroomId.replace('SUBJECT:', '')
-                            matchGroup = allMemberships.some((m) => m.student_id === s.id && m.group_type === 'SUBJECT' && m.group_id === sid)
-                          }
-                        }
-
-                        // 2. ค้นหาด้วยชื่อ/รหัส/ชื่อเล่น
-                        let matchSearch = true
-                        if (bottomSearchKeyword.trim()) {
-                          const kw = bottomSearchKeyword.toLowerCase().trim()
-                          const fullName = `${s.prefix ? `${s.prefix} ` : ''}${s.first_name} ${s.last_name}`.toLowerCase()
-                          const code = (s.student_code || '').toLowerCase()
-                          const nick = (s.nickname || '').toLowerCase()
-                          matchSearch = fullName.includes(kw) || code.includes(kw) || nick.includes(kw)
-                        }
-
-                        return matchGroup && matchSearch
-                      }).length === 0 && (
-                          <tr><td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน)</td></tr>
-                        )}
+                      {displayStudents.length === 0 && (
+                        <tr><td colSpan={7} className="px-6 py-16 text-center text-gray-400 bg-gray-50/30 font-medium">ไม่พบข้อมูลนักเรียน (ลองเปลี่ยนตัวกรองห้องเรียน หรือคำค้นหา)</td></tr>
+                      )}
                     </>
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {filterClassroomId && totalStudents > 0 && (
+              <div className="px-6 py-4 bg-gray-50/70 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-gray-600">
+                  หน้าที่ <span className="font-semibold text-gray-800">{safePage}</span> จาก <span className="font-semibold text-gray-800">{totalPages}</span> (แสดง {startIndex + 1}-{Math.min(startIndex + pageSize, totalStudents)} จากทั้งหมด {totalStudents} คน)
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={safePage <= 1}
+                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                      .reduce((acc: (number | string)[], p, idx, arr) => {
+                        if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
+                          acc.push('...')
+                        }
+                        acc.push(p)
+                        return acc
+                      }, [])
+                      .map((p, idx) => (
+                        typeof p === 'number' ? (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setCurrentPage(p)}
+                            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                              safePage === p
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ) : (
+                          <span key={`dots-${idx}`} className="px-1 text-gray-400">...</span>
+                        )
+                      ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={safePage >= totalPages}
+                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )
       )}

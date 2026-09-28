@@ -131,6 +131,19 @@ export default function StudentsList() {
     return name.includes(searchTerm.toLowerCase());
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedClassroomId, selectedTeacherId]);
+
+  const totalStudents = filteredStudents.length;
+  const totalPages = Math.ceil(totalStudents / pageSize) || 1;
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedStudents = filteredStudents.slice(startIndex, startIndex + pageSize);
+
   // ดูสถานะเยี่ยมบ้าน
   const getVisitStatus = (studentId: string) => {
     const visit = visits.find(v => v.student_id === studentId);
@@ -477,7 +490,7 @@ export default function StudentsList() {
         <div className="space-y-4">
           {/* Mobile View: Always Cards/Grid */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filteredStudents.map(student => {
+            {paginatedStudents.map((student, index) => {
               const vStatus = getVisitStatus(student.id);
               const isCompleted = vStatus.status === 'COMPLETED';
               const cardStyle = isCompleted
@@ -489,6 +502,9 @@ export default function StudentsList() {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <div className="flex gap-2 items-center mb-2">
+                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                          #{startIndex + index + 1}
+                        </span>
                         <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{student.student_code}</span>
                         {student.classroom && (
                           <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
@@ -522,7 +538,7 @@ export default function StudentsList() {
           {/* Desktop View Mode: List (Default) */}
           {viewMode === 'list' && (
             <div className="hidden md:flex flex-col gap-3">
-              {filteredStudents.map(student => {
+              {paginatedStudents.map((student, index) => {
                 const vStatus = getVisitStatus(student.id);
                 const isCompleted = vStatus.status === 'COMPLETED';
                 const cardStyle = isCompleted
@@ -532,8 +548,8 @@ export default function StudentsList() {
                 return (
                   <div key={student.id} className={`${cardStyle} rounded-2xl p-4 border shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-6`}>
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                        {student.first_name?.[0] || <User size={16} />}
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-100">
+                        {startIndex + index + 1}
                       </div>
                       <div>
                         <h3 className={`font-bold text-base ${isCompleted ? 'text-emerald-900' : 'text-gray-900'}`}>
@@ -571,7 +587,7 @@ export default function StudentsList() {
           {/* Desktop View Mode: Card */}
           {viewMode === 'card' && (
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredStudents.map(student => {
+              {paginatedStudents.map((student, index) => {
                 const vStatus = getVisitStatus(student.id);
                 const isCompleted = vStatus.status === 'COMPLETED';
                 const cardStyle = isCompleted
@@ -583,6 +599,9 @@ export default function StudentsList() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="flex gap-2 items-center mb-2">
+                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                            #{startIndex + index + 1}
+                          </span>
                           <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{student.student_code}</span>
                           {student.classroom && (
                             <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
@@ -620,6 +639,7 @@ export default function StudentsList() {
               <table className="w-full text-left text-sm text-gray-600">
                 <thead className="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
                   <tr>
+                    <th className="px-6 py-4 text-center w-16">ลำดับ</th>
                     <th className="px-6 py-4">รหัสนักเรียน</th>
                     <th className="px-6 py-4">ชื่อ - นามสกุล</th>
                     <th className="px-6 py-4">ชั้น/ห้อง</th>
@@ -628,11 +648,12 @@ export default function StudentsList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredStudents.map(student => {
+                  {paginatedStudents.map((student, index) => {
                     const vStatus = getVisitStatus(student.id);
                     const isCompleted = vStatus.status === 'COMPLETED';
                     return (
                       <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 text-center font-medium text-gray-500">{startIndex + index + 1}</td>
                         <td className="px-6 py-4 font-mono font-medium text-gray-500">{student.student_code}</td>
                         <td className="px-6 py-4 font-bold text-gray-900">
                           {student.prefix}{student.first_name} {student.last_name}
@@ -667,6 +688,62 @@ export default function StudentsList() {
           {filteredStudents.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               ไม่พบรายชื่อนักเรียนที่ค้นหา
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-sm text-gray-600">
+                หน้าที่ <span className="font-semibold text-gray-800">{safePage}</span> จาก <span className="font-semibold text-gray-800">{totalPages}</span> (แสดง {startIndex + 1}-{Math.min(startIndex + pageSize, totalStudents)} จากทั้งหมด {totalStudents} คน)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={safePage <= 1}
+                  className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                >
+                  ก่อนหน้า
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                    .reduce((acc: (number | string)[], p, idx, arr) => {
+                      if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
+                        acc.push('...')
+                      }
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((p, idx) => (
+                      typeof p === 'number' ? (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setCurrentPage(p)}
+                          className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${
+                            safePage === p
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ) : (
+                        <span key={`dots-${idx}`} className="px-1 text-gray-400">...</span>
+                      )
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors shadow-2xs"
+                >
+                  ถัดไป
+                </button>
+              </div>
             </div>
           )}
         </div>
