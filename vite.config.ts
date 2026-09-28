@@ -154,8 +154,39 @@ const antiFingerprintPlugin = () => ({
   },
 })
 
+const buildVersion = Date.now().toString();
+
+const generateVersionPlugin = () => ({
+  name: 'generate-version-plugin',
+  buildStart() {
+    try {
+      const publicDir = path.resolve(__dirname, 'public');
+      if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+      }
+      fs.writeFileSync(
+        path.resolve(publicDir, 'version.json'),
+        JSON.stringify(
+          {
+            version: buildVersion,
+            buildTime: new Date().toISOString(),
+          },
+          null,
+          2
+        ),
+        'utf8'
+      );
+    } catch (e) {
+      console.error('Failed to generate version.json:', e);
+    }
+  },
+})
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(buildVersion),
+  },
   oxc: {
     dropConsole: true,
     dropDebugger: true,
@@ -178,6 +209,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    generateVersionPlugin(),
     antiFingerprintPlugin(),
     stripSensitiveHeadersPlugin(),
     react(),
@@ -215,7 +247,11 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         maximumFileSizeToCacheInBytes: 10485760, // Increase limit to 10MB
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ],
 })
+

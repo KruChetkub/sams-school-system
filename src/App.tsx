@@ -28,6 +28,7 @@ import LeaveRequests from './pages/LeaveRequests'
 import ParentDashboard from './pages/ParentDashboard'
 import AppSettings from './pages/Settings' // Renamed import to avoid conflict with lucide Settings icon
 import SessionTimeoutManager from './components/SessionTimeoutManager'
+import AutoUpdateNotification from './components/AutoUpdateNotification'
 import Reports from './pages/Reports'
 import Portal from './pages/portal/Portal'
 import HomeVisitDashboard from './pages/homevisit/Dashboard'
@@ -568,6 +569,7 @@ function App() {
   return (
     <Router>
       <SessionTimeoutManager />
+      <AutoUpdateNotification />
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/portal" />} />
 
