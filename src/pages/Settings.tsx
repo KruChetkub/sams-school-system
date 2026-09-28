@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, Bell, Shield, Smartphone, UserCog, Palette, Plus, Edit, Trash2 } from 'lucide-react'
+import { Save, Bell, Shield, Smartphone, UserCog, Palette, Plus, Edit, Trash2, Clock, Lock, ShieldAlert, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { getUsers, adminCreateUser, adminUpdateUser, adminDeleteUser } from '../services/userService'
 import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
+import { SESSION_CONFIG_KEYS, getSessionSettings } from '../components/SessionTimeoutManager'
 
-type SettingsTab = 'notifications' | 'users'
-
-
+type SettingsTab = 'notifications' | 'users' | 'session'
 
 export default function Settings() {
   const { role, user } = useAuthStore()
@@ -22,6 +21,13 @@ export default function Settings() {
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success')
   const [resultModalMessage, setResultModalMessage] = useState('')
+
+  // Session & Security Settings State
+  const [sessionEnabled, setSessionEnabled] = useState(true)
+  const [sessionMinutes, setSessionMinutes] = useState(30)
+  const [customSessionMinutes, setCustomSessionMinutes] = useState('')
+  const [warningSeconds, setWarningSeconds] = useState(60)
+  const [isSavingSession, setIsSavingSession] = useState(false)
 
   // Create User modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -50,6 +56,14 @@ export default function Settings() {
       setLineToken(savedLine)
       setTelegramToken(savedTgToken)
       setTelegramChatId(savedTgChatId)
+
+      const sess = getSessionSettings()
+      setSessionEnabled(sess.enabled)
+      setSessionMinutes(sess.timeoutMinutes)
+      setWarningSeconds(sess.warningSeconds)
+      if (![15, 30, 60, 120].includes(sess.timeoutMinutes)) {
+        setCustomSessionMinutes(sess.timeoutMinutes.toString())
+      }
     }
     loadSettings()
   }, [])
@@ -66,6 +80,26 @@ export default function Settings() {
       setResultModalMessage('บันทึกการตั้งค่าแจ้งเตือนสำเร็จ')
       setShowResultModal(true)
     }, 600)
+  }
+
+  const handleSaveSession = (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingSession(true)
+    const finalMinutes = customSessionMinutes ? Math.max(5, parseInt(customSessionMinutes, 10) || 30) : sessionMinutes
+    setTimeout(() => {
+      localStorage.setItem(SESSION_CONFIG_KEYS.ENABLED, sessionEnabled ? 'true' : 'false')
+      localStorage.setItem(SESSION_CONFIG_KEYS.TIMEOUT_MINUTES, finalMinutes.toString())
+      localStorage.setItem(SESSION_CONFIG_KEYS.WARNING_SECONDS, warningSeconds.toString())
+      localStorage.setItem(SESSION_CONFIG_KEYS.LAST_ACTIVITY, Date.now().toString())
+      setIsSavingSession(false)
+      setResultModalType('success')
+      setResultModalMessage('บันทึกการตั้งค่าเวลาการเข้าใช้งานและความปลอดภัยของเซสชันสำเร็จ')
+      setShowResultModal(true)
+    }, 400)
+  }
+
+  const handleTestWarningModal = () => {
+    localStorage.setItem('sams_trigger_test_modal', Date.now().toString())
   }
 
   const queryClient = useQueryClient()
@@ -434,12 +468,18 @@ export default function Settings() {
         <h1 className="text-3xl font-bold text-gray-800">ตั้งค่าระบบ (System Settings)</h1>
       </div>
 
-      <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex overflow-x-auto mb-6">
-        <button onClick={() => setActiveTab('notifications')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap ${activeTab === 'notifications' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
-          Notifications
+      <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex gap-2 overflow-x-auto mb-6">
+        <button onClick={() => setActiveTab('notifications')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap flex items-center gap-2 ${activeTab === 'notifications' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Bell size={18} />
+          <span>Notifications</span>
         </button>
-        <button onClick={() => setActiveTab('users')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap ${activeTab === 'users' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
-          User Management
+        <button onClick={() => setActiveTab('users')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap flex items-center gap-2 ${activeTab === 'users' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <UserCog size={18} />
+          <span>User Management</span>
+        </button>
+        <button onClick={() => setActiveTab('session')} className={`px-5 py-2.5 rounded-xl font-semibold whitespace-nowrap flex items-center gap-2 ${activeTab === 'session' ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Clock size={18} />
+          <span>ตั้งเวลาการเข้าใช้งาน (Session & Security)</span>
         </button>
       </div>
 
@@ -589,6 +629,211 @@ export default function Settings() {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'session' && (
+        <form onSubmit={handleSaveSession} className="space-y-6">
+          {/* Main Setting Card */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-indigo-100">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-5 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-100 p-2.5 rounded-xl text-indigo-600">
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 font-sans">
+                    ตั้งเวลาการเข้าใช้งานและล็อกเอ้าท์อัตโนมัติ (Session Timeout)
+                  </h2>
+                  <p className="text-xs text-gray-500 font-sans mt-0.5">
+                    ป้องกันการจดจำคุกกี้และโทเค็นเมื่อไม่มีการใช้งาน (Inactivity Timeout) ป้องกันการนำเซสชันไปใช้ซ้ำ
+                  </p>
+                </div>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold font-sans ${sessionEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {sessionEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+              </span>
+            </div>
+
+            {/* Enable/Disable Switch */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200/80 mb-6">
+              <div>
+                <span className="text-sm font-bold text-slate-800 font-sans block">
+                  เปิดระบบล็อกเอ้าท์อัตโนมัติเมื่อไม่มีการใช้งาน (Auto Logout)
+                </span>
+                <span className="text-xs text-slate-500 font-sans">
+                  เมื่อเปิดใช้งาน ระบบจะตรวจสอบการเคลื่อนไหวของเมาส์ คีย์บอร์ด และการเลื่อนหน้าจอ
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sessionEnabled}
+                  onChange={(e) => setSessionEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {sessionEnabled && (
+              <div className="space-y-6">
+                {/* Timeout Presets */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2 font-sans">
+                    ระยะเวลาการหมดอายุเมื่อไม่มีการใช้งาน (Inactivity Duration)
+                  </label>
+                  <p className="text-xs text-slate-500 mb-3 font-sans">
+                    เลือกช่วงเวลาที่ระบบจะถือว่าไม่มีการใช้งานและทำการตัดเซสชัน
+                  </p>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    {[
+                      { min: 15, label: '15 นาที', desc: 'ความปลอดภัยสูงสุด' },
+                      { min: 30, label: '30 นาที', desc: 'ค่าเริ่มต้นที่แนะนำ' },
+                      { min: 60, label: '1 ชั่วโมง', desc: 'เหมาะสำหรับทำงานต่อเนื่อง' },
+                      { min: 120, label: '2 ชั่วโมง', desc: 'เซสชันยาว' },
+                    ].map((item) => (
+                      <button
+                        key={item.min}
+                        type="button"
+                        onClick={() => {
+                          setSessionMinutes(item.min)
+                          setCustomSessionMinutes('')
+                        }}
+                        className={`p-3.5 rounded-xl border text-left transition font-sans ${
+                          sessionMinutes === item.min && !customSessionMinutes
+                            ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 shadow-sm ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="font-bold text-sm">{item.label}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{item.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-xs text-slate-600 font-semibold font-sans whitespace-nowrap">
+                      หรือกำหนดเอง (นาที):
+                    </span>
+                    <input
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={customSessionMinutes}
+                      onChange={(e) => {
+                        setCustomSessionMinutes(e.target.value)
+                        const val = parseInt(e.target.value, 10)
+                        if (!isNaN(val) && val > 0) setSessionMinutes(val)
+                      }}
+                      placeholder="เช่น 45"
+                      className="w-28 rounded-xl border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 font-mono text-center"
+                    />
+                    <span className="text-xs text-slate-400 font-sans">
+                      (ต่ำสุด 5 นาที - สูงสุด 480 นาที)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Countdown Warning Duration */}
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 font-sans">
+                    ระยะเวลาแสดงการแจ้งเตือนนับถอยหลัง (Warning Countdown)
+                  </label>
+                  <p className="text-xs text-slate-500 mb-3 font-sans">
+                    ระบบจะแสดงป๊อปอัปแจ้งเตือนให้ผู้ใช้งานเลือกว่าจะ "ใช้งานต่อ" หรือไม่ ก่อนที่จะตัดเซสชัน
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { sec: 30, label: '30 วินาที' },
+                      { sec: 60, label: '60 วินาที (1 นาที - แนะนำ)' },
+                      { sec: 120, label: '120 วินาที (2 นาที)' },
+                    ].map((item) => (
+                      <button
+                        key={item.sec}
+                        type="button"
+                        onClick={() => setWarningSeconds(item.sec)}
+                        className={`px-4 py-2 rounded-xl border text-xs font-bold transition font-sans ${
+                          warningSeconds === item.sec
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Security & Purge Details Card */}
+          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-7 rounded-2xl shadow-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-indigo-500/20 p-2 rounded-xl text-indigo-300 border border-indigo-400/30">
+                <Lock size={22} />
+              </div>
+              <h3 className="text-base font-bold font-sans">
+                มาตรการความปลอดภัยการป้องกันคุกกี้ตกค้าง (Session & Token Sanitization)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans text-slate-300">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3.5">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+                  <CheckCircle2 size={16} />
+                  <span>ล้าง Token สมบูรณ์</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  เมื่อหมดเวลา ระบบจะลบโทเค็น Supabase Auth ออกจาก LocalStorage ทันที ป้องกันการดึง Token ไปใช้งาน
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3.5">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+                  <CheckCircle2 size={16} />
+                  <span>Server Sign-Out</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  สั่งยกเลิก Session ฝั่งเซิร์ฟเวอร์ Supabase เพื่อให้ Refresh Token หมดอายุและใช้งานต่อไม่ได้
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3.5">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+                  <CheckCircle2 size={16} />
+                  <span>Cross-Tab Sync</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  หากผู้ใช้งานเปิดหลายแท็บ การสั่งล็อกเอ้าท์จะทำงานพร้อมกันทุกแท็บทันที
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between gap-4 pt-2">
+            <button
+              type="button"
+              onClick={handleTestWarningModal}
+              className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition flex items-center gap-2 font-sans"
+            >
+              <AlertTriangle size={16} className="text-amber-500" />
+              <span>ทดสอบหน้าต่างแจ้งเตือนเซสชัน</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSavingSession}
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm flex items-center gap-2 font-sans disabled:opacity-50"
+            >
+              <Save size={18} />
+              <span>{isSavingSession ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่าเวลา'}</span>
+            </button>
+          </div>
+        </form>
       )}
     </div>
   )

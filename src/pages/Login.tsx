@@ -16,6 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [mouseFx, setMouseFx] = useState({ x: 0, y: 0, show: false, seed: 0 })
   const [bolts, setBolts] = useState<Array<{ id: number; d: string; core: number; glow: number; delay: number }>>([])
 
@@ -86,6 +87,16 @@ export default function Login() {
       node.removeEventListener('mousemove', onMove)
       node.removeEventListener('mouseleave', onLeave)
     }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem('sams_logout_reason')
+      if (reason === 'timeout') {
+        setInfoMessage('เซสชันหมดอายุเนื่องจากไม่มีการเคลื่อนไหวนานเกินกำหนด เพื่อความปลอดภัยของข้อมูล ระบบได้ออกจากระบบและเคลียร์ข้อมูลเซสชันแล้ว กรุณาเข้าสู่ระบบใหม่อีกครั้ง')
+        sessionStorage.removeItem('sams_logout_reason')
+      }
+    } catch (_) {}
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -210,6 +221,12 @@ export default function Login() {
                 เข้าสู่ระบบ
               </p>
             </div>
+
+            {infoMessage && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-center text-xs text-amber-800 font-medium font-sans leading-relaxed shadow-sm">
+                ⚠️ {infoMessage}
+              </div>
+            )}
 
             {error && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-600">
