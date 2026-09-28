@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Polyline, useMap, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
-import geojsonData from '../../../exports/geojson/chiang_khong_district.geojson?url';
+import geojsonData from '../../assets/chiang_khong_district.geojson?url';
 import { updateHomeVisit } from '../../services/homevisit/visitService';
 import type { HomeVisit } from '../../services/homevisit/visitService';
 
