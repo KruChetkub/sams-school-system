@@ -15,7 +15,7 @@ const securityHeaders = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(self)',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'self' 'unsafe-inline'; style-src-elem 'self'; font-src 'self' data:; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ipify.org https://router.project-osrm.org; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self';",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'self' 'unsafe-inline'; style-src-elem 'self'; font-src 'self' data:; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org https://raw.githubusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ipify.org https://router.project-osrm.org; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self';",
 }
 
 const blockSuspiciousRequests = (req: any, res: any, next: any) => {

@@ -16,24 +16,36 @@ L.Icon.Default.mergeOptions({
   shadowUrl,
 });
 
-// Custom Icons based on Risk Level
-const createIcon = (color: string) => {
-  return new L.Icon({
-    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-    shadowUrl: shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+// Custom SVG Pin Icons based on Risk Level (self-contained vector graphics, offline-ready & CSP compliant)
+const createSvgPin = (color: string, innerSvg = `<circle cx="13" cy="13" r="3.5" fill="${color}"/>`) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 41" width="26" height="41">
+    <path d="M13 1C6.37 1 1 6.37 1 13c0 9.5 12 27 12 27s12-17.5 12-27c0-6.63-5.37-12-12-12z" fill="${color}" stroke="#ffffff" stroke-width="1.8"/>
+    <circle cx="13" cy="13" r="5.5" fill="#ffffff" opacity="0.95"/>
+    ${innerSvg}
+  </svg>`;
+  return L.icon({
+    iconUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    shadowUrl,
+    iconSize: [26, 41],
+    iconAnchor: [13, 41],
+    popupAnchor: [0, -36],
+    tooltipAnchor: [0, -36],
+    shadowSize: [41, 41],
+    shadowAnchor: [13, 41],
   });
 };
 
 const icons = {
-  NORMAL: createIcon('green'),
-  WATCH: createIcon('orange'),
-  URGENT: createIcon('red'),
-  DEFAULT: createIcon('blue')
+  NORMAL: createSvgPin('#10b981'), // Emerald green
+  WATCH: createSvgPin('#f59e0b'),  // Amber/Orange
+  URGENT: createSvgPin('#ef4444'), // Rose red
+  DEFAULT: createSvgPin('#3b82f6'),// Blue
 };
+
+const schoolIcon = createSvgPin(
+  '#7c3aed', // Purple/Violet
+  '<path d="M13 7.5L7.5 10.5L13 13.5L18.5 10.5Z M8.5 12.8V15.5C8.5 15.5 10 17 13 17C16 17 17.5 15.5 17.5 15.5V12.8L13 15.2Z" fill="#7c3aed"/>'
+);
 
 // Helper component to recenter the map dynamically to fit both the school and the active student coordinates.
 function MapRecenter({ schoolCoords, studentCoords }: { schoolCoords: [number, number]; studentCoords: [number, number] | null }) {
@@ -188,15 +200,7 @@ export default function VisitMap({ visits, externalRouteTargetId, onRouteTargetH
   // Adjusted coordinates to pin directly on the school area
   const SCHOOL_LAT = 20.2445000;
   const SCHOOL_LNG = 100.4125000;
-  
-  const schoolIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-    shadowUrl: shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
+
 
   useEffect(() => {
     // Vite imports non-json files as URL strings
