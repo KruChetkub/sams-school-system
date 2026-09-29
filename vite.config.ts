@@ -22,8 +22,8 @@ const blockSuspiciousRequests = (req: any, res: any, next: any) => {
   if (req.url) {
     const rawUrl = req.url.split('?')[0].toLowerCase();
 
-    // 1. Block Path Traversal (both Unix '/' and Windows '\') -> Return 400 Bad Request
-    const isTraversal =
+    // 1. Block Path Traversal, SSTI & Injection Probes -> Return 400 Bad Request
+    const isSuspiciousPayload =
       req.url.includes('..') ||
       req.url.includes('%2e%2e') ||
       req.url.includes('%2E%2E') ||
@@ -34,20 +34,25 @@ const blockSuspiciousRequests = (req: any, res: any, next: any) => {
       req.url.includes('%00') ||
       /etc\/passwd/i.test(req.url) ||
       /win\.ini/i.test(req.url) ||
+      /\{\{.*?\}\}/.test(req.url) ||           // SSTI {{...}}
+      /\$\{.*?\}/.test(req.url) ||             // SSTI ${...}
+      /<script/i.test(req.url) ||              // XSS probe
+      /javascript:/i.test(req.url) ||          // XSS probe
       /[?&]select=[^&]*(?:%2f|\/|%5c|\\|\.\.)/i.test(req.url);
 
-    if (isTraversal) {
+    if (isSuspiciousPayload) {
       res.statusCode = 400;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Bad Request', message: 'Invalid path sequence' }));
+      res.end(JSON.stringify({ error: 'Bad Request', message: 'Suspicious payload blocked' }));
       return;
     }
 
     // 2. Block Hidden Files, Backups, and Scanner Probes with 404 (Avoid SPA Fallback False Positives)
     const isProbed404 =
       rawUrl.startsWith('/.') ||
-      /^\/(?:api|rest|ftp|wp-admin|wp-includes|wp-content|cgi-bin)(?:\/|$)/i.test(rawUrl) ||
-      /\.(?:env|bak|backup|old|orig|php|xml|sql|yml|yaml|conf|config|ini|tar|gz|zip|log|swp|git)$/i.test(rawUrl);
+      /^\/(?:api|rest|ftp|wp-admin|wp-includes|wp-content|cgi-bin|administrator|manager|phpmyadmin|pma|cpanel|webmail|adminer|dbadmin|jenkins|gitlab|grafana|kibana|portainer|traefik|_debug|debug|elmah\.axd|actuator|server-status|server-info|console)(?:\/|$)/i.test(rawUrl) ||
+      /^\/admin\/(?:dashboard|server|config|system)(?:\/|$)/i.test(rawUrl) ||
+      /\.(?:env|bak|backup|old|orig|php|xml|sql|yml|yaml|conf|config|ini|tar|gz|zip|log|swp|git|axd)$/i.test(rawUrl);
 
     if (isProbed404) {
       res.statusCode = 404;
@@ -190,6 +195,11 @@ export default defineConfig({
   oxc: {
     dropConsole: true,
     dropDebugger: true,
+  },
+  resolve: {
+    alias: {
+      'lottie-web': path.resolve(__dirname, 'node_modules/lottie-web/build/player/lottie_light.js'),
+    },
   },
   build: {
     sourcemap: false,
