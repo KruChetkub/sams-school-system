@@ -24,7 +24,7 @@ export const getAssignments = async (filter: AssignmentFilter = {}): Promise<Ass
       classroom:classroom_id (id, level, room),
       teacher:teacher_id (id, first_name, last_name)
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: true });
 
   if (filter.academicYearId) {
     query = query.eq('academic_year_id', filter.academicYearId);

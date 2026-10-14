@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -14,7 +14,9 @@ import {
   AlertCircle,
   FileCheck,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Search,
+  Layers
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
@@ -40,6 +42,10 @@ export const AssignmentList: React.FC = () => {
   const [classroomInfo, setClassroomInfo] = useState<{ level: string; room: string } | null>(null);
   const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // ตัวกรองแยกประเภทงาน (ทั้งหมด / งานเดี่ยว / งานกลุ่ม) และช่องค้นหา
+  const [filterType, setFilterType] = useState<'all' | 'individual' | 'group'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // ดึง ID ครูที่ถูกต้องจากตาราง teachers
   useEffect(() => {
@@ -209,6 +215,28 @@ export const AssignmentList: React.FC = () => {
 
   const classroomLabel = classroomInfo ? `${classroomInfo.level}/${classroomInfo.room}` : '';
 
+  // สรุปยอดจำนวนงานตามประเภท
+  const individualCount = useMemo(() => {
+    return assignments.filter(a => a.assignment_type === 'individual').length;
+  }, [assignments]);
+
+  const groupCount = useMemo(() => {
+    return assignments.filter(a => a.assignment_type === 'group').length;
+  }, [assignments]);
+
+  // กรองรายการงานตามประเภทและคำค้นหา
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter(a => {
+      const typeMatch = filterType === 'all' || a.assignment_type === filterType;
+      const q = searchTerm.toLowerCase().trim();
+      const searchMatch =
+        !q ||
+        a.title.toLowerCase().includes(q) ||
+        (a.description && a.description.toLowerCase().includes(q));
+      return typeMatch && searchMatch;
+    });
+  }, [assignments, filterType, searchTerm]);
+
   // ฟังก์ชันจัดรูปแบบวันส่ง
   const formatDueDate = (dateStr?: string | null) => {
     if (!dateStr) return 'ไม่กำหนดวันส่ง';
@@ -269,6 +297,71 @@ export const AssignmentList: React.FC = () => {
         </button>
       </div>
 
+      {/* Category Filter Tabs & Search */}
+      {assignments.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-200/60 dark:bg-slate-800/60 text-xs font-bold overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setFilterType('all')}
+              className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+                filterType === 'all'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <span>งานทั้งหมด</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-mono">
+                {assignments.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterType('individual')}
+              className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+                filterType === 'individual'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>งานเดี่ยว</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-[10px] font-mono">
+                {individualCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterType('group')}
+              className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+                filterType === 'group'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-amber-600'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>งานกลุ่ม</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 text-[10px] font-mono">
+                {groupCount}
+              </span>
+            </button>
+          </div>
+
+          <div className="relative sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="ค้นหาชื่องาน..."
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[40px]"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Assignment List */}
       {loading ? (
         <div className="py-20 text-center">
@@ -294,14 +387,22 @@ export const AssignmentList: React.FC = () => {
             <span>สั่งงานใหม่ตอนนี้</span>
           </button>
         </div>
+      ) : filteredAssignments.length === 0 ? (
+        <div className="p-8 text-center rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40">
+          <FileCheck className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
+          <p className="text-sm font-bold text-slate-500">ไม่พบชิ้นงานในหมวดหมู่นี้</p>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 px-1">
-            <span>ชิ้นงานทั้งหมด {assignments.length} รายการ</span>
+            <span>
+              {filterType === 'all' ? 'ชิ้นงานทั้งหมด' : filterType === 'individual' ? 'งานเดี่ยว' : 'งานกลุ่ม'} {filteredAssignments.length} รายการ
+            </span>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {assignments.map((assignment, index) => {
+            {filteredAssignments.map((assignment) => {
+              const originalIndex = assignments.findIndex(a => a.id === assignment.id) + 1;
               const summary = assignment.submissions_summary || { total: 0, submitted: 0, graded: 0, pending: 0, late: 0 };
               const totalHandedIn = summary.submitted + summary.graded + summary.late;
               const percentHandedIn = summary.total > 0 ? Math.round((totalHandedIn / summary.total) * 100) : 0;
@@ -316,8 +417,9 @@ export const AssignmentList: React.FC = () => {
                     {/* Left: Title, Description, Meta badges */}
                     <div className="space-y-2.5 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center">
-                          {index + 1}
+                        {/* Number badge: งานที่ 1, งานที่ 2 ... */}
+                        <span className="px-2.5 py-1 rounded-xl bg-amber-500/15 text-amber-800 dark:text-amber-300 font-black text-xs flex items-center gap-1 border border-amber-500/30">
+                          งานที่ {originalIndex}
                         </span>
 
                         <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center gap-1">
