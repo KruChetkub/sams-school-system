@@ -52,6 +52,11 @@ const translations = {
         title: 'ระบบดูแลช่วยเหลือนักเรียน',
         desc: 'คัดกรองพฤติกรรม (SDQ) ประเมินความฉลาดทางอารมณ์ (EQ 52 ข้อ) วิเคราะห์ความเสี่ยงและติดตามเคสสะสม',
         btn: 'เข้าสู่ระบบดูแลช่วยเหลือ'
+      },
+      assignments: {
+        title: 'ระบบเช็คงานนักเรียน',
+        desc: 'สั่งงาน ติดตามการส่งงาน ชิ้นงานและการบ้านตามรายวิชา ตรวจให้คะแนน พร้อมสรุปรายงานงานค้างส่ง',
+        btn: 'เข้าสู่ระบบเช็คงาน'
       }
     },
     logout: 'ออกจากระบบ (Sign Out)',
@@ -83,6 +88,11 @@ const translations = {
         title: 'Student Support System',
         desc: 'Behavioral screening (SDQ), emotional intelligence (EQ) assessments, and case progression tracking.',
         btn: 'Launch Student Support'
+      },
+      assignments: {
+        title: 'Student Assignment System',
+        desc: 'Create assignments, track homework submissions by course, grade students, and view pending stats.',
+        btn: 'Launch Assignments'
       }
     },
     logout: 'Sign Out',
@@ -100,7 +110,7 @@ const Portal = () => {
     students: 0,
     teachers: 0,
     classrooms: 0,
-    activeSystems: 3
+    activeSystems: 4
   });
   const [isStatsLoading, setIsStatsLoading] = useState(true);
 
@@ -174,7 +184,7 @@ const Portal = () => {
           students: studentsCount || 0,
           teachers: teachersCount || 0,
           classrooms: classroomsCount || 0,
-          activeSystems: 3
+          activeSystems: 4
         });
       } catch (err) {
         console.error('Error fetching stats:', err);
@@ -228,6 +238,18 @@ const Portal = () => {
       colorClass: 'from-violet-600 to-purple-700 shadow-violet-600/25 dark:shadow-violet-500/15',
       borderColor: 'group-hover:border-violet-400 dark:group-hover:border-purple-600',
       tag: 'Care'
+    },
+    {
+      id: 'assignments',
+      title: t.apps.assignments.title,
+      shortTitle: lang === 'th' ? 'เช็คงาน' : 'Assignments',
+      desc: t.apps.assignments.desc,
+      btn: t.apps.assignments.btn,
+      path: '/assignments',
+      icon: BookOpen,
+      colorClass: 'from-amber-500 to-amber-600 shadow-amber-500/25 dark:shadow-amber-500/15',
+      borderColor: 'group-hover:border-amber-400 dark:group-hover:border-amber-500',
+      tag: 'Academic'
     }
   ];
 
@@ -429,7 +451,7 @@ const Portal = () => {
 
         {/* Apps Grid Layout */}
         <section className="mb-12">
-          <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {apps.map((app) => {
               const IconComponent = app.icon;
               return (

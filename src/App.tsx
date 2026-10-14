@@ -52,6 +52,12 @@ import AcademicYears from './pages/AcademicYears'
 import TeacherDashboard from './pages/TeacherDashboard'
 import StudentPortfolio from './pages/StudentPortfolio'
 
+// Student Assignment System (SAMS v20)
+import AssignmentLayout from './pages/assignments/AssignmentLayout'
+import AssignmentDashboard from './pages/assignments/AssignmentDashboard'
+import AssignmentList from './pages/assignments/AssignmentList'
+import AssignmentGrading from './pages/assignments/AssignmentGrading'
+
 import { useQueryClient } from '@tanstack/react-query'
 import { useAcademicYearStore } from './store/academicYearStore'
 
@@ -591,6 +597,13 @@ function App() {
         <Route path="/studentsupport/profile/:studentId" element={user ? <Student360 /> : <Navigate to="/login" />} />
         <Route path="/studentsupport/profile/:studentId/portfolio" element={user ? <StudentPortfolio /> : <Navigate to="/login" />} />
         <Route path="/studentsupport/cases" element={user ? <StudentSupportLayout><CaseManagement /></StudentSupportLayout> : <Navigate to="/login" />} />
+
+        {/* Student Assignment System (SAMS v20) */}
+        <Route path="/assignments" element={user ? <AssignmentLayout /> : <Navigate to="/login" />}>
+          <Route index element={<AssignmentDashboard />} />
+          <Route path="subject/:subjectId/classroom/:classroomId" element={<AssignmentList />} />
+          <Route path=":assignmentId/grading" element={<AssignmentGrading />} />
+        </Route>
 
         {/* Protected Routes */}
         <Route path="/" element={user ? <DashboardLayout><RootDashboard /></DashboardLayout> : <Navigate to="/login" />} />
