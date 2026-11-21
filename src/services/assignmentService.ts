@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { compareStudentsByRosterOrder } from './studentService';
 import type {
   Assignment,
   AssignmentSubmission,
@@ -329,7 +330,7 @@ export const getSubmissionsByAssignment = async (assignmentId: string): Promise<
   // ดึงนักเรียนทุกคนในห้องเรียนนี้
   const { data: students, error: studentError } = await supabase
     .from('students')
-    .select('id, student_code, first_name, last_name, nickname, gender, classroom_id')
+    .select('id, student_code, prefix, first_name, last_name, nickname, gender, classroom_id')
     .eq('classroom_id', assignment.classroom_id)
     .is('deleted_at', null)
     .order('student_code', { ascending: true });
@@ -397,8 +398,8 @@ export const getSubmissionsByAssignment = async (assignmentId: string): Promise<
     }
   });
 
-  // เรียงลำดับตามรหัส/เลขที่นักเรียน
-  result.sort((a, b) => (a.student?.student_code || '').localeCompare(b.student?.student_code || ''));
+  // เรียงลำดับตามใบรายชื่อไฟล์ Excel (สำหรับ ม.3 ใช้ลำดับเลขที่ตามไฟล์ 23.รายชื่อ1ถึง6-ภาค 2.2569 -ณ-10 พ.ย.2569.xlsx)
+  result.sort((a, b) => compareStudentsByRosterOrder(a.student || {}, b.student || {}));
 
   return result;
 };

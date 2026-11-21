@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, BookOpen, Calendar, Award, FileText, Users, User, Search, CheckSquare, Square, Layers, Check } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { compareStudentsByRosterOrder } from '../../../services/studentService';
 import type { Assignment, CreateAssignmentDTO, UpdateAssignmentDTO, AssignmentType } from '../../../types/assignment';
 
 export interface AssignmentFormModalProps {
@@ -78,13 +79,13 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
       try {
         const { data, error } = await supabase
           .from('students')
-          .select('id, student_code, first_name, last_name, nickname, gender')
+          .select('id, student_code, prefix, first_name, last_name, nickname, gender')
           .eq('classroom_id', classroomId)
           .is('deleted_at', null)
           .order('student_code', { ascending: true });
 
         if (!error && data) {
-          setStudents(data);
+          setStudents([...data].sort(compareStudentsByRosterOrder));
         }
       } catch (err) {
         console.error('Error fetching students:', err);

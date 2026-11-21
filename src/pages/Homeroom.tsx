@@ -6,6 +6,8 @@ import { CheckCircle, XCircle, AlertCircle, Clock, Calendar, ArrowLeft, Users, U
 import { useAuthStore } from '../store/authStore'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { supabase } from '../lib/supabase'
+import { getM3RosterStatus, isM3Level } from '../data/m3OfficialRoster'
+import { getCustomStudentOrderNumber } from '../services/studentService'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
@@ -713,10 +715,23 @@ export default function Homeroom() {
                   const status = attendanceState[student.id] || 'PRESENT'
                   const rowNumber = startIndex + index + 1
                   const displayName = `${student.prefix ? `${student.prefix} ` : ''}${student.first_name} ${student.last_name}`
+                  const selectedClassObj = classrooms?.find(c => c.id === selectedClassroom)
+                  const checkM3 = isM3Level(selectedClassObj?.level, selectedClassObj?.room)
+                  const m3Status = checkM3 ? getM3RosterStatus(student, selectedClassObj?.room, selectedClassObj?.level) : null
+                  const isNotInExcel = checkM3 && m3Status && (!m3Status.inExcel || !m3Status.inCorrectRoom)
+                  const customNo = getCustomStudentOrderNumber(student)
+                  const displayNo = customNo ?? (checkM3 && m3Status && m3Status.inExcel && m3Status.inCorrectRoom ? m3Status.excelNo : rowNumber)
                   return (
-                    <div key={student.id} className="p-4 bg-white hover:bg-gray-50 transition-colors">
+                    <div key={student.id} className={`p-4 transition-colors ${isNotInExcel ? 'bg-rose-50/75 hover:bg-rose-100/60' : 'bg-white hover:bg-gray-50'}`}>
                       <div className="mb-3">
-                        <div className="font-semibold text-gray-800 text-lg">{rowNumber}. {displayName}</div>
+                        <div className="font-semibold text-gray-800 text-lg flex items-center gap-2 flex-wrap">
+                          <span>{displayNo}. {displayName}</span>
+                          {isNotInExcel && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-600 text-white">
+                              ⚠️ ไม่มีชื่อในไฟล์ Excel 10 พ.ย. 69
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm font-mono text-gray-500 mt-0.5">รหัส: {student.student_code}</div>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
@@ -747,11 +762,29 @@ export default function Homeroom() {
                       const status = attendanceState[student.id] || 'PRESENT'
                       const rowNumber = startIndex + index + 1
                       const displayName = `${student.prefix ? `${student.prefix} ` : ''}${student.first_name} ${student.last_name}`
+                      const selectedClassObj = classrooms?.find(c => c.id === selectedClassroom)
+                      const checkM3 = isM3Level(selectedClassObj?.level, selectedClassObj?.room)
+                      const m3Status = checkM3 ? getM3RosterStatus(student, selectedClassObj?.room, selectedClassObj?.level) : null
+                      const isNotInExcel = checkM3 && m3Status && (!m3Status.inExcel || !m3Status.inCorrectRoom)
+                      const customNo = getCustomStudentOrderNumber(student)
                       return (
-                        <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{rowNumber}</td>
+                        <tr key={student.id} className={`transition-colors ${isNotInExcel ? 'bg-rose-50/70 hover:bg-rose-100/60' : 'hover:bg-gray-50'}`}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                            {customNo ?? (checkM3 && m3Status ? (
+                              m3Status.inExcel && m3Status.inCorrectRoom ? m3Status.excelNo : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-bold">⚠️ ไม่มีในไฟล์</span>
+                              )
+                            ) : rowNumber)}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{student.student_code}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{displayName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            <span>{displayName}</span>
+                            {isNotInExcel && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                                ⚠️ ไม่มีชื่อในไฟล์ Excel 10 พ.ย. 69
+                              </span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex justify-center gap-2">
                               <button onClick={() => setStatus(student.id, 'PRESENT')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${status === 'PRESENT' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md transform scale-105' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><CheckCircle size={16} /> มา</button>

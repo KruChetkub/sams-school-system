@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { compareStudentsByRosterOrder } from './studentService'
 
 export interface AttendanceRecord {
   schedule_id: string
@@ -32,14 +33,26 @@ export const getStudentsForSchedule = async (scheduleId: string) => {
     
     if (memberships && memberships.length > 0) {
       const studentIds = memberships.map((m: any) => m.student_id)
-      const { data: students, error: studentsError } = await supabase
+      let { data: students, error: studentsError } = await supabase
         .from('students')
-        .select('id, student_code, prefix, first_name, last_name, nickname')
+        .select('id, student_code, student_number, is_in_official_roster, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
         .in('id', studentIds)
+        .is('deleted_at', null)
         .order('student_code')
+
+      if (studentsError && (studentsError.code === '42703' || String(studentsError.message || '').includes('student_number'))) {
+        const fb = await supabase
+          .from('students')
+          .select('id, student_code, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
+          .in('id', studentIds)
+          .is('deleted_at', null)
+          .order('student_code')
+        students = fb.data as any
+        studentsError = fb.error
+      }
         
       if (studentsError) throw studentsError
-      return students || []
+      return ((students || []) as any[]).sort(compareStudentsByRosterOrder)
     }
   }
 
@@ -57,16 +70,28 @@ export const getStudentsForSchedule = async (scheduleId: string) => {
   const classroomIds = Array.from(new Set([schedule.classroom_id, ...parseExtraClassroomIds(schedule.room_name)]))
 
   // Then get all students in that classroom
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('students')
-    .select('id, student_code, prefix, first_name, last_name, nickname')
+    .select('id, student_code, student_number, is_in_official_roster, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
     .in('classroom_id', classroomIds)
+    .is('deleted_at', null)
     .order('student_code')
+
+  if (error && (error.code === '42703' || String(error.message || '').includes('student_number'))) {
+    const fb = await supabase
+      .from('students')
+      .select('id, student_code, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
+      .in('classroom_id', classroomIds)
+      .is('deleted_at', null)
+      .order('student_code')
+    data = fb.data as any
+    error = fb.error
+  }
     
   if (error) throw error
   const unique = new Map<string, any>()
   ;(data || []).forEach((row: any) => unique.set(row.id, row))
-  return Array.from(unique.values())
+  return Array.from(unique.values()).sort(compareStudentsByRosterOrder)
 }
 
 export const saveClassroomAttendance = async (records: AttendanceRecord[]) => {

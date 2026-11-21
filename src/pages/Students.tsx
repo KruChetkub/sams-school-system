@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents, getDeletedStudents, restoreStudent, hardDeleteStudent } from '../services/studentService'
+import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents, findStudentByCode, findStudentsByCodes, promoteClassroomStudents, getDeletedStudents, restoreStudent, hardDeleteStudent, compareStudentsByRosterOrder, getCustomStudentOrderNumber, saveCustomStudentOrderForList, resetCustomStudentOrderForList } from '../services/studentService'
+import { getOfficialRosterListForClassroom, getM3RosterStatus, isTrackedOfficialClassroom, normalizeNameKey } from '../data/m3OfficialRoster'
 import { getClassrooms } from '../services/classroomService'
 import { getSubjects } from '../services/subjectService'
 import { addMembership, getAllMemberships, getMembershipsByGroup, removeMembership } from '../services/studentGroupService'
@@ -75,8 +76,10 @@ export default function Students() {
   const [activeTab, setActiveTab] = useState<'list' | 'single' | 'bulk' | 'subject' | 'deleted_history'>('list')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(10)
-  const [sortField, setSortField] = useState<'student_code' | 'name' | 'gender' | 'classroom'>('student_code')
+  const [sortField, setSortField] = useState<'roster' | 'student_code' | 'name' | 'gender' | 'classroom'>('roster')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [customOrderVersion, setCustomOrderVersion] = useState(0)
+  const [isSavingOrder, setIsSavingOrder] = useState(false)
 
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -152,7 +155,9 @@ export default function Students() {
 
     return [...filtered].sort((a, b) => {
       let comparison = 0
-      if (sortField === 'student_code') {
+      if (sortField === 'roster') {
+        comparison = compareStudentsByRosterOrder(a, b)
+      } else if (sortField === 'student_code') {
         comparison = (a.student_code || '').localeCompare(b.student_code || '', undefined, { numeric: true })
       } else if (sortField === 'name') {
         const nameA = `${a.first_name || ''} ${a.last_name || ''}`
@@ -167,7 +172,94 @@ export default function Students() {
       }
       return sortDirection === 'asc' ? comparison : -comparison
     })
-  }, [students, filterClassroomId, allMemberships, bottomSearchKeyword, sortField, sortDirection])
+  }, [students, filterClassroomId, allMemberships, bottomSearchKeyword, sortField, sortDirection, customOrderVersion])
+
+  const handleMoveStudentPosition = async (studentId: string, targetZeroBasedIndex: number) => {
+    if (!displayStudents.length) return
+    const currentIndex = displayStudents.findIndex(s => s.id === studentId)
+    if (currentIndex === -1) return
+    const clampedTarget = Math.max(0, Math.min(displayStudents.length - 1, targetZeroBasedIndex))
+    if (currentIndex === clampedTarget) return
+
+    const reordered = [...displayStudents]
+    const [moved] = reordered.splice(currentIndex, 1)
+    reordered.splice(clampedTarget, 0, moved)
+
+    setIsSavingOrder(true)
+    try {
+      await saveCustomStudentOrderForList(reordered)
+      setSortField('roster')
+      setSortDirection('asc')
+      setCustomOrderVersion(v => v + 1)
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['homeroom_students'] })
+      queryClient.invalidateQueries({ queryKey: ['schedule_students'] })
+      queryClient.invalidateQueries({ queryKey: ['assignment_submissions'] })
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
+
+  const handleResetClassroomOrder = async () => {
+    if (!displayStudents.length) return
+    setIsSavingOrder(true)
+    try {
+      await resetCustomStudentOrderForList(displayStudents)
+      setSortField('roster')
+      setSortDirection('asc')
+      setCustomOrderVersion(v => v + 1)
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['homeroom_students'] })
+      queryClient.invalidateQueries({ queryKey: ['schedule_students'] })
+      queryClient.invalidateQueries({ queryKey: ['assignment_submissions'] })
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
+
+  const selectedClassroomObj = React.useMemo(() => {
+    if (!filterClassroomId.startsWith('CLASSROOM:')) return null
+    const cid = filterClassroomId.replace('CLASSROOM:', '')
+    return classrooms?.find(c => c.id === cid) || null
+  }, [filterClassroomId, classrooms])
+
+  const isSelectedM3Classroom = React.useMemo(() => {
+    return isTrackedOfficialClassroom(selectedClassroomObj?.level, selectedClassroomObj?.room)
+  }, [selectedClassroomObj])
+
+  const m3ComparisonSummary = React.useMemo(() => {
+    if (!isSelectedM3Classroom || !selectedClassroomObj || !students) return null
+    const levelStr = String(selectedClassroomObj.level || '').trim()
+    const roomStr = String(selectedClassroomObj.room || '').trim()
+    const excelRoomList = getOfficialRosterListForClassroom(levelStr, roomStr)
+    const dbRoomStudents = students.filter(s => s.classroom_id === selectedClassroomObj.id)
+
+    const notInExcelRoom = dbRoomStudents.filter(s => {
+      const status = getM3RosterStatus(s, roomStr, levelStr)
+      return !status.inExcel || !status.inCorrectRoom
+    })
+    const missingInDbRoom = excelRoomList.filter(r => {
+      const rNameKey = normalizeNameKey(r.first_name, r.last_name)
+      return !dbRoomStudents.some(s => {
+        const sCode = String(s.student_code || '').trim()
+        const sNameKey = normalizeNameKey(s.first_name, s.last_name)
+        return sCode === r.student_code || sCode === r.alt_student_code || sNameKey === rNameKey
+      })
+    })
+    const matchedCount = dbRoomStudents.length - notInExcelRoom.length
+    const sourceFileLabel = excelRoomList[0]?.source_file || 'ไฟล์ใบรายชื่อ Excel'
+
+    return {
+      levelStr,
+      roomStr,
+      sourceFileLabel,
+      excelTotal: excelRoomList.length,
+      dbTotal: dbRoomStudents.length,
+      matchedCount,
+      notInExcelRoom,
+      missingInDbRoom,
+    }
+  }, [isSelectedM3Classroom, selectedClassroomObj, students])
 
   const totalStudents = displayStudents.length
   const totalPages = Math.ceil(totalStudents / pageSize) || 1
@@ -175,7 +267,7 @@ export default function Students() {
   const startIndex = (safePage - 1) * pageSize
   const paginatedStudents = displayStudents.slice(startIndex, startIndex + pageSize)
 
-  const handleSort = (field: 'student_code' | 'name' | 'gender' | 'classroom') => {
+  const handleSort = (field: 'roster' | 'student_code' | 'name' | 'gender' | 'classroom') => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
     } else {
@@ -1270,6 +1362,7 @@ export default function Students() {
                     }}
                     className="border border-gray-300 rounded-xl p-2.5 text-sm bg-white shadow-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
                   >
+                    <option value="roster-asc">ตามลำดับไฟล์ Excel (เลขที่ 1 ➔ สุดท้าย)</option>
                     <option value="student_code-asc">รหัสประจำตัว (น้อย ➔ มาก)</option>
                     <option value="student_code-desc">รหัสประจำตัว (มาก ➔ น้อย)</option>
                     <option value="name-asc">ชื่อ-สกุล (ก ➔ ฮ)</option>
@@ -1278,6 +1371,17 @@ export default function Students() {
                     <option value="gender-desc">เพศ (หญิง ➔ ชาย)</option>
                     <option value="classroom-asc">ห้องเรียน (น้อย ➔ มาก)</option>
                   </select>
+                  {filterClassroomId && displayStudents.length > 1 && (
+                    <button
+                      type="button"
+                      disabled={isSavingOrder}
+                      onClick={handleResetClassroomOrder}
+                      className="px-3 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition whitespace-nowrap shadow-sm disabled:opacity-50"
+                      title="รีเซ็ตลำดับรายคนให้กลับเป็นลำดับตามไฟล์ Excel เริ่มต้น"
+                    >
+                      รีเซ็ตลำดับตามไฟล์ Excel
+                    </button>
+                  )}
                 </div>
 
                 {/* Page Size Selector */}
@@ -1297,6 +1401,102 @@ export default function Students() {
                 </div>
               </div>
             </div>
+
+            {m3ComparisonSummary && (
+              <div className="mx-4 sm:mx-6 mb-4 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-white to-amber-50/60 p-4 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                      <span>📋 เทียบลำดับรายชื่อจากไฟล์: {m3ComparisonSummary.sourceFileLabel} (ห้อง {m3ComparisonSummary.levelStr}/{m3ComparisonSummary.roomStr})</span>
+                    </h4>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="px-2.5 py-1 rounded-full font-semibold bg-indigo-100 text-indigo-800">
+                        ในไฟล์ Excel: {m3ComparisonSummary.excelTotal} คน
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                        ✓ ตรงกับไฟล์ Excel: {m3ComparisonSummary.matchedCount} คน
+                      </span>
+                      {m3ComparisonSummary.notInExcelRoom.length > 0 ? (
+                        <span className="px-2.5 py-1 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                          ⚠️ ไม่มีชื่อในไฟล์ Excel ห้องนี้ (ควรลบ/ย้ายออก): {m3ComparisonSummary.notInExcelRoom.length} คน
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full font-semibold bg-slate-100 text-slate-600">
+                          ไม่มีนักเรียนเกินจากไฟล์ Excel
+                        </span>
+                      )}
+                      {m3ComparisonSummary.missingInDbRoom.length > 0 && (
+                        <span className="px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          ➕ มีในไฟล์ Excel แต่ยังไม่มีในห้องนี้ในระบบ: {m3ComparisonSummary.missingInDbRoom.length} คน
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {m3ComparisonSummary.notInExcelRoom.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/80 p-3">
+                    <p className="text-xs font-bold text-rose-800 mb-2">
+                      ⚠️ รายชื่อที่มีในระบบห้อง {m3ComparisonSummary.levelStr}/{m3ComparisonSummary.roomStr} แต่ไม่มีชื่อในไฟล์ Excel ({m3ComparisonSummary.sourceFileLabel}) — ทำสัญลักษณ์ไว้เพื่อให้ลบออกจากระบบ:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {m3ComparisonSummary.notInExcelRoom.map((st) => {
+                        const status = getM3RosterStatus(st, m3ComparisonSummary.roomStr, m3ComparisonSummary.levelStr)
+                        return (
+                          <div key={st.id} className="inline-flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-2.5 py-1.5 text-xs shadow-sm">
+                            <span className="font-mono font-bold text-rose-700">{st.student_code}</span>
+                            <span className="font-semibold text-slate-800">{st.prefix || ''}{st.first_name} {st.last_name}</span>
+                            {status.inExcel && status.excelRoom && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                ในไฟล์อยู่ {status.excelLevel}/{status.excelRoom} (ลำดับที่ {status.excelNo})
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openConfirmModal('ยืนยันการลบนักเรียนที่ไม่มีชื่อในไฟล์ Excel', `คุณต้องการลบ ${st.prefix || ''}${st.first_name} ${st.last_name} (รหัส ${st.student_code}) ออกจากระบบใช่หรือไม่?`, () => {
+                                  const deleterInfo = getDeleterInfo()
+                                  deleteMutation.mutate({ id: st.id, deletedBy: deleterInfo })
+                                })
+                              }}
+                              className="ml-1 inline-flex items-center gap-1 rounded-md bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-rose-700 transition"
+                            >
+                              <Trash2 size={12} /> ลบออก
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {m3ComparisonSummary.missingInDbRoom.length > 0 && (
+                  <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+                    <p className="text-xs font-bold text-amber-900 mb-1.5">
+                      ➕ รายชื่อที่มีในไฟล์ Excel ห้อง {m3ComparisonSummary.levelStr}/{m3ComparisonSummary.roomStr} แต่ยังไม่มีชื่อในห้องนี้ในระบบ:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {m3ComparisonSummary.missingInDbRoom.map((ex) => {
+                        const existingInOtherRoom = students?.find(s => String(s.student_code || '').trim() === ex.student_code || normalizeNameKey(s.first_name, s.last_name) === normalizeNameKey(ex.first_name, ex.last_name))
+                        return (
+                          <div key={`${ex.level}-${ex.room}-${ex.no}`} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs">
+                            <span className="font-bold text-amber-800">ลำดับ {ex.no}{ex.class_no !== ex.no ? ` (เลขที่ ${ex.class_no})` : ''}</span>
+                            <span className="font-mono text-slate-600">({ex.student_code})</span>
+                            <span className="font-semibold text-slate-800">{ex.prefix}{ex.first_name} {ex.last_name}</span>
+                            {existingInOtherRoom?.classroom && (
+                              <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-800">
+                                ในระบบอยู่ {existingInOtherRoom.classroom.level}/{existingInOtherRoom.classroom.room}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200 select-none">
@@ -1391,10 +1591,76 @@ export default function Students() {
                           .map((id) => subjects?.find((sub) => sub.id === id))
                           .filter(Boolean)
                           .map((sub: any) => `${sub.subject_code} ${sub.subject_name}`)
+
+                        const checkM3 = isSelectedM3Classroom || isTrackedOfficialClassroom(student.classroom?.level, student.classroom?.room)
+                        const m3Status = checkM3 ? getM3RosterStatus(student, selectedClassroomObj?.room, selectedClassroomObj?.level) : null
+                        const isNotInExcel = checkM3 && m3Status && (!m3Status.inExcel || !m3Status.inCorrectRoom)
+
                         return (
-                          <tr key={student.id} className="hover:bg-indigo-50/30 transition-colors">
-                            <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-medium">
-                              {startIndex + index + 1}
+                          <tr
+                            key={student.id}
+                            className={`transition-colors ${
+                              isNotInExcel
+                                ? 'bg-rose-50/75 hover:bg-rose-100/70'
+                                : 'hover:bg-indigo-50/30'
+                            }`}
+                          >
+                            <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-center font-medium">
+                              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-1.5 py-1 shadow-2xs">
+                                <button
+                                  type="button"
+                                  disabled={isSavingOrder || startIndex + index === 0}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMoveStudentPosition(student.id, startIndex + index - 1)
+                                  }}
+                                  className="p-1 rounded-lg text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 disabled:opacity-30 disabled:hover:bg-transparent transition"
+                                  title="เลื่อนลำดับขึ้น 1 ตำแหน่ง"
+                                >
+                                  <ArrowUp size={13} />
+                                </button>
+
+                                <select
+                                  disabled={isSavingOrder}
+                                  value={startIndex + index}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => handleMoveStudentPosition(student.id, Number(e.target.value))}
+                                  className={`text-xs font-bold rounded-lg px-1.5 py-0.5 outline-none cursor-pointer border ${
+                                    isNotInExcel
+                                      ? 'bg-rose-600 text-white border-rose-700'
+                                      : getCustomStudentOrderNumber(student) !== null
+                                      ? 'bg-indigo-600 text-white border-indigo-700'
+                                      : 'bg-white text-indigo-700 border-indigo-200'
+                                  }`}
+                                  title="คลิกเพื่อเลือกย้ายไปลำดับเลขที่ใดก็ได้ (ซิงค์ทุกหน้าระบบ)"
+                                >
+                                  {displayStudents.map((_, posIdx) => (
+                                    <option key={posIdx} value={posIdx} className="bg-white text-slate-800">
+                                      เลขที่ {posIdx + 1}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type="button"
+                                  disabled={isSavingOrder || startIndex + index === displayStudents.length - 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMoveStudentPosition(student.id, startIndex + index + 1)
+                                  }}
+                                  className="p-1 rounded-lg text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 disabled:opacity-30 disabled:hover:bg-transparent transition"
+                                  title="เลื่อนลำดับลง 1 ตำแหน่ง"
+                                >
+                                  <ArrowDown size={13} />
+                                </button>
+                              </div>
+                              {isNotInExcel && (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-bold text-[10px] shadow-2xs">
+                                    ⚠️ ไม่มีในไฟล์
+                                  </span>
+                                </div>
+                              )}
                             </td>
                             <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium font-mono">{student.student_code}</td>
                             <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.prefix || '-'}</td>
@@ -1403,10 +1669,27 @@ export default function Students() {
                               onClick={() => handleStartEdit(student)}
                               title="แตะเพื่อแก้ไขข้อมูลนักเรียน"
                             >
-                              <div className="flex items-center gap-1 flex-wrap">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="sm:hidden font-medium text-gray-500">{student.prefix || ''}</span>
-                                <span className="group-hover:underline text-indigo-900 sm:text-gray-800">{student.first_name} {student.last_name}</span>
+                                <span className={`group-hover:underline ${isNotInExcel ? 'text-rose-800 line-through decoration-rose-400' : 'text-indigo-900 sm:text-gray-800'}`}>
+                                  {student.first_name} {student.last_name}
+                                </span>
                                 {student.nickname && <span className="text-gray-400 font-normal text-xs">({student.nickname})</span>}
+                                {checkM3 && m3Status && (
+                                  !m3Status.inExcel ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                                      ⚠️ ไม่มีชื่อในไฟล์ Excel (ควรลบออก)
+                                    </span>
+                                  ) : !m3Status.inCorrectRoom ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                      ⚠️ ในไฟล์ Excel อยู่ {m3Status.excelLevel}/{m3Status.excelRoom} (ลำดับที่ {m3Status.excelNo})
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      ✓ ลำดับที่ {m3Status.excelNo}{m3Status.excelClassNo && m3Status.excelClassNo !== m3Status.excelNo ? ` (เลขที่ ${m3Status.excelClassNo})` : ''}
+                                    </span>
+                                  )
+                                )}
                                 {(() => {
                                   const visit = student.home_visits?.[0];
                                   if (visit?.status !== 'COMPLETED') return null;

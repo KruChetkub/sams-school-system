@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { compareStudentsByRosterOrder } from './studentService'
 
 export interface HomeroomAttendance {
   id?: string
@@ -25,15 +26,26 @@ export interface HomeroomClassroomSummary extends CheckedHomeroomClassroom {
 
 // Fetch students for a specific classroom
 export const getStudentsByClassroom = async (classroomId: string) => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('students')
-    .select('id, student_code, prefix, first_name, last_name, nickname')
+    .select('id, student_code, student_number, is_in_official_roster, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
     .eq('classroom_id', classroomId)
     .is('deleted_at', null)
     .order('student_code')
-  
+
+  if (error && (error.code === '42703' || String(error.message || '').includes('student_number'))) {
+    const fallback = await supabase
+      .from('students')
+      .select('id, student_code, prefix, first_name, last_name, nickname, gender, classroom:classroom_id (level, room)')
+      .eq('classroom_id', classroomId)
+      .is('deleted_at', null)
+      .order('student_code')
+    data = fallback.data as any
+    error = fallback.error
+  }
+
   if (error) throw error
-  return data
+  return ((data || []) as any[]).sort(compareStudentsByRosterOrder)
 }
 
 export const getCheckedHomeroomClassroomsByDate = async (date: string, academicYearId?: string): Promise<CheckedHomeroomClassroom[]> => {
