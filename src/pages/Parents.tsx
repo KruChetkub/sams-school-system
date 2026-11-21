@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getParents, createParent, deleteParent, assignParentToStudent } from '../services/parentService'
 import { getStudents } from '../services/studentService'
 import { useAcademicYearStore } from '../store/academicYearStore'
-import { Plus, Trash2, Users, Link as LinkIcon } from 'lucide-react'
+import { Plus, Trash2, Users, Link as LinkIcon, X } from 'lucide-react'
+import { samsAlert } from '../components/common/SamsDialog'
 
 export default function Parents() {
   const queryClient = useQueryClient()
@@ -52,9 +53,13 @@ export default function Parents() {
     mutationFn: () => assignParentToStudent(assignData.student_id, assignData.parent_id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] })
-      alert('ผูกผู้ปกครองกับนักเรียนสำเร็จ')
       setShowAssignForm(false)
       setAssignData({ student_id: '', parent_id: '' })
+      void samsAlert({
+        title: 'ผูกข้อมูลสำเร็จ',
+        message: 'ผูกผู้ปกครองกับนักเรียนสำเร็จเรียบร้อยแล้ว',
+        variant: 'success',
+      })
     }
   })
 
@@ -138,63 +143,99 @@ export default function Parents() {
       </div>
 
       {showAssignForm && (
-        <form onSubmit={handleAssignSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เลือกนักเรียน</label>
-            <input
-              type="text"
-              placeholder="พิมพ์ค้นหา รหัส/ชื่อนักเรียน"
-              className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
-              value={studentSearch}
-              onChange={(e) => setStudentSearch(e.target.value)}
-            />
-            <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.student_id} onChange={e => setAssignData({...assignData, student_id: e.target.value})}>
-              <option value="">-- เลือกนักเรียน --</option>
-              {filteredStudents.map((s: any) => <option key={s.id} value={s.id}>{s.student_code} {s.first_name} {s.last_name}</option>)}
-            </select>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowAssignForm(false)} />
+          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <LinkIcon size={20} className="text-indigo-600" /> ผูกผู้ปกครองกับนักเรียน
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAssignForm(false)}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleAssignSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">เลือกนักเรียน</label>
+                <input
+                  type="text"
+                  placeholder="พิมพ์ค้นหา รหัส/ชื่อนักเรียน"
+                  className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                />
+                <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.student_id} onChange={e => setAssignData({...assignData, student_id: e.target.value})}>
+                  <option value="">-- เลือกนักเรียน --</option>
+                  {filteredStudents.map((s: any) => <option key={s.id} value={s.id}>{s.student_code} {s.first_name} {s.last_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">เลือกผู้ปกครอง</label>
+                <input
+                  type="text"
+                  placeholder="พิมพ์ค้นหาชื่อผู้ปกครอง"
+                  className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
+                  value={parentSearch}
+                  onChange={(e) => setParentSearch(e.target.value)}
+                />
+                <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.parent_id} onChange={e => setAssignData({...assignData, parent_id: e.target.value})}>
+                  <option value="">-- เลือกผู้ปกครอง --</option>
+                  {filteredParents.map((p: any) => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+                </select>
+              </div>
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowAssignForm(false)} className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700">ยกเลิก</button>
+                <button type="submit" disabled={assignMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">บันทึกการผูกข้อมูล</button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">เลือกผู้ปกครอง</label>
-            <input
-              type="text"
-              placeholder="พิมพ์ค้นหาชื่อผู้ปกครอง"
-              className="mt-1 w-full border border-indigo-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white text-sm"
-              value={parentSearch}
-              onChange={(e) => setParentSearch(e.target.value)}
-            />
-            <select required className="mt-2 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white" value={assignData.parent_id} onChange={e => setAssignData({...assignData, parent_id: e.target.value})}>
-              <option value="">-- เลือกผู้ปกครอง --</option>
-              {filteredParents.map((p: any) => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
-            </select>
-          </div>
-          <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setShowAssignForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={assignMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm">บันทึกการผูกข้อมูล</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อจริง</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">อีเมล</label><input type="email" className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
-          
-          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-            <label className="block text-sm font-bold text-green-800">LINE User ID</label>
-            <input className="mt-1 w-full border border-green-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-green-500 transition-colors" placeholder="เว้นว่างได้ถ้าไม่ใช้" value={formData.line_user_id} onChange={e => setFormData({...formData, line_user_id: e.target.value})} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500" />
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Plus size={20} className="text-blue-600" /> เพิ่มข้อมูลผู้ปกครอง
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label className="block text-sm font-medium text-gray-700">ชื่อจริง</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} /></div>
+              <div><label className="block text-sm font-medium text-gray-700">นามสกุล</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} /></div>
+              <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+              <div><label className="block text-sm font-medium text-gray-700">อีเมล</label><input type="email" className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
+              
+              <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                <label className="block text-sm font-bold text-green-800">LINE User ID</label>
+                <input className="mt-1 w-full border border-green-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-green-500 transition-colors" placeholder="เว้นว่างได้ถ้าไม่ใช้" value={formData.line_user_id} onChange={e => setFormData({...formData, line_user_id: e.target.value})} />
+              </div>
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <label className="block text-sm font-bold text-blue-800">Telegram Chat ID</label>
+                <input className="mt-1 w-full border border-blue-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="เว้นว่างได้ถ้าไม่ใช้" value={formData.telegram_user_id} onChange={e => setFormData({...formData, telegram_user_id: e.target.value})} />
+              </div>
+              
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700">ยกเลิก</button>
+                <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">บันทึกข้อมูล</button>
+              </div>
+            </form>
           </div>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <label className="block text-sm font-bold text-blue-800">Telegram Chat ID</label>
-            <input className="mt-1 w-full border border-blue-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="เว้นว่างได้ถ้าไม่ใช้" value={formData.telegram_user_id} onChange={e => setFormData({...formData, telegram_user_id: e.target.value})} />
-          </div>
-          
-          <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">บันทึกข้อมูล</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {isLoading ? (

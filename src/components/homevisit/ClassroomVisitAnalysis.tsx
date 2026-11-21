@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { FileSpreadsheet, Printer, Loader2, AlertCircle } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { samsAlert } from '../common/SamsDialog';
 
 export default function ClassroomVisitAnalysis() {
   const { user, role } = useAuthStore();
@@ -823,7 +824,7 @@ export default function ClassroomVisitAnalysis() {
       saveAs(new Blob([buffer]), `วิเคราะห์สรุปการเยี่ยมบ้าน_ม_${fileLevel}_${fileRoom}.xlsx`);
     } catch (error) {
       console.error('Export Excel failed:', error);
-      alert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Excel: ' + (error instanceof Error ? error.message : String(error)));
+      await samsAlert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Excel: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsExporting(false);
     }

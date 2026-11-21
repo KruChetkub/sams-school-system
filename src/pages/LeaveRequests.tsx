@@ -4,6 +4,7 @@ import { getLeaveRequests, submitLeaveRequest, updateLeaveStatus } from '../serv
 import { getStudents } from '../services/studentService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { CheckCircle, XCircle, FileText, Clock, Calendar } from 'lucide-react'
+import { samsAlert, samsConfirm } from '../components/common/SamsDialog'
 
 export default function LeaveRequests() {
   const queryClient = useQueryClient()
@@ -35,7 +36,11 @@ export default function LeaveRequests() {
     mutationFn: submitLeaveRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leaves'] })
-      alert('ยื่นใบลาสำเร็จ')
+      void samsAlert({
+        title: 'ยื่นใบลาสำเร็จ',
+        message: 'ยื่นใบลาเข้าสู่ระบบเรียบร้อยแล้ว',
+        variant: 'success',
+      })
       setActiveTab('list')
       setFormData({ student_id: '', leave_type: 'ลาป่วย', start_date: '', end_date: '', reason: '' })
     }
@@ -157,13 +162,31 @@ export default function LeaveRequests() {
                 {leave.status === 'PENDING' && (
                   <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
                     <button 
-                      onClick={() => {if(window.confirm('ยืนยันการปฏิเสธใบลา?')) updateStatusMutation.mutate({ id: leave.id, status: 'REJECTED' })}}
+                      onClick={async () => {
+                        const confirmed = await samsConfirm({
+                          title: 'ยืนยันการปฏิเสธใบลา',
+                          message: 'คุณต้องการปฏิเสธไม่อนุมัติใบลานี้ใช่หรือไม่?',
+                          confirmText: 'ปฏิเสธใบลา',
+                          cancelText: 'ยกเลิก',
+                          variant: 'danger',
+                        })
+                        if (confirmed) updateStatusMutation.mutate({ id: leave.id, status: 'REJECTED' })
+                      }}
                       className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition whitespace-nowrap"
                     >
                       ปฏิเสธไม่อนุมัติ
                     </button>
                     <button 
-                      onClick={() => {if(window.confirm('ยืนยันการอนุมัติใบลา?')) updateStatusMutation.mutate({ id: leave.id, status: 'APPROVED' })}}
+                      onClick={async () => {
+                        const confirmed = await samsConfirm({
+                          title: 'ยืนยันการอนุมัติใบลา',
+                          message: 'คุณต้องการอนุมัติใบลานี้ใช่หรือไม่?',
+                          confirmText: 'อนุมัติการลา',
+                          cancelText: 'ยกเลิก',
+                          variant: 'success',
+                        })
+                        if (confirmed) updateStatusMutation.mutate({ id: leave.id, status: 'APPROVED' })
+                      }}
                       className="px-8 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition whitespace-nowrap shadow-md hover:shadow-lg flex items-center gap-2"
                     >
                       <CheckCircle size={20} /> อนุมัติการลา

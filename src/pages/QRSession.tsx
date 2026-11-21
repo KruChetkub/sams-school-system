@@ -5,6 +5,7 @@ import { createAttendanceSession, updateSessionQR, closeSession, getSessionAtten
 import { QRCodeSVG } from 'qrcode.react'
 import { MonitorPlay, XCircle, RefreshCw, Users, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { samsConfirm } from '../components/common/SamsDialog'
 
 export default function QRSession() {
   const queryClient = useQueryClient()
@@ -136,8 +137,15 @@ export default function QRSession() {
                 <RefreshCw size={20} /> เปลี่ยนรหัสใหม่ทันที
               </button>
               <button 
-                onClick={() => {
-                  if(window.confirm('คุณต้องการปิดรับการเช็คชื่อในคาบนี้ใช่หรือไม่?')) {
+                onClick={async () => {
+                  const confirmed = await samsConfirm({
+                    title: 'ปิดรับการเช็คชื่อ',
+                    message: 'คุณต้องการปิดรับการเช็คชื่อในคาบนี้ใช่หรือไม่?',
+                    confirmText: 'ปิดรับการเช็คชื่อ',
+                    cancelText: 'ยกเลิก',
+                    variant: 'danger',
+                  })
+                  if (confirmed) {
                     closeSessionMutation.mutate(activeSession.id)
                   }
                 }}

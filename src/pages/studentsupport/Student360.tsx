@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/authStore';
 import { behaviorService } from '../../services/studentsupport/behaviorService';
 import type { BehaviorPoint } from '../../services/studentsupport/behaviorService';
 import { QRCodeSVG } from 'qrcode.react';
+import { samsAlert } from '../../components/common/SamsDialog';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -1419,7 +1420,7 @@ export default function Student360() {
                   await refreshAllData();
                   setShowBehaviorModal(false);
                 } catch (err: any) {
-                  alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message);
+                  await samsAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message);
                 } finally {
                   setSubmittingBehavior(false);
                 }
@@ -1703,7 +1704,7 @@ export default function Student360() {
                     await refreshAllData();
                     setDeletingBehaviorId(null);
                   } catch (err: any) {
-                    alert('ไม่สามารถลบรายการได้: ' + err.message);
+                    await samsAlert('ไม่สามารถลบรายการได้: ' + err.message);
                   } finally {
                     setIsDeletingBehavior(false);
                   }

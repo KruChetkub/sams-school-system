@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { getHomeVisitsByTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
+import { samsAlert, samsConfirm } from '../../components/common/SamsDialog';
 import { Home, CheckCircle, AlertTriangle, Map, Navigation, X, Copy } from 'lucide-react';
 import VisitMap from '../../components/homevisit/VisitMap';
 import { useState } from 'react';
@@ -23,9 +24,13 @@ export default function HomeVisitDashboard() {
 
   const handleCloneFromSemester1 = async () => {
     if (!semester1 || !selectedSemester) return;
-    const confirmed = window.confirm(
-      `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบฟอร์ม รูปถ่าย แผนที่ และลายเซ็นของนักเรียนที่ยังไม่มีข้อมูลในภาคเรียนนี้ให้อัตโนมัติ)`
-    );
+    const confirmed = await samsConfirm({
+      title: 'ดึงข้อมูลเยี่ยมบ้านจากภาคเรียนที่ 1',
+      message: `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบฟอร์ม รูปถ่าย แผนที่ และลายเซ็นของนักเรียนที่ยังไม่มีข้อมูลในภาคเรียนนี้ให้อัตโนมัติ)`,
+      confirmText: 'ดึงข้อมูลทั้งหมด',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    });
     if (!confirmed) return;
 
     setIsCloning(true);
@@ -36,9 +41,17 @@ export default function HomeVisitDashboard() {
         academicYearId: selectedYear?.id,
       });
       queryClient.invalidateQueries({ queryKey: ['home_visits'] });
-      window.alert(`ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 สำเร็จ (${count} คน)`);
+      await samsAlert({
+        title: 'ดึงข้อมูลเยี่ยมบ้านสำเร็จ',
+        message: `ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 สำเร็จ (${count} คน)`,
+        variant: 'success',
+      });
     } catch (err: any) {
-      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err));
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err),
+        variant: 'danger',
+      });
     } finally {
       setIsCloning(false);
     }

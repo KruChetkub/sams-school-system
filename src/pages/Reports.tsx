@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore'
 import { supabase } from '../lib/supabase'
 import { BarChart3, Users, User, Download, RefreshCw, Calendar as CalendarIcon, FileSpreadsheet, FileText, Library, AlertCircle, Search, ArrowLeft } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { samsAlert } from '../components/common/SamsDialog'
 
 export default function Reports() {
   const { selectedYear, selectedSemester } = useAcademicYearStore()
@@ -588,7 +589,7 @@ export default function Reports() {
       saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
     } catch (error) {
       console.error('Error exporting subject attendance excel:', error)
-      alert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Excel')
+      await samsAlert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Excel')
     } finally {
       setIsExportingSubject(false)
     }

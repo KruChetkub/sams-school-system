@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getStudents } from '../../services/studentService';
 import { getHomeVisitsByTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
+import { samsAlert, samsConfirm } from '../../components/common/SamsDialog';
 import { getClassrooms } from '../../services/classroomService';
 import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
@@ -108,9 +109,13 @@ export default function StudentsList() {
   const handleCloneSingleStudent = async (student: any) => {
     if (!semester1 || !selectedSemester) return;
     const fullName = `${student.prefix || ''}${student.first_name} ${student.last_name}`;
-    const confirmed = window.confirm(
-      `ต้องการดึงข้อมูลการเยี่ยมบ้านของ "${fullName}" จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`
-    );
+    const confirmed = await samsConfirm({
+      title: 'ดึงข้อมูลเยี่ยมบ้านรายบุคคล',
+      message: `ต้องการดึงข้อมูลการเยี่ยมบ้านของ "${fullName}" จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`,
+      confirmText: 'ดึงข้อมูล',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    });
     if (!confirmed) return;
 
     setCloningStudentId(student.id);
@@ -123,13 +128,25 @@ export default function StudentsList() {
         overwriteExisting: true,
       });
       if (count === 0) {
-        window.alert(`ไม่พบข้อมูลการเยี่ยมบ้านของ ${fullName} ในภาคเรียนที่ 1`);
+        await samsAlert({
+          title: 'ไม่พบข้อมูลในภาคเรียนที่ 1',
+          message: `ไม่พบข้อมูลการเยี่ยมบ้านของ ${fullName} ในภาคเรียนที่ 1`,
+          variant: 'warning',
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: ['home_visits'] });
-        window.alert(`ดึงข้อมูลการเยี่ยมบ้านของ ${fullName} มายัง ${selectedSemester.label || 'ภาคเรียนที่ 2'} เรียบร้อยแล้ว`);
+        await samsAlert({
+          title: 'ดึงข้อมูลสำเร็จ',
+          message: `ดึงข้อมูลการเยี่ยมบ้านของ ${fullName} มายัง ${selectedSemester.label || 'ภาคเรียนที่ 2'} เรียบร้อยแล้ว`,
+          variant: 'success',
+        });
       }
     } catch (err: any) {
-      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูลรายคน: ' + (err?.message || err));
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูลรายคน: ' + (err?.message || err),
+        variant: 'danger',
+      });
     } finally {
       setCloningStudentId(null);
     }
@@ -138,9 +155,13 @@ export default function StudentsList() {
   const handleCloneFromSemester1 = async () => {
     if (!semester1 || !selectedSemester) return;
     const targetRoomId = selectedClassroomId || (activeTeacherClassroomIds.length === 1 ? activeTeacherClassroomIds[0] : undefined);
-    const confirmed = window.confirm(
-      `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบประเมิน รูปถ่ายบ้าน รูปนักเรียน แผนที่ และลายเซ็นของนักเรียนให้อัตโนมัติ โดยไม่ต้องกรอกใหม่)`
-    );
+    const confirmed = await samsConfirm({
+      title: 'ดึงข้อมูลเยี่ยมบ้านจากภาคเรียนที่ 1',
+      message: `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบประเมิน รูปถ่ายบ้าน รูปนักเรียน แผนที่ และลายเซ็นของนักเรียนให้อัตโนมัติ โดยไม่ต้องกรอกใหม่)`,
+      confirmText: 'ดึงข้อมูลทั้งหมด',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    });
     if (!confirmed) return;
 
     setIsCloning(true);
@@ -152,9 +173,17 @@ export default function StudentsList() {
         classroomId: targetRoomId,
       });
       queryClient.invalidateQueries({ queryKey: ['home_visits'] });
-      window.alert(`ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 มาภาคเรียนที่ 2 สำเร็จ (${count} คน)`);
+      await samsAlert({
+        title: 'ดึงข้อมูลเยี่ยมบ้านสำเร็จ',
+        message: `ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 มาภาคเรียนที่ 2 สำเร็จ (${count} คน)`,
+        variant: 'success',
+      });
     } catch (err: any) {
-      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err));
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err),
+        variant: 'danger',
+      });
     } finally {
       setIsCloning(false);
     }

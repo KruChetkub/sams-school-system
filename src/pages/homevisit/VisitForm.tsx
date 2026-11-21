@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
+import { samsAlert, samsConfirm } from '../../components/common/SamsDialog';
 import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud, Compass, Coins, Heart, Home, ShieldAlert, Gamepad2, Activity, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toJpeg } from 'html-to-image';
@@ -401,9 +402,13 @@ export default function VisitForm() {
 
   const handlePullStudentFromSemester1 = async () => {
     if (!studentId || !user?.id || !semester1 || !selectedSemester) return;
-    const confirmed = window.confirm(
-      `ต้องการดึงข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นฐานข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`
-    );
+    const confirmed = await samsConfirm({
+      title: 'ดึงข้อมูลเยี่ยมบ้านจากภาคเรียนที่ 1',
+      message: `ต้องการดึงข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นฐานข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`,
+      confirmText: 'ดึงข้อมูล',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    });
     if (!confirmed) return;
 
     setIsCloningSingle(true);
@@ -417,7 +422,11 @@ export default function VisitForm() {
       });
 
       if (count === 0) {
-        window.alert('ไม่พบข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้ในภาคเรียนที่ 1');
+        await samsAlert({
+          title: 'ไม่พบข้อมูลในภาคเรียนที่ 1',
+          message: 'ไม่พบข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้ในภาคเรียนที่ 1',
+          variant: 'warning',
+        });
         return;
       }
 
@@ -447,9 +456,17 @@ export default function VisitForm() {
 
       queryClient.invalidateQueries({ queryKey: ['home_visit'] });
       queryClient.invalidateQueries({ queryKey: ['home_visits'] });
-      window.alert('ดึงข้อมูลจากภาคเรียนที่ 1 มาสร้างฐานข้อมูลใหม่ของภาคเรียนที่ 2 เรียบร้อยแล้วครับ!');
+      await samsAlert({
+        title: 'ดึงข้อมูลสำเร็จ',
+        message: 'ดึงข้อมูลจากภาคเรียนที่ 1 มาสร้างฐานข้อมูลใหม่ของภาคเรียนที่ 2 เรียบร้อยแล้วครับ!',
+        variant: 'success',
+      });
     } catch (err: any) {
-      window.alert('ไม่สามารถดึงข้อมูลจากภาคเรียนที่ 1 ได้: ' + (err?.message || err));
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถดึงข้อมูลจากภาคเรียนที่ 1 ได้: ' + (err?.message || err),
+        variant: 'danger',
+      });
     } finally {
       setIsCloningSingle(false);
     }

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getClassrooms, createClassroom, updateClassroom, deleteClassroom } from '../services/classroomService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
-import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Edit, X } from 'lucide-react'
 
 const classroomCardPalettes = [
   { card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70', title: 'text-rose-900', meta: 'text-rose-800' },
@@ -142,62 +142,80 @@ export default function Classrooms() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ระดับชั้น (เช่น ม.1)</label>
-            <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})} placeholder="ม.1" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                {editId ? 'แก้ไขข้อมูลห้องเรียน' : 'เพิ่มห้องเรียนใหม่'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ระดับชั้น (เช่น ม.1)</label>
+                <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})} placeholder="ม.1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ห้อง (เช่น 1, 2, 3)</label>
+                <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} placeholder="1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 1</label>
+                <select 
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
+                  value={formData.advisor_id}
+                  onChange={e => setFormData({...formData, advisor_id: e.target.value})}
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {teachers?.map(t => (
+                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 2</label>
+                <select 
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
+                  value={formData.advisor2_id}
+                  onChange={e => setFormData({...formData, advisor2_id: e.target.value})}
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {teachers?.map(t => (
+                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">ครูประจำวิชา</label>
+                <select 
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
+                  value={formData.subject_teacher_id}
+                  onChange={e => setFormData({...formData, subject_teacher_id: e.target.value})}
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {teachers?.map(t => (
+                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700">ยกเลิก</button>
+                <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">
+                  {editId ? 'บันทึกการแก้ไข' : 'เพิ่มห้องเรียน'}
+                </button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ห้อง (เช่น 1, 2, 3)</label>
-            <input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} placeholder="1" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 1</label>
-            <select 
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
-              value={formData.advisor_id}
-              onChange={e => setFormData({...formData, advisor_id: e.target.value})}
-            >
-              <option value="">-- ไม่ระบุ --</option>
-              {teachers?.map(t => (
-                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ครูที่ปรึกษาคนที่ 2</label>
-            <select 
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
-              value={formData.advisor2_id}
-              onChange={e => setFormData({...formData, advisor2_id: e.target.value})}
-            >
-              <option value="">-- ไม่ระบุ --</option>
-              {teachers?.map(t => (
-                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ครูประจำวิชา</label>
-            <select 
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white"
-              value={formData.subject_teacher_id}
-              onChange={e => setFormData({...formData, subject_teacher_id: e.target.value})}
-            >
-              <option value="">-- ไม่ระบุ --</option>
-              {teachers?.map(t => (
-                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="col-span-1 md:col-span-5 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm">
-              {editId ? 'บันทึกการแก้ไข' : 'เพิ่มห้องเรียน'}
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
       {isLoading ? (

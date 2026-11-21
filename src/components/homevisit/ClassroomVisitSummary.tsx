@@ -8,6 +8,7 @@ import { FileText, Printer, Loader2, AlertCircle, Save } from 'lucide-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
+import { samsAlert } from '../common/SamsDialog';
 
 export default function ClassroomVisitSummary() {
   const { user, role } = useAuthStore();
@@ -474,7 +475,7 @@ export default function ClassroomVisitSummary() {
       saveAs(out, `แบบสรุปการเยี่ยมบ้านนักเรียน_ม_${fileLevel}_${fileRoom}.docx`);
     } catch (error) {
       console.error('Export Word failed:', error);
-      alert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Word: ' + (error instanceof Error ? error.message : String(error)));
+      await samsAlert('เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์ Word: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsExporting(false);
     }

@@ -7,6 +7,7 @@ import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
 import { useAuthStore } from '../store/authStore'
 import { Plus, Trash2, Pencil, Users, ClipboardCheck, AlertCircle, ArrowLeft, Copy } from 'lucide-react'
+import { samsAlert, samsConfirm } from '../components/common/SamsDialog'
 
 const DAYS = [
   { value: 1, label: 'จันทร์' },
@@ -303,7 +304,7 @@ export default function Schedules() {
       setShowForm(false)
     },
     onError: (error: any) => {
-      window.alert(error?.message || 'ไม่สามารถบันทึกตารางเรียนได้')
+      void samsAlert(error?.message || 'ไม่สามารถบันทึกตารางเรียนได้')
     },
   })
 
@@ -315,7 +316,7 @@ export default function Schedules() {
       setEditingScheduleId(null)
     },
     onError: (error: any) => {
-      window.alert(error?.message || 'ไม่สามารถบันทึกการแก้ไขตารางเรียนได้')
+      void samsAlert(error?.message || 'ไม่สามารถบันทึกการแก้ไขตารางเรียนได้')
       console.error('updateSchedule error:', error)
     },
   })
@@ -334,16 +335,30 @@ export default function Schedules() {
   const handleCloneSchedules = async () => {
     if (!selectedSemester || otherSemesters.length === 0 || !selectedYear) return
     const srcSem = otherSemesters[0]
-    const confirmed = window.confirm(`คุณต้องการคัดลอกตารางสอนจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะคาบที่ยังไม่มีในภาคเรียนนี้โดยอัตโนมัติ)`)
+    const confirmed = await samsConfirm({
+      title: 'คัดลอกตารางสอนจากภาคเรียนก่อนหน้า',
+      message: `คุณต้องการคัดลอกตารางสอนจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะคาบที่ยังไม่มีในภาคเรียนนี้โดยอัตโนมัติ)`,
+      confirmText: 'คัดลอกตารางสอน',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    })
     if (!confirmed) return
 
     setIsCloning(true)
     try {
       const count = await cloneSchedules(srcSem.id, selectedSemester.id, selectedYear.id)
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
-      window.alert(`คัดลอกตารางสอนสำเร็จเรียบร้อย (${count} คาบ)`)
+      await samsAlert({
+        title: 'คัดลอกตารางสอนสำเร็จ',
+        message: `คัดลอกตารางสอนสำเร็จเรียบร้อย (${count} คาบ)`,
+        variant: 'success',
+      })
     } catch (err: any) {
-      window.alert('เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err))
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err),
+        variant: 'danger',
+      })
     } finally {
       setIsCloning(false)
     }
@@ -589,7 +604,7 @@ export default function Schedules() {
       setMoveTarget(null)
     },
     onError: (error: any) => {
-      window.alert(error?.message || 'ไม่สามารถย้ายคาบเรียนได้')
+      void samsAlert(error?.message || 'ไม่สามารถย้ายคาบเรียนได้')
     },
   })
 

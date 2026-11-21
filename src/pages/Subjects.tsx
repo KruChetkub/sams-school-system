@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSubjects, createSubject, updateSubject, deleteSubject, cloneSubjects, type Subject } from '../services/subjectService'
 import { getTeachers } from '../services/teacherService'
 import { useAcademicYearStore } from '../store/academicYearStore'
-import { Plus, Trash2, AlertTriangle, Pencil, Copy } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Pencil, Copy, X } from 'lucide-react'
+import { samsAlert, samsConfirm } from '../components/common/SamsDialog'
 
 const subjectCardPalettes = [
   { card: 'bg-gradient-to-br from-rose-100 to-pink-200 border-rose-300/70', title: 'text-rose-900', meta: 'text-rose-800' },
@@ -48,16 +49,30 @@ export default function Subjects() {
   const handleCloneSubjects = async () => {
     if (!selectedSemester || otherSemesters.length === 0 || !selectedYear) return
     const srcSem = otherSemesters[0]
-    const confirmed = window.confirm(`คุณต้องการคัดลอกรายวิชาจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะรหัสวิชาที่ยังไม่มีในภาคเรียนนี้)`)
+    const confirmed = await samsConfirm({
+      title: 'คัดลอกรายวิชาจากภาคเรียนก่อนหน้า',
+      message: `คุณต้องการคัดลอกรายวิชาจาก "${srcSem.label || 'ภาคเรียนก่อนหน้า'}" มายัง "${selectedSemester.label || 'ภาคเรียนนี้'}" ใช่หรือไม่?\n\n(ระบบจะเพิ่มเฉพาะรหัสวิชาที่ยังไม่มีในภาคเรียนนี้)`,
+      confirmText: 'คัดลอกรายวิชา',
+      cancelText: 'ยกเลิก',
+      variant: 'info',
+    })
     if (!confirmed) return
 
     setIsCloning(true)
     try {
       const count = await cloneSubjects(srcSem.id, selectedSemester.id, selectedYear.id)
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
-      window.alert(`คัดลอกรายวิชาสำเร็จ (${count} วิชา)`)
+      await samsAlert({
+        title: 'คัดลอกรายวิชาสำเร็จ',
+        message: `คัดลอกรายวิชาสำเร็จ (${count} วิชา)`,
+        variant: 'success',
+      })
     } catch (err: any) {
-      window.alert('เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err))
+      await samsAlert({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการคัดลอก: ' + (err?.message || err),
+        variant: 'danger',
+      })
     } finally {
       setIsCloning(false)
     }
@@ -207,71 +222,89 @@ export default function Subjects() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700">รหัสวิชา</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.subject_code} onChange={e => setFormData({...formData, subject_code: e.target.value})} placeholder="เช่น ค31101" /></div>
-          <div><label className="block text-sm font-medium text-gray-700">ชื่อวิชา</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.subject_name} onChange={e => setFormData({...formData, subject_name: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">หมวดวิชา</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium text-gray-700">หน่วยกิต</label><input type="number" step="0.5" min="0" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.credit} onChange={e => setFormData({...formData, credit: e.target.value})} /></div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ปีการศึกษา</label>
-            <select
-              required
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
-              value={formData.academic_year_id}
-              onChange={e => {
-                const year = years.find(y => y.id === e.target.value)
-                const defaultSemester = year?.semesters?.find(s => s.is_active) || year?.semesters?.[0] || null
-                setFormData({
-                  ...formData,
-                  academic_year_id: e.target.value,
-                  semester_id: defaultSemester?.id || ''
-                })
-              }}
-            >
-              <option value="">-- เลือกปีการศึกษา --</option>
-              {years.map(year => (
-                <option key={year.id} value={year.id}>
-                  {year.label || `ปีการศึกษา ${year.year}`}{year.is_active ? ' (ปัจจุบัน)' : ''}
-                </option>
-              ))}
-            </select>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={resetForm} />
+          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                {editingSubjectId ? 'แก้ไขข้อมูลรายวิชา' : 'เพิ่มรายวิชาใหม่'}
+              </h3>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label className="block text-sm font-medium text-gray-700">รหัสวิชา</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.subject_code} onChange={e => setFormData({...formData, subject_code: e.target.value})} placeholder="เช่น ค31101" /></div>
+              <div><label className="block text-sm font-medium text-gray-700">ชื่อวิชา</label><input required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.subject_name} onChange={e => setFormData({...formData, subject_name: e.target.value})} /></div>
+              <div><label className="block text-sm font-medium text-gray-700">หมวดวิชา</label><input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} /></div>
+              <div><label className="block text-sm font-medium text-gray-700">หน่วยกิต</label><input type="number" step="0.5" min="0" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors" value={formData.credit} onChange={e => setFormData({...formData, credit: e.target.value})} /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ปีการศึกษา</label>
+                <select
+                  required
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
+                  value={formData.academic_year_id}
+                  onChange={e => {
+                    const year = years.find(y => y.id === e.target.value)
+                    const defaultSemester = year?.semesters?.find(s => s.is_active) || year?.semesters?.[0] || null
+                    setFormData({
+                      ...formData,
+                      academic_year_id: e.target.value,
+                      semester_id: defaultSemester?.id || ''
+                    })
+                  }}
+                >
+                  <option value="">-- เลือกปีการศึกษา --</option>
+                  {years.map(year => (
+                    <option key={year.id} value={year.id}>
+                      {year.label || `ปีการศึกษา ${year.year}`}{year.is_active ? ' (ปัจจุบัน)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ภาคเรียน</label>
+                <select
+                  required
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white disabled:bg-gray-100"
+                  value={formData.semester_id}
+                  onChange={e => setFormData({...formData, semester_id: e.target.value})}
+                  disabled={!formData.academic_year_id}
+                >
+                  <option value="">-- เลือกภาคเรียน --</option>
+                  {formSemesters.map(semester => (
+                    <option key={semester.id} value={semester.id}>
+                      {semester.label || `ภาคเรียนที่ ${semester.semester_number}`}{semester.is_active ? ' (ปัจจุบัน)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">ครูผู้สอนประจำวิชา</label>
+                <select 
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
+                  value={formData.teacher_id}
+                  onChange={e => setFormData({...formData, teacher_id: e.target.value})}
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {teachers?.map(t => (
+                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={resetForm} className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700">ยกเลิก</button>
+                <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">{editingSubjectId ? 'บันทึกการแก้ไข' : 'บันทึกวิชา'}</button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">ภาคเรียน</label>
-            <select
-              required
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white disabled:bg-gray-100"
-              value={formData.semester_id}
-              onChange={e => setFormData({...formData, semester_id: e.target.value})}
-              disabled={!formData.academic_year_id}
-            >
-              <option value="">-- เลือกภาคเรียน --</option>
-              {formSemesters.map(semester => (
-                <option key={semester.id} value={semester.id}>
-                  {semester.label || `ภาคเรียนที่ ${semester.semester_number}`}{semester.is_active ? ' (ปัจจุบัน)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">ครูผู้สอนประจำวิชา</label>
-            <select 
-              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white"
-              value={formData.teacher_id}
-              onChange={e => setFormData({...formData, teacher_id: e.target.value})}
-            >
-              <option value="">-- ไม่ระบุ --</option>
-              {teachers?.map(t => (
-                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-            <button type="button" onClick={resetForm} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">{editingSubjectId ? 'บันทึกการแก้ไข' : 'บันทึกวิชา'}</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {isLoading ? (
