@@ -205,6 +205,14 @@ export default function Schedules() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [moveSourceId, setMoveSourceId] = useState<string | null>(null)
   const [moveTarget, setMoveTarget] = useState<{ day: number; slot: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    day: number
+    period: number
+    slot: string
+    schedule: any | null
+  } | null>(null)
   const [formData, setFormData] = useState({
     subject_id: '',
     teacher_id: '',
@@ -392,6 +400,23 @@ export default function Schedules() {
     setShowForm(true)
   }
 
+  const openCreateFormForSlot = (dayValue: number, periodNum: number, slot: string) => {
+    const [rawStart = '08:30', rawEnd = '09:20'] = slot.split('-')
+    setEditingScheduleId(null)
+    setFormData({
+      subject_id: '',
+      teacher_id: selectedTeacherId || '',
+      classroom_id: '',
+      day_of_week: String(dayValue),
+      period: String(periodNum),
+      start_time: rawStart.substring(0, 5),
+      end_time: rawEnd.substring(0, 5),
+      room_name: ''
+    })
+    setExtraClassroomIds([])
+    setShowForm(true)
+  }
+
   const openEditForm = (schedule: any) => {
     const roomName: string = schedule.room_name || ''
     const parseMeta = () => {
@@ -461,20 +486,44 @@ export default function Schedules() {
   const activeTheme = CALENDAR_THEMES.find((t) => t.key === calendarTheme) || CALENDAR_THEMES[0]
   const moveTargetSchedule = moveTarget ? findScheduleByDayAndSlot(moveTarget.day, moveTarget.slot) : null
 
-  const handleCellClickForMove = (day: number, slot: string, scheduleInCell: typeof sortedSchedules[number] | null) => {
-    if (!moveSourceId) {
-      if (scheduleInCell) setMoveSourceId(scheduleInCell.id)
-      return
-    }
-
-    if (scheduleInCell?.id === moveSourceId) {
-      setMoveSourceId(null)
-      setMoveTarget(null)
-      return
-    }
-
-    setMoveTarget({ day, slot })
+  const openCellContextMenu = (
+    e: React.MouseEvent,
+    day: number,
+    period: number,
+    slot: string,
+    scheduleInCell: typeof sortedSchedules[number] | null
+  ) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const menuWidth = 250
+    const menuHeight = 230
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 12)
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 12)
+    setContextMenu({
+      x: Math.max(12, x),
+      y: Math.max(12, y),
+      day,
+      period,
+      slot,
+      schedule: scheduleInCell,
+    })
   }
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const closeMenu = () => setContextMenu(null)
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('click', closeMenu)
+    window.addEventListener('scroll', closeMenu, true)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('click', closeMenu)
+      window.removeEventListener('scroll', closeMenu, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [contextMenu])
 
   const confirmMoveMutation = useMutation({
     mutationFn: async ({
@@ -829,154 +878,198 @@ export default function Schedules() {
           </div>
 
           {showForm && (
-            <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">วิชา</label>
-                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.subject_id} onChange={e => {
-                  const subj = subjects?.find(s => s.id === e.target.value);
-                  setFormData({ ...formData, subject_id: e.target.value, teacher_id: subj?.teacher_id || formData.teacher_id })
-                }}>
-                  <option value="">-- เลือกวิชา --</option>
-                  {subjects?.map(s => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">ครูผู้สอน</label>
-                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.teacher_id} onChange={e => setFormData({ ...formData, teacher_id: e.target.value })}>
-                  <option value="">-- เลือกครู --</option>
-                  {teachers?.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">ห้องเรียนหลักของคาบ</label>
-                <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => {
-                  const nextMain = e.target.value
-                  setFormData({ ...formData, classroom_id: nextMain })
-                  setExtraClassroomIds(prev => prev.filter(id => id !== nextMain))
-                }}>
-                  <option value="">-- เลือกห้องเรียนหลัก --</option>
-                  {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">ห้องเรียนเพิ่มเติม (เรียนรวม)</label>
-                <div className="mt-1 max-h-[140px] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2.5 space-y-1.5">
-                  {classrooms?.map(c => {
-                    const disabled = c.id === formData.classroom_id
-                    const checked = extraClassroomIds.includes(c.id)
-                    return (
-                      <label key={c.id} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          disabled={disabled}
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setExtraClassroomIds(prev => Array.from(new Set([...prev, c.id])))
-                            } else {
-                              setExtraClassroomIds(prev => prev.filter(id => id !== c.id))
-                            }
-                          }}
-                        />
-                        <span className="text-sm text-slate-700">{c.level}/{c.room}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-                <p className="mt-1 text-xs text-slate-500">ติ๊กเลือกได้หลายห้อง ระบบจะดึงนักเรียนจากทุกห้องที่เลือกใน Attendance</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">วัน</label>
-                <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.day_of_week} onChange={e => setFormData({ ...formData, day_of_week: e.target.value })}>
-                  {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">คาบที่ (เลือกคาบเพื่อตั้งเวลาอัตโนมัติ)</label>
-                <select
-                  required
-                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                  value={formData.period}
-                  onChange={e => {
-                    const nextPeriod = e.target.value
-                    const slotIdx = Number(nextPeriod) - 1
-                    const matchedSlot = DEFAULT_TIME_SLOTS[slotIdx]
-                    setFormData({
-                      ...formData,
-                      period: nextPeriod,
-                      start_time: matchedSlot ? matchedSlot.start : formData.start_time,
-                      end_time: matchedSlot ? matchedSlot.end : formData.end_time,
-                    })
-                  }}
-                >
-                  {DEFAULT_TIME_SLOTS.map((slot, idx) => (
-                    <option key={idx + 1} value={String(idx + 1)}>
-                      {slot.start} - {slot.end} (คาบที่ {idx + 1})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">ห้องพัก/อาคาร (ไม่บังคับ)</label>
-                <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.room_name} onChange={e => setFormData({ ...formData, room_name: e.target.value })} placeholder="เช่น ห้อง 501" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">เวลาเริ่ม</label>
-                <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={2}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                    value={splitTime(formData.start_time).hour}
-                    onChange={(e) => updateTimePart('start_time', 'hour', e.target.value)}
-                    onBlur={() => normalizeTimeField('start_time')}
-                  />
-                  <span className="text-gray-500 font-semibold">:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={2}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                    value={splitTime(formData.start_time).minute}
-                    onChange={(e) => updateTimePart('start_time', 'minute', e.target.value)}
-                    onBlur={() => normalizeTimeField('start_time')}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">เวลาสิ้นสุด</label>
-                <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={2}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                    value={splitTime(formData.end_time).hour}
-                    onChange={(e) => updateTimePart('end_time', 'hour', e.target.value)}
-                    onBlur={() => normalizeTimeField('end_time')}
-                  />
-                  <span className="text-gray-500 font-semibold">:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={2}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
-                    value={splitTime(formData.end_time).minute}
-                    onChange={(e) => updateTimePart('end_time', 'minute', e.target.value)}
-                    onBlur={() => normalizeTimeField('end_time')}
-                  />
-                </div>
-              </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={resetFormState} />
+              <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl border border-white/30 bg-white shadow-2xl">
+                <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500" />
+                <div className="p-6 md:p-8">
+                  <div className="flex items-start justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800">
+                        {editingScheduleId ? 'แก้ไขข้อมูลตารางสอน' : 'เพิ่มวิชาในตารางสอน'}
+                      </h3>
+                      <p className="text-sm font-medium text-blue-600 mt-1">
+                        วัน{DAYS.find(d => String(d.value) === String(formData.day_of_week))?.label || '-'} • คาบที่ {formData.period} ({formData.start_time} - {formData.end_time})
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetFormState}
+                      className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                      title="ปิดหน้าต่าง"
+                    >
+                      ✕
+                    </button>
+                  </div>
 
-              <div className="col-span-1 md:col-span-3 flex justify-end gap-3 mt-4">
-                <button type="button" onClick={resetFormState} className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
-                  {editingScheduleId ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
-                </button>
+                  <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">วิชา</label>
+                      <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.subject_id} onChange={e => {
+                        const subj = subjects?.find(s => s.id === e.target.value);
+                        setFormData({ ...formData, subject_id: e.target.value, teacher_id: subj?.teacher_id || formData.teacher_id })
+                      }}>
+                        <option value="">-- เลือกวิชา --</option>
+                        {subjects?.map(s => <option key={s.id} value={s.id}>{s.subject_code} {s.subject_name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">ครูผู้สอน</label>
+                      <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.teacher_id} onChange={e => setFormData({ ...formData, teacher_id: e.target.value })}>
+                        <option value="">-- เลือกครู --</option>
+                        {teachers?.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">ห้องเรียนหลักของคาบ</label>
+                      <select required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.classroom_id} onChange={e => {
+                        const nextMain = e.target.value
+                        setFormData({ ...formData, classroom_id: nextMain })
+                        setExtraClassroomIds(prev => prev.filter(id => id !== nextMain))
+                      }}>
+                        <option value="">-- เลือกห้องเรียนหลัก --</option>
+                        {classrooms?.map(c => <option key={c.id} value={c.id}>{c.level}/{c.room}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">ห้องเรียนเพิ่มเติม (เรียนรวม)</label>
+                      <div className="mt-1 max-h-[140px] overflow-y-auto rounded-lg border border-gray-300 bg-white p-2.5 space-y-1.5">
+                        {classrooms?.map(c => {
+                          const disabled = c.id === formData.classroom_id
+                          const checked = extraClassroomIds.includes(c.id)
+                          return (
+                            <label key={c.id} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                disabled={disabled}
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setExtraClassroomIds(prev => Array.from(new Set([...prev, c.id])))
+                                  } else {
+                                    setExtraClassroomIds(prev => prev.filter(id => id !== c.id))
+                                  }
+                                }}
+                              />
+                              <span className="text-sm text-slate-700">{c.level}/{c.room}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">ติ๊กเลือกได้หลายห้อง ระบบจะดึงนักเรียนจากทุกห้องที่เลือกใน Attendance</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">วัน</label>
+                      <select className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white" value={formData.day_of_week} onChange={e => setFormData({ ...formData, day_of_week: e.target.value })}>
+                        {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">คาบที่ (เลือกคาบเพื่อตั้งเวลาอัตโนมัติ)</label>
+                      <select
+                        required
+                        className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                        value={formData.period}
+                        onChange={e => {
+                          const nextPeriod = e.target.value
+                          const slotIdx = Number(nextPeriod) - 1
+                          const matchedSlot = DEFAULT_TIME_SLOTS[slotIdx]
+                          setFormData({
+                            ...formData,
+                            period: nextPeriod,
+                            start_time: matchedSlot ? matchedSlot.start : formData.start_time,
+                            end_time: matchedSlot ? matchedSlot.end : formData.end_time,
+                          })
+                        }}
+                      >
+                        {DEFAULT_TIME_SLOTS.map((slot, idx) => (
+                          <option key={idx + 1} value={String(idx + 1)}>
+                            {slot.start} - {slot.end} (คาบที่ {idx + 1})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">ห้องพัก/อาคาร (ไม่บังคับ)</label>
+                      <input className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.room_name} onChange={e => setFormData({ ...formData, room_name: e.target.value })} placeholder="เช่น ห้อง 501" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">เวลาเริ่ม</label>
+                      <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                          value={splitTime(formData.start_time).hour}
+                          onChange={(e) => updateTimePart('start_time', 'hour', e.target.value)}
+                          onBlur={() => normalizeTimeField('start_time')}
+                        />
+                        <span className="text-gray-500 font-semibold">:</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                          value={splitTime(formData.start_time).minute}
+                          onChange={(e) => updateTimePart('start_time', 'minute', e.target.value)}
+                          onBlur={() => normalizeTimeField('start_time')}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">เวลาสิ้นสุด</label>
+                      <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                          value={splitTime(formData.end_time).hour}
+                          onChange={(e) => updateTimePart('end_time', 'hour', e.target.value)}
+                          onBlur={() => normalizeTimeField('end_time')}
+                        />
+                        <span className="text-gray-500 font-semibold">:</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                          value={splitTime(formData.end_time).minute}
+                          onChange={(e) => updateTimePart('end_time', 'minute', e.target.value)}
+                          onBlur={() => normalizeTimeField('end_time')}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="col-span-1 md:col-span-3 flex items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-100">
+                      <div>
+                        {editingScheduleId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const idToDelete = editingScheduleId
+                              resetFormState()
+                              setDeleteTargetId(idToDelete)
+                            }}
+                            className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors font-semibold text-sm flex items-center gap-1.5"
+                          >
+                            <Trash2 size={16} /> ลบคาบเรียนนี้
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex gap-3">
+                        <button type="button" onClick={resetFormState} className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700">ยกเลิก</button>
+                        <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm font-semibold">
+                          {editingScheduleId ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </form>
+            </div>
           )}
 
           {isLoading ? (
@@ -984,7 +1077,12 @@ export default function Schedules() {
           ) : viewMode === 'calendar' ? (
             <div className={`rounded-2xl shadow-lg border p-4 md:p-6 overflow-hidden ${activeTheme.wrapper}`}>
               <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-                <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>ตารางสอนรายสัปดาห์</h2>
+                <div>
+                  <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>ตารางสอนรายสัปดาห์</h2>
+                  <p className={`text-xs mt-0.5 ${activeTheme.subtext}`}>
+                    คลิกซ้ายเพื่อจัด/แก้ไขตารางเรียนทันที • คลิกขวาที่ช่องตารางเพื่อเปิดเมนูตัวเลือก (จัดตารางเรียน / ย้ายคาบ / ลบคาบ)
+                  </p>
+                </div>
                 <div className="flex items-center gap-2">
                   <p className={`text-xs md:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
                   {CALENDAR_THEMES.map((theme) => (
@@ -1000,6 +1098,147 @@ export default function Schedules() {
                   ))}
                 </div>
               </div>
+
+              {moveSourceSchedule && (
+                <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-blue-600 px-4 py-2.5 text-white shadow-md">
+                  <div className="text-xs md:text-sm font-medium">
+                    กำลังเลือกย้ายวิชา: <span className="font-bold">{moveSourceSchedule.subject?.subject_code} {moveSourceSchedule.subject?.subject_name}</span> (วัน{DAYS.find(d => d.value === moveSourceSchedule.day_of_week)?.label} คาบที่ {moveSourceSchedule.period}) — คลิกซ้ายหรือคลิกขวาที่ช่องปลายทางเพื่อวาง/สลับคาบเรียน
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoveSourceId(null)
+                      setMoveTarget(null)
+                    }}
+                    className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-bold hover:bg-white/30 transition"
+                  >
+                    ยกเลิกการย้าย
+                  </button>
+                </div>
+              )}
+
+              {contextMenu && (
+                <div
+                  style={{ top: contextMenu.y, left: contextMenu.x }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="fixed z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+                >
+                  <div className="bg-slate-50 px-3.5 py-2.5 border-b border-slate-100">
+                    <p className="text-xs font-bold text-slate-800">
+                      วัน{DAYS.find(d => d.value === contextMenu.day)?.label} • คาบที่ {contextMenu.period}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      เวลา {formatThai24Hour(contextMenu.slot.split('-')[0])} - {formatThai24Hour(contextMenu.slot.split('-')[1])}
+                    </p>
+                    {contextMenu.schedule && (
+                      <p className="mt-1 text-[11px] font-semibold text-blue-600 truncate">
+                        {contextMenu.schedule.subject?.subject_code} {contextMenu.schedule.subject?.subject_name}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="p-1.5 space-y-1 text-sm">
+                    {moveSourceId && contextMenu.schedule?.id !== moveSourceId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMoveTarget({ day: contextMenu.day, slot: contextMenu.slot })
+                          setContextMenu(null)
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-semibold text-white bg-blue-600 hover:bg-blue-700 transition"
+                      >
+                        <span>⇄</span>
+                        <span>{contextMenu.schedule ? 'สลับคาบเรียนมาไว้ช่องนี้' : 'ย้ายคาบเรียนมาวางช่องนี้'}</span>
+                      </button>
+                    )}
+
+                    {contextMenu.schedule ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openEditForm(contextMenu.schedule)
+                            setContextMenu(null)
+                          }}
+                          className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition"
+                        >
+                          <Pencil size={15} className="text-blue-600 shrink-0" />
+                          <span>แก้ไข / จัดตารางเรียนคาบนี้</span>
+                        </button>
+
+                        {moveSourceId === contextMenu.schedule.id ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoveSourceId(null)
+                              setMoveTarget(null)
+                              setContextMenu(null)
+                            }}
+                            className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-amber-700 hover:bg-amber-50 transition"
+                          >
+                            <span>✕</span>
+                            <span>ยกเลิกการย้ายคาบนี้</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoveSourceId(contextMenu.schedule.id)
+                              setMoveTarget(null)
+                              setContextMenu(null)
+                            }}
+                            className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
+                          >
+                            <span className="text-indigo-600 font-bold text-base leading-none shrink-0">⇄</span>
+                            <span>ย้าย / สลับคาบเรียนนี้</span>
+                          </button>
+                        )}
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteTargetId(contextMenu.schedule.id)
+                            setContextMenu(null)
+                          }}
+                          className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-rose-600 hover:bg-rose-50 transition"
+                        >
+                          <Trash2 size={15} className="text-rose-500 shrink-0" />
+                          <span>ลบตารางเรียนคาบนี้</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openCreateFormForSlot(contextMenu.day, contextMenu.period, contextMenu.slot)
+                          setContextMenu(null)
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition"
+                      >
+                        <Plus size={16} className="text-emerald-600 shrink-0" />
+                        <span>จัดตารางเรียนในคาบนี้</span>
+                      </button>
+                    )}
+
+                    {moveSourceId && contextMenu.schedule?.id !== moveSourceId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMoveSourceId(null)
+                          setMoveTarget(null)
+                          setContextMenu(null)
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left font-medium text-slate-500 hover:bg-slate-100 transition text-xs"
+                      >
+                        <span>✕</span>
+                        <span>ยกเลิกโหมดย้ายคาบ</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className={`overflow-x-auto rounded-xl border ${activeTheme.tableWrap}`}>
                 <table className="min-w-[960px] w-full table-fixed border-collapse">
@@ -1040,7 +1279,20 @@ export default function Schedules() {
                             <td key={`${day.value}-${slot}`} className={`border p-2 md:p-2.5 h-[126px] transition-colors ${activeTheme.cell} ${activeTheme.border}`}>
                               {schedule ? (
                                 <div
-                                  onClick={() => handleCellClickForMove(day.value, slot, schedule)}
+                                  onClick={() => {
+                                    if (moveSourceId) {
+                                      if (moveSourceId === schedule.id) {
+                                        setMoveSourceId(null)
+                                        setMoveTarget(null)
+                                      } else {
+                                        setMoveTarget({ day: day.value, slot })
+                                      }
+                                      return
+                                    }
+                                    openEditForm(schedule)
+                                  }}
+                                  onContextMenu={(e) => openCellContextMenu(e, day.value, periodNum, slot, schedule)}
+                                  title="คลิกซ้ายเพื่อแก้ไข • คลิกขวาเพื่อเปิดเมนูตัวเลือก"
                                   className={`h-full w-full rounded-lg p-2.5 shadow-sm cursor-pointer transition overflow-hidden ${moveSourceId === schedule.id ? 'ring-2 ring-blue-500' : ''} ${palette?.card || 'bg-white/95 border border-gray-200 hover:bg-blue-50'}`}
                                 >
                                   <p className={`text-xs font-bold ${palette?.code || 'text-blue-700'}`}>{schedule.subject?.subject_code || '-'}</p>
@@ -1054,7 +1306,15 @@ export default function Schedules() {
                                 </div>
                               ) : (
                                 <div
-                                  onClick={() => handleCellClickForMove(day.value, slot, null)}
+                                  onClick={() => {
+                                    if (moveSourceId) {
+                                      setMoveTarget({ day: day.value, slot })
+                                      return
+                                    }
+                                    openCreateFormForSlot(day.value, slotIndex + 1, slot)
+                                  }}
+                                  onContextMenu={(e) => openCellContextMenu(e, day.value, slotIndex + 1, slot, null)}
+                                  title="คลิกซ้ายเพื่อเพิ่มวิชาในคาบนี้ • คลิกขวาเพื่อเปิดเมนูตัวเลือก"
                                   className={`h-full rounded-lg border border-dashed cursor-pointer transition flex flex-col items-center justify-center text-center p-1 ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
                                 >
                                   <span className="text-[10px] font-semibold">คาบที่ {slotIndex + 1}</span>
