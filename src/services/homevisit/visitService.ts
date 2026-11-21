@@ -5,6 +5,8 @@ export interface HomeVisit {
   id: string;
   student_id: string;
   teacher_id: string;
+  academic_year_id?: string | null;
+  semester_id?: string | null;
   visit_date: string;
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
   latitude?: number;
@@ -159,7 +161,12 @@ export const resizeStudentPhoto = (file: File): Promise<File> => {
   });
 };
 
-export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | null, academicYearId?: string) => {
+export const getHomeVisitsByTeacher = async (
+  teacherId: string,
+  role?: string | null,
+  academicYearId?: string,
+  semesterId?: string
+) => {
   let query = supabase
     .from('home_visits')
     .select(`
@@ -198,6 +205,10 @@ export const getHomeVisitsByTeacher = async (teacherId: string, role?: string | 
 
   if (academicYearId) {
     query = query.eq('academic_year_id', academicYearId);
+  }
+
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId);
   }
 
   query = query.order('visit_date', { ascending: false });
@@ -241,7 +252,8 @@ export const getHomeVisitByStudentAndTeacher = async (
   studentId: string,
   teacherId: string,
   role?: string | null,
-  academicYearId?: string
+  academicYearId?: string,
+  semesterId?: string
 ) => {
   let query = supabase
     .from('home_visits')
@@ -280,6 +292,10 @@ export const getHomeVisitByStudentAndTeacher = async (
     query = query.eq('academic_year_id', academicYearId);
   }
 
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId);
+  }
+
   const { data: visit, error: visitError } = await query
     .order('visit_date', { ascending: false })
     .limit(1)
@@ -289,6 +305,181 @@ export const getHomeVisitByStudentAndTeacher = async (
   if (!visit) return null;
 
   return getHomeVisitById(visit.id);
+};
+
+/**
+ * คัดลอกข้อมูลการเยี่ยมบ้านทั้งหมด (ข้อมูลหลัก + แบบประเมิน form_data + รูปถ่าย/ลายเซ็น)
+ * จากภาคเรียนต้นทาง (เช่น ภาคเรียนที่ 1) มายังภาคเรียนปลายทาง (เช่น ภาคเรียนที่ 2)
+ */
+export const cloneHomeVisitsFromSemester = async (params: {
+  sourceSemesterId: string;
+  targetSemesterId: string;
+  academicYearId?: string;
+  studentId?: string;
+  classroomId?: string;
+  overwriteExisting?: boolean;
+}): Promise<number> => {
+  const { sourceSemesterId, targetSemesterId, academicYearId, studentId, classroomId, overwriteExisting } = params;
+  if (!sourceSemesterId || !targetSemesterId || sourceSemesterId === targetSemesterId) {
+    return 0;
+  }
+
+  const shouldOverwrite = overwriteExisting ?? Boolean(studentId);
+
+  // 1. กรณีดึงรายคน: เรียก RPC clone_single_student_home_visit ก่อน
+  if (studentId) {
+    try {
+      const { data: newVisitId, error: singleErr } = await supabase.rpc('clone_single_student_home_visit', {
+        p_student_id: studentId,
+        p_source_semester_id: sourceSemesterId,
+        p_target_semester_id: targetSemesterId,
+        p_academic_year_id: academicYearId || null,
+        p_overwrite: shouldOverwrite,
+      });
+      if (!singleErr && newVisitId) {
+        return 1;
+      }
+    } catch {
+      // Fallback ด้านล่าง
+    }
+  } else {
+    // กรณีดึงทั้งห้อง/หลายคน: เรียก RPC clone_home_visits_to_semester
+    try {
+      const { data: rpcCount, error: rpcError } = await supabase.rpc('clone_home_visits_to_semester', {
+        p_source_semester_id: sourceSemesterId,
+        p_target_semester_id: targetSemesterId,
+        p_academic_year_id: academicYearId || null,
+        p_student_id: null,
+        p_classroom_id: classroomId || null,
+      });
+      if (!rpcError && typeof rpcCount === 'number') {
+        return rpcCount;
+      }
+    } catch {
+      // Fallback ด้านล่าง
+    }
+  }
+
+  // 2. Fallback: ดึงข้อมูลจากภาคเรียนต้นทาง แล้วสร้างเรคคอร์ดใหม่ในภาคเรียนปลายทาง (แยก ID ใหม่ ไม่ทับเรคคอร์ดของภาคเรียนที่ 1)
+  let srcQuery = supabase
+    .from('home_visits')
+    .select('*, student:students!inner(id, classroom_id, deleted_at)')
+    .is('student.deleted_at', null)
+    .or(`semester_id.eq.${sourceSemesterId},semester_id.is.null`);
+
+  if (academicYearId) srcQuery = srcQuery.eq('academic_year_id', academicYearId);
+  if (studentId) srcQuery = srcQuery.eq('student_id', studentId);
+  if (classroomId) srcQuery = srcQuery.eq('student.classroom_id', classroomId);
+
+  const { data: srcVisits, error: srcErr } = await srcQuery.order('visit_date', { ascending: false });
+  if (srcErr) throw srcErr;
+  if (!srcVisits || srcVisits.length === 0) return 0;
+
+  const uniqueByStudent = new Map<string, any>();
+  for (const v of srcVisits) {
+    if (v.semester_id === targetSemesterId) continue;
+    if (!uniqueByStudent.has(v.student_id)) {
+      uniqueByStudent.set(v.student_id, v);
+    }
+  }
+
+  let clonedCount = 0;
+  for (const [stId, srcVisit] of uniqueByStudent.entries()) {
+    const { data: existingTarget } = await supabase
+      .from('home_visits')
+      .select('id')
+      .eq('student_id', stId)
+      .eq('semester_id', targetSemesterId)
+      .limit(1)
+      .maybeSingle();
+
+    let targetVisitId: string | null = null;
+
+    if (existingTarget) {
+      if (!shouldOverwrite) continue;
+      targetVisitId = existingTarget.id;
+      await supabase
+        .from('home_visits')
+        .update({
+          teacher_id: srcVisit.teacher_id,
+          visit_date: srcVisit.visit_date,
+          status: srcVisit.status,
+          latitude: srcVisit.latitude,
+          longitude: srcVisit.longitude,
+          distance_to_school: srcVisit.distance_to_school,
+          address_details: srcVisit.address_details,
+          academic_year_id: academicYearId || srcVisit.academic_year_id,
+        })
+        .eq('id', targetVisitId);
+
+      await supabase.from('home_visit_assessments').delete().eq('visit_id', targetVisitId);
+      await supabase.from('home_visit_photos').delete().eq('visit_id', targetVisitId);
+    } else {
+      // สร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนปลายทาง (ไม่ไปซ้ำซ้อนหรือทับเรคคอร์ดภาคเรียนที่ 1)
+      const { data: newVisit, error: insertErr } = await supabase
+        .from('home_visits')
+        .insert([
+          {
+            student_id: srcVisit.student_id,
+            teacher_id: srcVisit.teacher_id,
+            visit_date: srcVisit.visit_date,
+            status: srcVisit.status,
+            latitude: srcVisit.latitude,
+            longitude: srcVisit.longitude,
+            distance_to_school: srcVisit.distance_to_school,
+            address_details: srcVisit.address_details,
+            academic_year_id: academicYearId || srcVisit.academic_year_id,
+            semester_id: targetSemesterId,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertErr || !newVisit) continue;
+      targetVisitId = newVisit.id;
+    }
+
+    // คัดลอก home_visit_assessments ไปผูกกับ targetVisitId
+    const { data: srcAssessment } = await supabase
+      .from('home_visit_assessments')
+      .select('*')
+      .eq('visit_id', srcVisit.id)
+      .maybeSingle();
+
+    if (srcAssessment && targetVisitId) {
+      await supabase.from('home_visit_assessments').insert([
+        {
+          visit_id: targetVisitId,
+          living_condition: srcAssessment.living_condition,
+          family_status: srcAssessment.family_status,
+          economic_status: srcAssessment.economic_status,
+          risk_level: srcAssessment.risk_level,
+          notes: srcAssessment.notes,
+          form_data: srcAssessment.form_data,
+        },
+      ]);
+    }
+
+    // คัดลอก home_visit_photos ไปผูกกับ targetVisitId
+    const { data: srcPhotos } = await supabase
+      .from('home_visit_photos')
+      .select('*')
+      .eq('visit_id', srcVisit.id);
+
+    if (srcPhotos && srcPhotos.length > 0 && targetVisitId) {
+      await supabase.from('home_visit_photos').insert(
+        srcPhotos.map((p: any) => ({
+          visit_id: targetVisitId,
+          photo_url: p.photo_url,
+          description: p.description,
+        }))
+      );
+    }
+
+    clonedCount++;
+  }
+
+  return clonedCount;
 };
 
 export const createHomeVisit = async (visitData: Partial<HomeVisit>) => {

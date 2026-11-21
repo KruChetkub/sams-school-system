@@ -10,7 +10,7 @@ import { saveAs } from 'file-saver';
 
 export default function ClassroomVisitAnalysis() {
   const { user, role } = useAuthStore();
-  const { selectedYear } = useAcademicYearStore();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'student-parent' | 'family' | 'risk'>('student-parent');
   const [isExporting, setIsExporting] = useState(false);
@@ -141,13 +141,13 @@ export default function ClassroomVisitAnalysis() {
     enabled: !!selectedClassroomId && (role === 'ADMIN' || role === 'SUPER_ADMIN' || !!teacherProfile?.id)
   });
 
-  // 5. Fetch completed visits for these students
+  // 5. Fetch completed visits for these students (filtered by Academic Year & Semester)
   const studentIds = useMemo(() => students.map(s => s.id), [students]);
   const { data: visits = [], isLoading: isLoadingVisits } = useQuery({
-    queryKey: ['classroom_visits', studentIds, selectedYear?.id],
+    queryKey: ['classroom_visits', studentIds, selectedYear?.id, selectedSemester?.id],
     queryFn: async () => {
       if (studentIds.length === 0) return [];
-      const { data, error } = await supabase
+      let q = supabase
         .from('home_visits')
         .select(`
           *,
@@ -156,6 +156,10 @@ export default function ClassroomVisitAnalysis() {
         .eq('academic_year_id', selectedYear?.id || '')
         .eq('status', 'COMPLETED')
         .in('student_id', studentIds);
+      if (selectedSemester?.id) {
+        q = q.eq('semester_id', selectedSemester.id);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },

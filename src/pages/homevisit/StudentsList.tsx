@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getStudents } from '../../services/studentService';
-import { getHomeVisitsByTeacher } from '../../services/homevisit/visitService';
+import { getHomeVisitsByTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
 import { getClassrooms } from '../../services/classroomService';
 import { useAuthStore } from '../../store/authStore';
 import { useAcademicYearStore } from '../../store/academicYearStore';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, CheckCircle, Clock, ArrowLeft, Users, User, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, ArrowLeft, Users, User, RefreshCw, AlertCircle, Copy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 export default function StudentsList() {
   const { user, role } = useAuthStore();
-  const { selectedYear } = useAcademicYearStore();
+  const queryClient = useQueryClient();
+  const { selectedYear, selectedSemester, setSelectedSemester } = useAcademicYearStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'card' | 'table'>('list');
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloningStudentId, setCloningStudentId] = useState<string | null>(null);
 
   // 1. ดึงห้องเรียนทั้งหมด เพื่อหาว่าครูคนนี้ประจำชั้นห้องไหน
   const { data: classrooms = [], isLoading: isLoadingClassrooms } = useQuery({
@@ -92,12 +95,70 @@ export default function StudentsList() {
   const simulatedRole = activeTeacherUserId ? 'TEACHER' : role;
   const queryUserId = activeTeacherUserId || user?.id || '';
 
-  // 3. ดึงประวัติการเยี่ยมบ้านที่ครูคนนี้เคยทำไว้
+  // 3. ดึงประวัติการเยี่ยมบ้านที่ครูคนนี้เคยทำไว้ (แยกตามปีการศึกษาและภาคเรียน)
   const { data: visits = [], isLoading: isLoadingVisits } = useQuery({
-    queryKey: ['home_visits', queryUserId, simulatedRole],
-    queryFn: () => getHomeVisitsByTeacher(queryUserId, simulatedRole),
+    queryKey: ['home_visits', queryUserId, simulatedRole, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getHomeVisitsByTeacher(queryUserId, simulatedRole, selectedYear?.id, selectedSemester?.id),
     enabled: !!queryUserId
   });
+
+  const semester1 = selectedYear?.semesters?.find(s => String(s.semester_number) === '1');
+  const isNotSem1 = selectedSemester && semester1 && selectedSemester.id !== semester1.id;
+
+  const handleCloneSingleStudent = async (student: any) => {
+    if (!semester1 || !selectedSemester) return;
+    const fullName = `${student.prefix || ''}${student.first_name} ${student.last_name}`;
+    const confirmed = window.confirm(
+      `ต้องการดึงข้อมูลการเยี่ยมบ้านของ "${fullName}" จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`
+    );
+    if (!confirmed) return;
+
+    setCloningStudentId(student.id);
+    try {
+      const count = await cloneHomeVisitsFromSemester({
+        sourceSemesterId: semester1.id,
+        targetSemesterId: selectedSemester.id,
+        academicYearId: selectedYear?.id,
+        studentId: student.id,
+        overwriteExisting: true,
+      });
+      if (count === 0) {
+        window.alert(`ไม่พบข้อมูลการเยี่ยมบ้านของ ${fullName} ในภาคเรียนที่ 1`);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['home_visits'] });
+        window.alert(`ดึงข้อมูลการเยี่ยมบ้านของ ${fullName} มายัง ${selectedSemester.label || 'ภาคเรียนที่ 2'} เรียบร้อยแล้ว`);
+      }
+    } catch (err: any) {
+      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูลรายคน: ' + (err?.message || err));
+    } finally {
+      setCloningStudentId(null);
+    }
+  };
+
+  const handleCloneFromSemester1 = async () => {
+    if (!semester1 || !selectedSemester) return;
+    const targetRoomId = selectedClassroomId || (activeTeacherClassroomIds.length === 1 ? activeTeacherClassroomIds[0] : undefined);
+    const confirmed = window.confirm(
+      `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบประเมิน รูปถ่ายบ้าน รูปนักเรียน แผนที่ และลายเซ็นของนักเรียนให้อัตโนมัติ โดยไม่ต้องกรอกใหม่)`
+    );
+    if (!confirmed) return;
+
+    setIsCloning(true);
+    try {
+      const count = await cloneHomeVisitsFromSemester({
+        sourceSemesterId: semester1.id,
+        targetSemesterId: selectedSemester.id,
+        academicYearId: selectedYear?.id,
+        classroomId: targetRoomId,
+      });
+      queryClient.invalidateQueries({ queryKey: ['home_visits'] });
+      window.alert(`ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 มาภาคเรียนที่ 2 สำเร็จ (${count} คน)`);
+    } catch (err: any) {
+      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err));
+    } finally {
+      setIsCloning(false);
+    }
+  };
 
   // เลื่อนหน้าจอขึ้นบนสุดทันทีเมื่อมีการสลับห้องเรียนหรือกดย้อนกลับ
   useEffect(() => {
@@ -362,6 +423,42 @@ export default function StudentsList() {
           </button>
         </div>
       )}
+      {/* Semester Switcher & Clone from Semester 1 Banner */}
+      <div className="bg-white rounded-2xl border border-emerald-100 p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-gray-500">ภาคเรียนที่กำลังแสดง:</span>
+          {selectedYear?.semesters?.map((sem) => (
+            <button
+              key={sem.id}
+              type="button"
+              onClick={() => {
+                setSelectedSemester(sem.id);
+                queryClient.invalidateQueries();
+              }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                selectedSemester?.id === sem.id
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
+              }`}
+            >
+              {sem.label || `ภาคเรียนที่ ${sem.semester_number}`}
+            </button>
+          ))}
+        </div>
+
+        {isNotSem1 && (
+          <button
+            type="button"
+            disabled={isCloning}
+            onClick={handleCloneFromSemester1}
+            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-black shadow-sm transition flex items-center gap-2 disabled:opacity-50 cursor-pointer shrink-0"
+          >
+            <Copy size={15} />
+            <span>{isCloning ? 'กำลังดึงข้อมูล...' : '📥 ดึงข้อมูลเยี่ยมบ้านจากภาคเรียนที่ 1 มาภาคเรียนที่ 2'}</span>
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
@@ -521,15 +618,28 @@ export default function StudentsList() {
                     </span>
                   </div>
 
-                  <Link
-                    to={`/homevisit/visit/${student.id}`}
-                    className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                      }`}
-                  >
-                    {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
-                  </Link>
+                  <div className="flex flex-col gap-2">
+                    {isNotSem1 && (
+                      <button
+                        type="button"
+                        disabled={cloningStudentId === student.id}
+                        onClick={() => handleCloneSingleStudent(student)}
+                        className="w-full flex items-center justify-center gap-1.5 font-bold py-2 px-3 rounded-xl text-xs bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Copy size={14} />
+                        <span>{cloningStudentId === student.id ? 'กำลังดึงข้อมูล...' : '📥 ดึงข้อมูลรายคนจากเทอม 1'}</span>
+                      </button>
+                    )}
+                    <Link
+                      to={`/homevisit/visit/${student.id}`}
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }`}
+                    >
+                      {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
+                    </Link>
+                  </div>
                 </div>
               );
             })}
@@ -564,10 +674,22 @@ export default function StudentsList() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${vStatus.color}`}>
                         {vStatus.label}
                       </span>
+                      {isNotSem1 && (
+                        <button
+                          type="button"
+                          disabled={cloningStudentId === student.id}
+                          onClick={() => handleCloneSingleStudent(student)}
+                          className="px-3.5 py-2.5 rounded-xl font-bold text-xs bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          title="ดึงข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้จากภาคเรียนที่ 1 มาสร้างฐานข้อมูลใหม่ในภาคเรียนที่ 2"
+                        >
+                          <Copy size={14} />
+                          <span>{cloningStudentId === student.id ? 'กำลังดึง...' : 'ดึงข้อมูลเทอม 1'}</span>
+                        </button>
+                      )}
                       <Link
                         to={`/homevisit/visit/${student.id}`}
                         className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${isCompleted
@@ -618,15 +740,28 @@ export default function StudentsList() {
                       </span>
                     </div>
 
-                    <Link
-                      to={`/homevisit/visit/${student.id}`}
-                      className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
-                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                        }`}
-                    >
-                      {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
-                    </Link>
+                    <div className="flex flex-col gap-2">
+                      {isNotSem1 && (
+                        <button
+                          type="button"
+                          disabled={cloningStudentId === student.id}
+                          onClick={() => handleCloneSingleStudent(student)}
+                          className="w-full flex items-center justify-center gap-1.5 font-bold py-2 px-3 rounded-xl text-xs bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Copy size={14} />
+                          <span>{cloningStudentId === student.id ? 'กำลังดึงข้อมูล...' : '📥 ดึงข้อมูลรายคนจากเทอม 1'}</span>
+                        </button>
+                      )}
+                      <Link
+                        to={`/homevisit/visit/${student.id}`}
+                        className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all ${isCompleted
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}
+                      >
+                        {isCompleted ? <><MapPin size={16} /> ตรวจสอบ / แก้ไข</> : <><MapPin size={16} /> บันทึกการเยี่ยมบ้าน</>}
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
@@ -667,15 +802,29 @@ export default function StudentsList() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <Link
-                            to={`/homevisit/visit/${student.id}`}
-                            className={`inline-flex items-center gap-1.5 font-bold py-2 px-4 rounded-xl text-xs transition-all ${isCompleted
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
-                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                              }`}
-                          >
-                            {isCompleted ? <><MapPin size={12} /> ตรวจสอบ</> : <><MapPin size={12} /> บันทึก</>}
-                          </Link>
+                          <div className="inline-flex items-center justify-center gap-2">
+                            {isNotSem1 && (
+                              <button
+                                type="button"
+                                disabled={cloningStudentId === student.id}
+                                onClick={() => handleCloneSingleStudent(student)}
+                                className="inline-flex items-center gap-1 font-bold py-2 px-3 rounded-xl text-xs bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-all cursor-pointer disabled:opacity-50"
+                                title="ดึงข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้จากภาคเรียนที่ 1 มาสร้างฐานข้อมูลใหม่ในภาคเรียนที่ 2"
+                              >
+                                <Copy size={12} />
+                                <span>{cloningStudentId === student.id ? 'กำลังดึง...' : 'ดึงเทอม 1'}</span>
+                              </button>
+                            )}
+                            <Link
+                              to={`/homevisit/visit/${student.id}`}
+                              className={`inline-flex items-center gap-1.5 font-bold py-2 px-4 rounded-xl text-xs transition-all ${isCompleted
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                                  : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                }`}
+                            >
+                              {isCompleted ? <><MapPin size={12} /> ตรวจสอบ</> : <><MapPin size={12} /> บันทึก</>}
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

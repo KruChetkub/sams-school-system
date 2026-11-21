@@ -1,19 +1,48 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
-import { getHomeVisitsByTeacher } from '../../services/homevisit/visitService';
-import { Home, CheckCircle, AlertTriangle, Map, Navigation, X, Camera } from 'lucide-react';
+import { useAcademicYearStore } from '../../store/academicYearStore';
+import { getHomeVisitsByTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
+import { Home, CheckCircle, AlertTriangle, Map, Navigation, X, Copy } from 'lucide-react';
 import VisitMap from '../../components/homevisit/VisitMap';
 import { useState } from 'react';
 
 export default function HomeVisitDashboard() {
   const { user, role } = useAuthStore();
+  const { selectedYear, selectedSemester, setSelectedSemester } = useAcademicYearStore();
   const queryClient = useQueryClient();
+  const [isCloning, setIsCloning] = useState(false);
 
   const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['home_visits', user?.id, role],
-    queryFn: () => getHomeVisitsByTeacher(user?.id || '', role),
+    queryKey: ['home_visits', user?.id, role, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getHomeVisitsByTeacher(user?.id || '', role, selectedYear?.id, selectedSemester?.id),
     enabled: !!user?.id
   });
+
+  const semester1 = selectedYear?.semesters?.find(s => String(s.semester_number) === '1');
+  const isNotSem1 = selectedSemester && semester1 && selectedSemester.id !== semester1.id;
+
+  const handleCloneFromSemester1 = async () => {
+    if (!semester1 || !selectedSemester) return;
+    const confirmed = window.confirm(
+      `ต้องการดึงข้อมูลการเยี่ยมบ้านทั้งหมดจาก "${semester1.label || 'ภาคเรียนที่ 1'}" มายัง "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะคัดลอกทั้งข้อมูลแบบฟอร์ม รูปถ่าย แผนที่ และลายเซ็นของนักเรียนที่ยังไม่มีข้อมูลในภาคเรียนนี้ให้อัตโนมัติ)`
+    );
+    if (!confirmed) return;
+
+    setIsCloning(true);
+    try {
+      const count = await cloneHomeVisitsFromSemester({
+        sourceSemesterId: semester1.id,
+        targetSemesterId: selectedSemester.id,
+        academicYearId: selectedYear?.id,
+      });
+      queryClient.invalidateQueries({ queryKey: ['home_visits'] });
+      window.alert(`ดึงข้อมูลการเยี่ยมบ้านจากภาคเรียนที่ 1 สำเร็จ (${count} คน)`);
+    } catch (err: any) {
+      window.alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (err?.message || err));
+    } finally {
+      setIsCloning(false);
+    }
+  };
 
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [routeTargetId, setRouteTargetId] = useState<string | null>(null);
@@ -24,9 +53,52 @@ export default function HomeVisitDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-8 text-white shadow-lg">
-        <h1 className="text-3xl font-black mb-2">สรุปการเยี่ยมบ้าน</h1>
-        <p className="text-emerald-100 text-lg">ติดตามสถานะและประวัติการลงพื้นที่ของคุณ</p>
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-8 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs font-bold mb-2">
+            <span>ปีการศึกษา {selectedYear?.year || '-'}</span>
+            <span>•</span>
+            <span>{selectedSemester?.label || (selectedSemester ? `ภาคเรียนที่ ${selectedSemester.semester_number}` : 'ทุกภาคเรียน')}</span>
+          </div>
+          <h1 className="text-3xl font-black mb-1">สรุปการเยี่ยมบ้าน</h1>
+          <p className="text-emerald-100 text-sm md:text-base">ติดตามสถานะและประวัติการลงพื้นที่แยกตามภาคเรียน</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {selectedYear?.semesters && selectedYear.semesters.length > 1 && (
+            <div className="inline-flex bg-black/20 p-1 rounded-xl">
+              {selectedYear.semesters.map((sem) => (
+                <button
+                  key={sem.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSemester(sem.id);
+                    queryClient.invalidateQueries();
+                  }}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+                    selectedSemester?.id === sem.id
+                      ? 'bg-white text-emerald-800 shadow-sm'
+                      : 'text-emerald-100 hover:bg-white/10'
+                  }`}
+                >
+                  {sem.label || `ภาคเรียนที่ ${sem.semester_number}`}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isNotSem1 && (
+            <button
+              type="button"
+              disabled={isCloning}
+              onClick={handleCloneFromSemester1}
+              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-black shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <Copy size={16} />
+              <span>{isCloning ? 'กำลังดึงข้อมูล...' : 'ดึงข้อมูลเยี่ยมบ้านจากภาคเรียนที่ 1'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

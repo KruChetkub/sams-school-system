@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import { getStudents, updateStudent } from '../../services/studentService';
 import { useAcademicYearStore } from '../../store/academicYearStore';
-import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher } from '../../services/homevisit/visitService';
+import { createHomeVisit, updateHomeVisit, saveHomeVisitAssessment, uploadVisitPhoto, deleteVisitPhoto, getHomeVisitByStudentAndTeacher, cloneHomeVisitsFromSemester } from '../../services/homevisit/visitService';
 import { MapPin, Camera, Save, ArrowLeft, Loader2, Printer, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, User, Users, AlertCircle, FileText, UploadCloud, Compass, Coins, Heart, Home, ShieldAlert, Gamepad2, Activity, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toJpeg } from 'html-to-image';
@@ -298,7 +298,8 @@ export default function VisitForm() {
   const { user, role } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const { selectedYear } = useAcademicYearStore();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
+  const [isCloningSingle, setIsCloningSingle] = useState(false);
   const { data: students, isPending: isLoadingStudents, isError: isErrorStudents } = useQuery({
     queryKey: ['students', selectedYear?.id],
     queryFn: () => getStudents(selectedYear?.id)
@@ -385,12 +386,74 @@ export default function VisitForm() {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  // Fetch existing visit if any
+  // Fetch existing visit if any (separated by selectedYear and selectedSemester)
   const { data: existingData, isLoading: isLoadingExisting } = useQuery({
-    queryKey: ['home_visit', studentId, user?.id, role],
-    queryFn: () => studentId && user?.id ? getHomeVisitByStudentAndTeacher(studentId, user.id, role) : null,
+    queryKey: ['home_visit', studentId, user?.id, role, selectedYear?.id, selectedSemester?.id],
+    queryFn: () =>
+      studentId && user?.id
+        ? getHomeVisitByStudentAndTeacher(studentId, user.id, role, selectedYear?.id, selectedSemester?.id)
+        : null,
     enabled: !!studentId && !!user?.id
   });
+
+  const semester1 = selectedYear?.semesters?.find(s => String(s.semester_number) === '1');
+  const isNotSem1 = selectedSemester && semester1 && selectedSemester.id !== semester1.id;
+
+  const handlePullStudentFromSemester1 = async () => {
+    if (!studentId || !user?.id || !semester1 || !selectedSemester) return;
+    const confirmed = window.confirm(
+      `ต้องการดึงข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้จาก "${semester1.label || 'ภาคเรียนที่ 1'}" มาสร้างเป็นฐานข้อมูลของ "${selectedSemester.label || 'ภาคเรียนที่ 2'}" ใช่หรือไม่?\n\n(ระบบจะสร้างเรคคอร์ดใหม่ในฐานข้อมูลสำหรับภาคเรียนที่ 2 โดยไม่ทับข้อมูลเดิมของภาคเรียนที่ 1)`
+    );
+    if (!confirmed) return;
+
+    setIsCloningSingle(true);
+    try {
+      const count = await cloneHomeVisitsFromSemester({
+        sourceSemesterId: semester1.id,
+        targetSemesterId: selectedSemester.id,
+        academicYearId: selectedYear?.id,
+        studentId,
+        overwriteExisting: true,
+      });
+
+      if (count === 0) {
+        window.alert('ไม่พบข้อมูลการเยี่ยมบ้านของนักเรียนคนนี้ในภาคเรียนที่ 1');
+        return;
+      }
+
+      const clonedData = await getHomeVisitByStudentAndTeacher(studentId, user.id, role, selectedYear?.id, selectedSemester.id);
+      if (clonedData && clonedData.visit) {
+        setExistingVisitId(clonedData.visit.id);
+        if (clonedData.visit.latitude) setLatitude(clonedData.visit.latitude);
+        if (clonedData.visit.longitude) setLongitude(clonedData.visit.longitude);
+        if (clonedData.visit.distance_to_school) setDistanceToSchoolAuto(clonedData.visit.distance_to_school);
+        if (clonedData.assessment) {
+          setRiskLevel(clonedData.assessment.risk_level || 'NORMAL');
+          if (clonedData.assessment.form_data) {
+            setFormData(prev => ({ ...prev, ...clonedData.assessment!.form_data }));
+          }
+        }
+        if (clonedData.photos && clonedData.photos.length > 0) {
+          const exteriorPhoto = clonedData.photos.find((p: any) => p.description === 'ภาพถ่ายสภาพบ้านภายนอก');
+          const interiorPhoto = clonedData.photos.find((p: any) => p.description === 'ภาพถ่ายภายในบ้าน');
+          const mapPhotoDb = clonedData.photos.find((p: any) => p.description === 'แผนที่การเดินทาง');
+          const studentPhotoDb = clonedData.photos.find((p: any) => p.description === 'รูปถ่ายนักเรียน');
+          if (exteriorPhoto) setPhotoExteriorPreview(sanitizeImageUrl(exteriorPhoto.photo_url) || null);
+          if (interiorPhoto) setPhotoInteriorPreview(sanitizeImageUrl(interiorPhoto.photo_url) || null);
+          if (mapPhotoDb) setMapPhotoPreview(sanitizeImageUrl(mapPhotoDb.photo_url) || null);
+          if (studentPhotoDb) setStudentPhotoPreview(sanitizeImageUrl(studentPhotoDb.photo_url) || null);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['home_visit'] });
+      queryClient.invalidateQueries({ queryKey: ['home_visits'] });
+      window.alert('ดึงข้อมูลจากภาคเรียนที่ 1 มาสร้างฐานข้อมูลใหม่ของภาคเรียนที่ 2 เรียบร้อยแล้วครับ!');
+    } catch (err: any) {
+      window.alert('ไม่สามารถดึงข้อมูลจากภาคเรียนที่ 1 ได้: ' + (err?.message || err));
+    } finally {
+      setIsCloningSingle(false);
+    }
+  };
 
   // ดึงชื่อครูประจำชั้น (Advisor) จากตาราง Classrooms -> Teachers เพื่อมาแสดงเป็นครูที่ปรึกษา
   const { data: advisorProfile } = useQuery({
@@ -633,6 +696,7 @@ export default function VisitForm() {
           student_id: studentId,
           teacher_id: user.id,
           academic_year_id: selectedYear?.id || undefined,
+          semester_id: selectedSemester?.id || undefined,
           visit_date: formattedDate,
           status: 'COMPLETED',
           latitude: latitude || undefined,
@@ -642,6 +706,8 @@ export default function VisitForm() {
         visitId = visit.id;
       } else {
         await updateHomeVisit(visitId, {
+          academic_year_id: selectedYear?.id || undefined,
+          semester_id: selectedSemester?.id || undefined,
           visit_date: formattedDate,
           latitude: latitude || undefined,
           longitude: longitude || undefined,
@@ -743,9 +809,27 @@ export default function VisitForm() {
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-8 shadow-lg mb-8 text-white">
-        <h2 className="text-2xl font-black mb-2 tracking-tight">แบบฟอร์มบันทึกการเยี่ยมบ้าน</h2>
-        <p className="text-emerald-100 opacity-90">ระบบบริหารจัดการและดูแลช่วยเหลือนักเรียน (SAMS)</p>
+      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-8 shadow-lg mb-8 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs font-bold mb-2">
+            <span>ปีการศึกษา {selectedYear?.year || '-'}</span>
+            <span>•</span>
+            <span>{selectedSemester?.label || (selectedSemester ? `ภาคเรียนที่ ${selectedSemester.semester_number}` : 'ทุกภาคเรียน')}</span>
+          </div>
+          <h2 className="text-2xl font-black mb-1 tracking-tight">แบบฟอร์มบันทึกการเยี่ยมบ้าน</h2>
+          <p className="text-emerald-100 opacity-90 text-sm">ระบบบริหารจัดการและดูแลช่วยเหลือนักเรียน (SAMS)</p>
+        </div>
+
+        {isNotSem1 && (
+          <button
+            type="button"
+            disabled={isCloningSingle}
+            onClick={handlePullStudentFromSemester1}
+            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-black shadow-md transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 cursor-pointer"
+          >
+            <span>📥 {isCloningSingle ? 'กำลังดึงข้อมูล...' : 'ดึงข้อมูลเดิมจากภาคเรียนที่ 1 มาใส่ฟอร์มนี้'}</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs Navigation */}

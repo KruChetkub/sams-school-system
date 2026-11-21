@@ -115,36 +115,42 @@ export default function ReportPrintView({ visit, student, assessment, photos, li
           <div className="section-title">3. ความสัมพันธ์ในครอบครัว</div>
           <div className="sub-section">
             <div className="line">
-            3.1 สมาชิกในครอบครัวมีเวลาอยู่ร่วมกันเฉลี่ยวันละ <span className="dotted short" style={{ textAlign: 'center' }}>{fd.time_together_hours || '...'}</span> ชั่วโมง / วัน
-          </div>
+              3.1 สมาชิกในครอบครัวมีเวลาอยู่ร่วมกันเฉลี่ยวันละ <span className="dotted short" style={{ textAlign: 'center' }}>{fd.time_together_hours || '...'}</span> ชั่วโมง / วัน
+            </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>สมาชิกในครอบครัว</th>
-                <th>สนิทสนม</th>
-                <th>เฉยๆ</th>
-                <th>ห่างเหิน</th>
-                <th>ขัดแย้ง</th>
-                <th>ไม่มี</th>
-              </tr>
-            </thead>
-            <tbody>
-              {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map(member => {
-                const val = (fd.relation_with_members || {})[member] || '';
-                return (
-                  <tr key={member}>
-                    <td>{member}</td>
-                    <td>{val === 'สนิทสนม' ? '✔' : ''}</td>
-                    <td>{val === 'เฉยๆ' || val === 'เฉย ๆ' ? '✔' : ''}</td>
-                    <td>{val === 'ห่างเหิน' ? '✔' : ''}</td>
-                    <td>{val === 'ขัดแย้ง' ? '✔' : ''}</td>
-                    <td>{val === 'ไม่มี' || val === '' ? '✔' : ''}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            <div style={{ fontWeight: 'bold', marginTop: '6px', marginBottom: '4px' }}>
+              3.2 ความสัมพันธ์ระหว่างนักเรียนกับสมาชิกครอบครัว
+            </div>
+
+            <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '4px' }}>
+              <thead>
+                <tr>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'left', fontWeight: 'bold' }}>สมาชิกในครอบครัว</th>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'center', fontWeight: 'bold', width: '13%' }}>สนิทสนม</th>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'center', fontWeight: 'bold', width: '13%' }}>เฉยๆ</th>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'center', fontWeight: 'bold', width: '13%' }}>ห่างเหิน</th>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'center', fontWeight: 'bold', width: '13%' }}>ขัดแย้ง</th>
+                  <th style={{ border: '1px solid #000', padding: '4px 8px', backgroundColor: '#f2f2f2', textAlign: 'center', fontWeight: 'bold', width: '13%' }}>ไม่มี</th>
+                </tr>
+              </thead>
+              <tbody>
+                {['บิดา', 'มารดา', 'พี่ชาย/น้องชาย', 'พี่สาว/น้องสาว', 'ปู่/ย่า/ตา/ยาย', 'ญาติ', 'อื่นๆ'].map(member => {
+                  const val = (fd.relation_with_members || {})[member] || '';
+                  return (
+                    <tr key={member}>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'left' }}>
+                        {member === 'อื่นๆ' && fd.relation_other_name ? `อื่นๆ (${fd.relation_other_name})` : member}
+                      </td>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'center', fontWeight: 'bold' }}>{val === 'สนิทสนม' ? '✔' : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'center', fontWeight: 'bold' }}>{val === 'เฉยๆ' || val === 'เฉย ๆ' ? '✔' : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'center', fontWeight: 'bold' }}>{val === 'ห่างเหิน' ? '✔' : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'center', fontWeight: 'bold' }}>{val === 'ขัดแย้ง' ? '✔' : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3px 8px', textAlign: 'center', fontWeight: 'bold' }}>{val === 'ไม่มี' || val === '' ? '✔' : ''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 

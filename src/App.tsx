@@ -307,21 +307,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <Filter className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>{t.academicYear}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <div className="relative">
                 <select
                   value={selectedYear?.id || ''}
                   onChange={(e) => handleYearChange(e.target.value)}
-                  className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
+                  className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-3 pr-7 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
                 >
                   {years.map((y) => (
                     <option key={y.id} value={y.id}>
-                      {lang === 'th' ? `ปี ${y.year}` : `Year ${y.year}`} {y.is_active ? ` (${lang === 'th' ? 'ปัจจุบัน' : 'Active'})` : ''}
+                      {lang === 'th' ? `ปีการศึกษา ${y.year}` : `Year ${y.year}`} {y.is_active ? ` (${lang === 'th' ? 'ปัจจุบัน' : 'Active'})` : ''}
                     </option>
                   ))}
                   {years.length === 0 && <option value="">{t.loading}</option>}
                 </select>
-                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-400">
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                 </div>
               </div>
@@ -329,7 +329,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <select
                   value={selectedSemester?.id || ''}
                   onChange={(e) => handleSemesterChange(e.target.value)}
-                  className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
+                  className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-3 pr-7 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-150 transition cursor-pointer appearance-none"
                   disabled={!selectedYear}
                 >
                   {selectedYear?.semesters?.map((s) => (
@@ -342,7 +342,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   )}
                   {!selectedYear && <option value="">{lang === 'th' ? 'เลือกปีการศึกษา' : 'Select Year'}</option>}
                 </select>
-                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-400">
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                 </div>
               </div>

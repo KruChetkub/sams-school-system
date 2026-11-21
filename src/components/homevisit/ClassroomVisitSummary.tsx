@@ -11,7 +11,7 @@ import { saveAs } from 'file-saver';
 
 export default function ClassroomVisitSummary() {
   const { user, role } = useAuthStore();
-  const { selectedYear } = useAcademicYearStore();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -236,13 +236,13 @@ export default function ClassroomVisitSummary() {
     enabled: !!selectedClassroomId
   });
 
-  // 5. Fetch visits
+  // 5. Fetch visits (filtered by Academic Year & Semester)
   const studentIds = useMemo(() => students.map(s => s.id), [students]);
   const { data: visits = [], isLoading: isLoadingVisits } = useQuery({
-    queryKey: ['classroom_visits_summary', studentIds, selectedYear?.id],
+    queryKey: ['classroom_visits_summary', studentIds, selectedYear?.id, selectedSemester?.id],
     queryFn: async () => {
       if (studentIds.length === 0) return [];
-      const { data, error } = await supabase
+      let q = supabase
         .from('home_visits')
         .select(`
           *,
@@ -251,6 +251,10 @@ export default function ClassroomVisitSummary() {
         .eq('academic_year_id', selectedYear?.id || '')
         .eq('status', 'COMPLETED')
         .in('student_id', studentIds);
+      if (selectedSemester?.id) {
+        q = q.eq('semester_id', selectedSemester.id);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
