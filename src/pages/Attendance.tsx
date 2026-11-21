@@ -11,6 +11,9 @@ import { getCustomStudentOrderNumber } from '../services/studentService'
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
+const toLocalIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+
 const formatInputDate = (isoDate: string) => {
   const date = new Date(`${isoDate}T00:00:00`)
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`
@@ -23,10 +26,11 @@ const parseInputDate = (input: string) => {
   if (!/^[0-9]{1,2}$/.test(dayStr) || !/^[0-9]{1,2}$/.test(monthStr) || !/^[0-9]{4}$/.test(yearStr)) return null
   const day = Number(dayStr)
   const month = Number(monthStr)
-  const year = Number(yearStr)
+  const rawYear = Number(yearStr)
+  const year = rawYear >= 2400 ? rawYear - 543 : rawYear
   const date = new Date(year, month - 1, day)
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
-  return date.toISOString().split('T')[0]
+  return toLocalIsoDate(date)
 }
 
 const formatThaiBuddhistDate = (isoDate: string) => {
@@ -160,8 +164,8 @@ export default function Attendance() {
   const studentSectionRef = useRef<HTMLDivElement | null>(null)
   const { user, role } = useAuthStore()
   const [selectedSchedule, setSelectedSchedule] = useState('')
-  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
-  const [attendanceDateInput, setAttendanceDateInput] = useState(formatInputDate(new Date().toISOString().split('T')[0]))
+  const [attendanceDate, setAttendanceDate] = useState(() => toLocalIsoDate(new Date()))
+  const [attendanceDateInput, setAttendanceDateInput] = useState(() => formatInputDate(toLocalIsoDate(new Date())))
   const [attendanceDateError, setAttendanceDateError] = useState('')
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
@@ -224,7 +228,7 @@ export default function Attendance() {
 
   const selectCalendarDate = (day: number) => {
     const date = new Date(calendarYear, calendarMonth, day)
-    const isoDate = date.toISOString().split('T')[0]
+    const isoDate = toLocalIsoDate(date)
     setAttendanceDate(isoDate)
     setAttendanceDateInput(formatInputDate(isoDate))
     setAttendanceDateError('')
