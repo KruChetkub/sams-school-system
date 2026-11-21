@@ -280,6 +280,11 @@ export const AssignmentList: React.FC = () => {
             <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs">
               ห้อง {classroomLabel}
             </span>
+            {selectedSemester && (
+              <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold text-xs">
+                {selectedSemester.label || `ภาคเรียนที่ ${selectedSemester.semester_number}`}
+              </span>
+            )}
           </div>
         </div>
 

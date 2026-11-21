@@ -189,12 +189,13 @@ export default function SdqForm({ isPublic = false }: { isPublic?: boolean }) {
     setEvaluatorTypeState(type);
   };
 
-  // V15.8: บันทึก draft เมื่อ answers เปลี่ยน
+  // V15.8: บันทึก draft เมื่อ answers เปลี่ยน (แยกตามภาคเรียน)
   useEffect(() => {
     if (!studentId) return;
-    const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
+    const semKey = searchParams.get('semesterId') || selectedSemester?.id || 'default';
+    const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}_${semKey}`;
     localStorage.setItem(draftKey, JSON.stringify(answers));
-  }, [answers, studentId, evaluatorTypeState]);
+  }, [answers, studentId, evaluatorTypeState, selectedSemester?.id, searchParams]);
 
   // โหลดข้อมูลแบบประเมินที่มีอยู่เดิมจากฐานข้อมูล (สำหรับครู) หรือ draft จาก localStorage
   useEffect(() => {
@@ -260,8 +261,9 @@ export default function SdqForm({ isPublic = false }: { isPublic?: boolean }) {
         }
       }
 
-      // ถ้าไม่มีข้อมูลในฐานข้อมูล หรือเป็นผู้ใช้สาธารณะ (public) ให้ใช้ draft ใน localStorage
-      const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}`;
+      // ถ้าไม่มีข้อมูลในฐานข้อมูล หรือเป็นผู้ใช้สาธารณะ (public) ให้ใช้ draft ใน localStorage แยกตามภาคเรียน
+      const semKey = searchParams.get('semesterId') || selectedSemester?.id || 'default';
+      const draftKey = `sdq_draft_${studentId}_${evaluatorTypeState}_${semKey}`;
       const saved = localStorage.getItem(draftKey);
       if (saved) {
         const parsed: number[] = JSON.parse(saved);
@@ -373,7 +375,8 @@ export default function SdqForm({ isPublic = false }: { isPublic?: boolean }) {
       await studentSupportService.saveSdqAssessment(payload);
 
       // V15.8: ลบ draft ใน localStorage หลังบันทึกสำเร็จ
-      localStorage.removeItem(`sdq_draft_${studentId}_${evaluatorTypeState}`);
+      const semKey = semesterIdParam || selectedSemester?.id || 'default';
+      localStorage.removeItem(`sdq_draft_${studentId}_${evaluatorTypeState}_${semKey}`);
 
       // V15.6: ตรวจผลลัพธ์และแจ้งเตือนเปิดเคสถ้า PROBLEM
       if (evaluatorTypeState === 'TEACHER') {

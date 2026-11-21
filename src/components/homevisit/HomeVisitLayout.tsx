@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { useAcademicYearStore } from '../../store/academicYearStore'
 import { supabase } from '../../lib/supabase'
+import { samsConfirm } from '../common/SamsDialog'
 import { Users, LayoutDashboard, Menu, X, ArrowLeft, LogOut, Globe, Sun, Moon, FileSpreadsheet, FileText, Filter } from 'lucide-react'
 
 const translations = {
@@ -128,6 +129,18 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
 
   const closeSidebar = () => setIsSidebarOpen(false)
 
+  const handleLogout = async () => {
+    const confirmed = await samsConfirm({
+      title: lang === 'th' ? 'ยืนยันการออกจากระบบ' : 'Confirm Sign Out',
+      message: lang === 'th' ? 'คุณต้องการออกจากระบบใช่หรือไม่?' : 'Are you sure you want to sign out?',
+      confirmText: t.logout,
+      cancelText: lang === 'th' ? 'ยกเลิก' : 'Cancel',
+      variant: 'danger'
+    })
+    if (!confirmed) return
+    await signOut()
+  }
+
   useEffect(() => {
     const loadTeacherName = async () => {
       if (!user?.id || role === 'ADMIN' || role === 'SUPER_ADMIN') {
@@ -239,7 +252,7 @@ export default function HomeVisitLayout({ children }: { children: React.ReactNod
           <Link to="/portal" className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-750 rounded-xl transition-all shadow-sm">
             <ArrowLeft size={18} /> {t.switchApp}
           </Link>
-          <button onClick={signOut} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white dark:bg-slate-800 border border-red-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-slate-750 rounded-xl transition-all shadow-sm cursor-pointer">
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-white dark:bg-slate-800 border border-red-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-slate-750 rounded-xl transition-all shadow-sm cursor-pointer">
             <LogOut size={18} /> {t.logout}
           </button>
         </div>

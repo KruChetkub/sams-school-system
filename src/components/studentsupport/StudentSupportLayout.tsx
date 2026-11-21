@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 import { supabase } from '../../lib/supabase';
+import { samsConfirm } from '../common/SamsDialog';
 import {
-  LayoutDashboard, Users, ShieldAlert, Menu, X, ArrowLeft, LogOut, Heart, Sparkles, Globe, Sun, Moon
+  LayoutDashboard, Users, ShieldAlert, Menu, X, ArrowLeft, LogOut, Heart, Sparkles, Globe, Sun, Moon, Filter
 } from 'lucide-react';
 
 type StudentSupportRole = 'TEACHER' | 'EXECUTIVE' | 'ADMIN';
@@ -63,10 +66,35 @@ const NavItem = ({ to, icon: Icon, children, onClick }: { to: string, icon: any,
 
 export default function StudentSupportLayout({ children }: { children: React.ReactNode }) {
   const { user, role, signOut } = useAuthStore();
+  const queryClient = useQueryClient();
+  const {
+    years,
+    selectedYear,
+    selectedSemester,
+    initializeStore,
+    setSelectedYear,
+    setSelectedSemester
+  } = useAcademicYearStore();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [teacherDisplayName, setTeacherDisplayName] = useState('');
   const [userRole, setUserRole] = useState<StudentSupportRole | null>(normalizeRole(role));
+
+  useEffect(() => {
+    if (years.length === 0) {
+      initializeStore();
+    }
+  }, [years.length, initializeStore]);
+
+  const handleYearChange = (yearId: string) => {
+    setSelectedYear(yearId);
+    queryClient.invalidateQueries();
+  };
+
+  const handleSemesterChange = (semesterId: string) => {
+    setSelectedSemester(semesterId);
+    queryClient.invalidateQueries();
+  };
 
   // Language & Theme Sync
   const [lang, setLang] = useState<'th' | 'en'>(() => {
@@ -173,6 +201,14 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
   }, [user?.id, role]);
 
   const handleLogout = async () => {
+    const confirmed = await samsConfirm({
+      title: lang === 'th' ? 'ยืนยันการออกจากระบบ' : 'Confirm Sign Out',
+      message: lang === 'th' ? 'คุณต้องการออกจากระบบใช่หรือไม่?' : 'Are you sure you want to sign out?',
+      confirmText: t.logout,
+      cancelText: lang === 'th' ? 'ยกเลิก' : 'Cancel',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
     await signOut();
     navigate('/login');
   };
@@ -199,6 +235,49 @@ export default function StudentSupportLayout({ children }: { children: React.Rea
           <button onClick={closeSidebar} className="lg:hidden p-2 text-slate-400 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors">
             <X size={24} />
           </button>
+        </div>
+
+        {/* Academic Year & Semester Selector */}
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-white/5 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-indigo-50/40 dark:from-indigo-950/30 dark:to-slate-900/30 space-y-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-gray-400 font-bold tracking-wide">
+            <Filter className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>{lang === 'th' ? 'เลือกปีการศึกษา / ภาคเรียน' : 'Academic Year / Semester'}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <div className="relative">
+              <select
+                value={selectedYear?.id || ''}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-[#111c34] border border-slate-200 dark:border-white/10 rounded-xl pl-3 pr-7 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition cursor-pointer appearance-none"
+              >
+                {years.map((y) => (
+                  <option key={y.id} value={y.id} className="bg-white dark:bg-[#0d1527] text-slate-900 dark:text-white">
+                    {lang === 'th' ? `ปีการศึกษา ${y.year}` : `Year ${y.year}`} {y.is_active ? ` (${lang === 'th' ? 'ปัจจุบัน' : 'Active'})` : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-400">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+              </div>
+            </div>
+            <div className="relative">
+              <select
+                value={selectedSemester?.id || ''}
+                onChange={(e) => handleSemesterChange(e.target.value)}
+                className="w-full text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-[#111c34] border border-slate-200 dark:border-white/10 rounded-xl pl-3 pr-7 py-2 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition cursor-pointer appearance-none"
+                disabled={!selectedYear}
+              >
+                {selectedYear?.semesters?.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-white dark:bg-[#0d1527] text-slate-900 dark:text-white">
+                    {s.label || (lang === 'th' ? `ภาคเรียนที่ ${s.semester_number}` : `Semester ${s.semester_number}`)} {s.is_active ? ` (${lang === 'th' ? 'ปัจจุบัน' : 'Active'})` : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-gray-400">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Navigation Items */}

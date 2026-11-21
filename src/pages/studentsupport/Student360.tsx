@@ -192,8 +192,8 @@ export default function Student360() {
   const fetchBehaviorData = async () => {
     if (!studentId) return;
     try {
-      const pts = await behaviorService.getStudentBehaviorPoints(studentId, selectedYear?.id);
-      const summ = await behaviorService.getStudentBehaviorSummary(studentId, selectedYear?.id);
+      const pts = await behaviorService.getStudentBehaviorPoints(studentId, selectedYear?.id, selectedSemester?.id);
+      const summ = await behaviorService.getStudentBehaviorSummary(studentId, selectedYear?.id, selectedSemester?.id);
       setBehaviorPoints(pts);
       setBehaviorSummary(summ);
     } catch (err) {
@@ -412,9 +412,16 @@ export default function Student360() {
 
             {/* Student Info Details */}
             <div className="space-y-1.5 md:space-y-0.5 flex flex-col items-center md:items-start w-full">
-              <span className="px-3 py-0.5 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 w-fit">
-                Student Profile 360°
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-0.5 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 w-fit">
+                  Student Profile 360°
+                </span>
+                {selectedYear && (
+                  <span className="px-3 py-0.5 bg-emerald-500/15 text-emerald-300 text-xxs font-bold rounded-full border border-emerald-500/30 w-fit">
+                    ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+                  </span>
+                )}
+              </div>
               <h1 className="text-xl md:text-3xl font-black text-white leading-tight">
                 {student.prefix || ''}{student.first_name} {student.last_name}
               </h1>
@@ -1700,7 +1707,7 @@ export default function Student360() {
                   if (!studentId || !deletingBehaviorId) return;
                   setIsDeletingBehavior(true);
                   try {
-                    await behaviorService.deleteBehaviorPoint(deletingBehaviorId, studentId, selectedYear?.id);
+                    await behaviorService.deleteBehaviorPoint(deletingBehaviorId, studentId, selectedYear?.id, selectedSemester?.id);
                     await refreshAllData();
                     setDeletingBehaviorId(null);
                   } catch (err: any) {

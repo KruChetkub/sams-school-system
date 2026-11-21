@@ -87,9 +87,11 @@ export default function EqForm() {
   const totalPages = Math.ceil(EQ_QUESTIONS.length / QUESTIONS_PER_PAGE);
 
   useEffect(() => {
-    const fetchStudent = async () => {
+    const fetchStudentAndExistingEq = async () => {
       if (!studentId) return;
       setLoading(true);
+      setAnswers(Array(52).fill(-1));
+      setCurrentPage(0);
       try {
         const { data, error } = await supabase
           .from('students')
@@ -98,14 +100,36 @@ export default function EqForm() {
           .single();
         if (error) throw error;
         setStudent(data);
+
+        // โหลดคำตอบ EQ เดิมในภาคเรียนที่เลือก (ถ้ามี)
+        let eqQuery = supabase
+          .from('student_support_eq')
+          .select('answers')
+          .eq('student_id', studentId);
+
+        if (selectedYear?.id) {
+          eqQuery = eqQuery.eq('academic_year_id', selectedYear.id);
+        }
+        if (selectedSemester?.id) {
+          eqQuery = eqQuery.eq('semester_id', selectedSemester.id);
+        }
+
+        const { data: existingEq } = await eqQuery
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingEq?.answers && Array.isArray(existingEq.answers) && existingEq.answers.length === 52) {
+          setAnswers(existingEq.answers);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchStudent();
-  }, [studentId]);
+    fetchStudentAndExistingEq();
+  }, [studentId, selectedYear?.id, selectedSemester?.id]);
 
   const handleAnswerSelect = (questionIndex: number, score: number) => {
     const updated = [...answers];

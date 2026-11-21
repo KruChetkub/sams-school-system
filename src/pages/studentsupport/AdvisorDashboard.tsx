@@ -19,7 +19,7 @@ interface AdvisorDashboardProps {
 
 export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: AdvisorDashboardProps = {}) {
   const navigate = useNavigate();
-  const { selectedYear } = useAcademicYearStore();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +62,8 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
           setTeacherName(`${teacher.first_name || ''} ${teacher.last_name || ''}`.trim());
         }
 
-        // ดึงข้อมูลนักเรียนในห้องเรียน
-        const data = await studentSupportService.getAdvisorStudents(activeUserId, selectedYear?.id);
+        // ดึงข้อมูลนักเรียนในห้องเรียนแยกตามปีการศึกษาและภาคเรียน
+        const data = await studentSupportService.getAdvisorStudents(activeUserId, selectedYear?.id, selectedSemester?.id);
         setStudents(data);
 
         if (data && data.length > 0 && data[0].classroom) {
@@ -79,7 +79,7 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
     };
 
     loadAdvisorData();
-  }, [selectedYear, simulatedTeacherUserId]);
+  }, [selectedYear?.id, selectedSemester?.id, simulatedTeacherUserId]);
 
   // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง
   // *** ใช้วิธีคำนวณ real-time จากข้อมูล SDQ/EQ เหมือน Student360 ***
@@ -222,9 +222,16 @@ export default function AdvisorDashboard({ simulatedTeacherUserId, onBack }: Adv
         {/* Header Block */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
           <div className="space-y-1.5">
-            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-emerald-500/35 flex items-center gap-1.5 w-fit">
-              <Sparkles size={12} /> Student Support System
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-emerald-500/35 flex items-center gap-1.5 w-fit">
+                <Sparkles size={12} /> Student Support System
+              </span>
+              {selectedYear && (
+                <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xxs font-bold rounded-full border border-indigo-500/35 w-fit">
+                  ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight">
               ภาพรวมห้องเรียน {classroomInfo ? `ชั้น ${classroomInfo.startsWith('ม.') ? classroomInfo : `ม.${classroomInfo}`}` : ''}
             </h1>

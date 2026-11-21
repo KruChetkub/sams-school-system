@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { studentSupportService } from '../../services/studentsupport/studentSupportService';
+import { useAcademicYearStore } from '../../store/academicYearStore';
 
 // สีตามแบรนด์
 const COLORS = {
@@ -25,6 +26,7 @@ interface ExecutiveDashboardProps {
 
 export default function ExecutiveDashboard({ onBack }: ExecutiveDashboardProps = {}) {
   const navigate = useNavigate();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,13 +39,17 @@ export default function ExecutiveDashboard({ onBack }: ExecutiveDashboardProps =
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        const data = await studentSupportService.getAllStudentsForExecutive();
+        const data = await studentSupportService.getAllStudentsForExecutive(selectedYear?.id, selectedSemester?.id);
         setStudents(data);
 
         // ดึงข้อมูลห้องเรียนทั้งหมดจากฐานข้อมูล
-        const { data: classroomsData } = await supabase
+        let classQuery = supabase
           .from('classrooms')
           .select('id, level, room');
+        if (selectedYear?.id) {
+          classQuery = classQuery.eq('academic_year_id', selectedYear.id);
+        }
+        const { data: classroomsData } = await classQuery;
         
         if (classroomsData) {
           const sorted = [...classroomsData].sort((a: any, b: any) => {
@@ -64,7 +70,7 @@ export default function ExecutiveDashboard({ onBack }: ExecutiveDashboardProps =
       }
     };
     fetchAllData();
-  }, []);
+  }, [selectedYear?.id, selectedSemester?.id]);
 
   // คำนวณจำนวนนักเรียนแต่ละกลุ่มความเสี่ยง ( real-time เหมือน AdvisorDashboard และ Student360 )
   const computeStudentRisk = (s: any): 'NORMAL' | 'MONITOR' | 'RISK' | 'URGENT' | null => {
@@ -200,9 +206,16 @@ export default function ExecutiveDashboard({ onBack }: ExecutiveDashboardProps =
               <ArrowLeft size={20} />
             </button>
             <div className="space-y-1">
-              <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 flex items-center gap-1 w-fit">
-                <School size={12} /> Executive Monitoring Hub
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 flex items-center gap-1 w-fit">
+                  <School size={12} /> Executive Monitoring Hub
+                </span>
+                {selectedYear && (
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xxs font-bold rounded-full border border-emerald-500/35 w-fit">
+                    ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+                  </span>
+                )}
+              </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
                 ระบบรายงานดูแลช่วยเหลือระดับโรงเรียน
               </h1>

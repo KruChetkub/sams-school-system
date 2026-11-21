@@ -20,7 +20,7 @@ export interface BehaviorPoint {
 }
 
 export const behaviorService = {
-  getStudentBehaviorPoints: async (studentId: string, academicYearId?: string) => {
+  getStudentBehaviorPoints: async (studentId: string, academicYearId?: string, semesterId?: string) => {
     try {
       let query = supabase
         .from('student_behavior_points')
@@ -33,6 +33,9 @@ export const behaviorService = {
       if (academicYearId) {
         query = query.eq('academic_year_id', academicYearId);
       }
+      if (semesterId) {
+        query = query.eq('semester_id', semesterId);
+      }
 
       const { data, error } = await query.order('incident_date', { ascending: false }).order('created_at', { ascending: false });
       if (error) throw error;
@@ -43,7 +46,7 @@ export const behaviorService = {
     }
   },
 
-  getStudentBehaviorSummary: async (studentId: string, academicYearId?: string) => {
+  getStudentBehaviorSummary: async (studentId: string, academicYearId?: string, semesterId?: string) => {
     try {
       let query = supabase
         .from('student_behavior_points')
@@ -52,6 +55,9 @@ export const behaviorService = {
 
       if (academicYearId) {
         query = query.eq('academic_year_id', academicYearId);
+      }
+      if (semesterId) {
+        query = query.eq('semester_id', semesterId);
       }
 
       const { data, error } = await query;
@@ -126,7 +132,7 @@ export const behaviorService = {
       if (error) throw error;
 
       // 2. สั่งอัปเดตระดับความเสี่ยงภาพรวม 360° ทันที
-      await studentSupportService.updateOverallRiskAnalysis(point.student_id!, yearId);
+      await studentSupportService.updateOverallRiskAnalysis(point.student_id!, yearId, semesterId);
 
       return data;
     } catch (err) {
@@ -135,7 +141,7 @@ export const behaviorService = {
     }
   },
 
-  deleteBehaviorPoint: async (id: string, studentId: string, academicYearId?: string) => {
+  deleteBehaviorPoint: async (id: string, studentId: string, academicYearId?: string, semesterId?: string) => {
     try {
       const { error } = await supabase
         .from('student_behavior_points')
@@ -145,7 +151,7 @@ export const behaviorService = {
       if (error) throw error;
 
       // สั่งอัปเดตระดับความเสี่ยงภาพรวม 360° ทันที
-      await studentSupportService.updateOverallRiskAnalysis(studentId, academicYearId);
+      await studentSupportService.updateOverallRiskAnalysis(studentId, academicYearId, semesterId);
     } catch (err) {
       console.error('Error in deleteBehaviorPoint:', err);
       throw err;

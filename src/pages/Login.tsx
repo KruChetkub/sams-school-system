@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { logAuditEvent } from '../services/auditLogService'
+import { User, Lock, Eye, EyeOff } from 'lucide-react'
 import LottieDefault from 'lottie-react'
 import animationData from '../../purple.json'
 
@@ -14,6 +15,7 @@ export default function Login() {
   const flashTimeoutRef = useRef<number | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
@@ -214,8 +216,23 @@ export default function Login() {
 
           </section>
 
-          <section className="w-full rounded-[1.6rem] border border-white/40 bg-white/90 p-6 shadow-xl backdrop-blur md:p-8">
-            <div className="mb-8 text-center">
+          <section className="relative w-full rounded-[1.6rem] border border-white/40 bg-white/95 p-6 shadow-xl backdrop-blur md:p-8">
+            {/* Mobile Header: Centered Circular School Logo + โรงเรียนเชียงของวิทยาคม */}
+            <div className="mb-6 flex flex-col items-center text-center md:hidden">
+              <img
+                src={SCHOOL_LOGO_PATH}
+                alt="โรงเรียนเชียงของวิทยาคม"
+                className="mb-4 h-36 w-36 rounded-full object-contain drop-shadow-md"
+              />
+              <h2 className="text-2xl font-extrabold leading-snug tracking-tight text-[#1e1538]">
+                โรงเรียน
+                <br />
+                เชียงของวิทยาคม
+              </h2>
+            </div>
+
+            {/* Desktop Header */}
+            <div className="mb-8 hidden text-center md:block">
               <h2 className="text-3xl font-extrabold tracking-tight text-[#2a1b4d]">School Portal Ckw</h2>
               <p className="mt-2 text-m text-[#5a4f70]">
                 เข้าสู่ระบบ
@@ -234,35 +251,49 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#43385a]">อีเมล</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-[#2b2240] outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-200/60"
-                  placeholder="name@school.ac.th"
-                />
+                <label className="mb-2 hidden text-sm font-semibold text-[#43385a] md:block">อีเมล</label>
+                <div className="relative flex items-center">
+                  <User size={18} className="pointer-events-none absolute left-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 md:border-violet-200 bg-slate-50/90 md:bg-white pl-11 pr-4 py-3.5 text-sm text-[#2b2240] outline-none transition focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-200/60"
+                    placeholder="อีเมลผู้ใช้งาน (Email)"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#43385a]">รหัสผ่าน</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-[#2b2240] outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-200/60"
-                  placeholder="กรอกรหัสผ่านของคุณ"
-                />
+                <label className="mb-2 hidden text-sm font-semibold text-[#43385a] md:block">รหัสผ่าน</label>
+                <div className="relative flex items-center">
+                  <Lock size={18} className="pointer-events-none absolute left-4 text-slate-500" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 md:border-violet-200 bg-slate-50/90 md:bg-white pl-11 pr-11 py-3.5 text-sm text-[#2b2240] outline-none transition focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-200/60"
+                    placeholder="รหัสผ่าน (Password)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label="แสดงหรือซ่อนรหัสผ่าน"
+                    className="absolute right-3.5 rounded-lg p-1 text-slate-500 hover:bg-slate-200/60 hover:text-slate-700 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-gradient-to-r from-violet-700 to-indigo-700 py-3 font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-xl bg-gradient-to-r from-violet-700 to-indigo-700 py-3.5 font-bold text-white shadow-lg shadow-violet-900/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
               </button>

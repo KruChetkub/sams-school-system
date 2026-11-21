@@ -578,9 +578,11 @@ export const getTeacherTeachingCourses = async (
   });
 
   return Array.from(map.values()).sort((a, b) => {
-    if (a.classroom_level !== b.classroom_level) return a.classroom_level.localeCompare(b.classroom_level);
-    if (a.classroom_room !== b.classroom_room) return a.classroom_room.localeCompare(b.classroom_room);
-    return a.subject_code.localeCompare(b.subject_code);
+    const levelCmp = a.classroom_level.localeCompare(b.classroom_level, 'th', { numeric: true });
+    if (levelCmp !== 0) return levelCmp;
+    const roomCmp = a.classroom_room.localeCompare(b.classroom_room, 'th', { numeric: true });
+    if (roomCmp !== 0) return roomCmp;
+    return a.subject_code.localeCompare(b.subject_code, 'th', { numeric: true });
   });
 };
 

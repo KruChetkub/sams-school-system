@@ -10,7 +10,7 @@ import { useAcademicYearStore } from '../../store/academicYearStore';
 
 export default function StudentSupportStudents() {
   const navigate = useNavigate();
-  const { selectedYear } = useAcademicYearStore();
+  const { selectedYear, selectedSemester } = useAcademicYearStore();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,8 +50,8 @@ export default function StudentSupportStudents() {
           setTeacherName(`${teacher.first_name || ''} ${teacher.last_name || ''}`.trim());
         }
 
-        // ดึงนักเรียนในห้องที่ครูดูแล
-        const data = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
+        // ดึงนักเรียนในห้องที่ครูดูแล แยกตามปีการศึกษาและภาคเรียน
+        const data = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id, selectedSemester?.id);
         setStudents(data);
         
         if (data && data.length > 0 && data[0].classroom) {
@@ -67,7 +67,7 @@ export default function StudentSupportStudents() {
     };
 
     loadStudentsData();
-  }, [selectedYear]);
+  }, [selectedYear?.id, selectedSemester?.id]);
 
   const getRiskBadge = (level: string) => {
     switch (level) {
@@ -215,9 +215,16 @@ export default function StudentSupportStudents() {
         {/* Header Block */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
           <div className="space-y-1.5">
-            <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 flex items-center gap-1.5 w-fit">
-              <Sparkles size={12} /> Individual Screening
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-indigo-500/35 flex items-center gap-1.5 w-fit">
+                <Sparkles size={12} /> Individual Screening
+              </span>
+              {selectedYear && (
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xxs font-bold rounded-full border border-emerald-500/35 w-fit">
+                  ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight">
               คัดกรองนักเรียนรายบุคคล {classroomInfo ? (classroomInfo.startsWith('ม.') ? classroomInfo : `ม.${classroomInfo}`) : ''}
             </h1>

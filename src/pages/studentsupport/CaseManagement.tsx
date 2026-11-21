@@ -62,21 +62,21 @@ export default function CaseManagement() {
         setUserRole(role);
       }
 
-      // ดึงรายชื่อเคส
+      // ดึงรายชื่อเคส แยกตามปีการศึกษาและภาคเรียน
       let loadedCases = [];
       if (role === 'ADMIN' || role === 'EXECUTIVE') {
-        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id, selectedSemester?.id);
       } else {
-        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id, selectedSemester?.id);
       }
       setCases(loadedCases as any[]);
 
       // ดึงรายชื่อเด็กมาเก็บไว้ เผื่อคุณครูต้องการเปิดเคสช่วยเหลือคนใหม่
       let students = [];
       if (role === 'ADMIN' || role === 'EXECUTIVE') {
-        students = await studentSupportService.getAllStudentsForExecutive(selectedYear?.id);
+        students = await studentSupportService.getAllStudentsForExecutive(selectedYear?.id, selectedSemester?.id);
       } else {
-        students = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id);
+        students = await studentSupportService.getAdvisorStudents(user.id, selectedYear?.id, selectedSemester?.id);
       }
       setAdvisingStudents(students);
     } catch (err: any) {
@@ -88,7 +88,7 @@ export default function CaseManagement() {
 
   useEffect(() => {
     fetchCasesData();
-  }, [selectedYear]);
+  }, [selectedYear?.id, selectedSemester?.id]);
 
   // ดึงรายละเอียดเคสที่เลือกแบบสมบูรณ์ รวมถึง Case Logs
   const selectCaseDetails = async (caseId: string) => {
@@ -157,9 +157,9 @@ export default function CaseManagement() {
       // รีเฟรชรายการเคสหลัก
       let loadedCases = [];
       if (userRole === 'ADMIN' || userRole === 'EXECUTIVE') {
-        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id, selectedSemester?.id);
       } else {
-        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id, selectedSemester?.id);
       }
       setCases(loadedCases as any[]);
     } catch (err: any) {
@@ -197,9 +197,9 @@ export default function CaseManagement() {
       // รีโหลดข้อมูลเคส
       let loadedCases = [];
       if (userRole === 'ADMIN' || userRole === 'EXECUTIVE') {
-        loadedCases = await studentSupportService.getAllCases(selectedYear?.id);
+        loadedCases = await studentSupportService.getAllCases(selectedYear?.id, selectedSemester?.id);
       } else {
-        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id);
+        loadedCases = await studentSupportService.getAdvisorCases(user.id, selectedYear?.id, selectedSemester?.id);
       }
       setCases(loadedCases as any[]);
 
@@ -286,9 +286,16 @@ export default function CaseManagement() {
               <ArrowLeft size={20} />
             </button>
             <div className="space-y-1">
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-amber-500/35 flex items-center gap-1.5 w-fit">
-                <Sparkles size={12} /> Student Case Management
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xxs font-bold uppercase tracking-widest rounded-full border border-amber-500/35 flex items-center gap-1.5 w-fit">
+                  <Sparkles size={12} /> Student Case Management
+                </span>
+                {selectedYear && (
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xxs font-bold rounded-full border border-emerald-500/35 w-fit">
+                    ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+                  </span>
+                )}
+              </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
                 ระบบจัดการเคสดูแลช่วยเหลือนักเรียน
               </h1>
