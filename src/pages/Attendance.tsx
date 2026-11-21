@@ -51,38 +51,56 @@ const ATTENDANCE_CALENDAR_THEMES = [
   {
     key: 'green-board',
     label: 'กระดานเขียว',
-    wrapper: 'bg-gradient-to-br from-emerald-900 to-emerald-800 border-emerald-700/40',
-    head: 'bg-emerald-900/60',
+    wrapper: 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 border-emerald-700/60',
+    head: 'bg-emerald-950/80',
     title: 'text-emerald-50',
     subtext: 'text-emerald-100/90',
-    tableWrap: 'border-emerald-700/50 bg-emerald-950/20',
-    border: 'border-emerald-700/50',
-    rowHead: 'bg-emerald-900/50 text-emerald-50',
-    empty: 'border-emerald-600/50 bg-emerald-900/20',
+    tableWrap: 'border-emerald-700/60 bg-emerald-950/60',
+    border: 'border-emerald-700/60',
+    rowHead: 'bg-emerald-900/80 text-emerald-50',
+    cell: 'bg-emerald-900/45',
+    empty: 'border-emerald-600/60 bg-emerald-800/35 text-emerald-300/60',
+    periodBadge: 'bg-emerald-800/90 text-emerald-100 border border-emerald-600/50',
+    card: 'bg-gradient-to-br from-emerald-700/95 to-teal-800/95 border border-emerald-500/70 hover:from-emerald-600 hover:to-teal-700',
+    cardCode: 'text-emerald-100',
+    cardName: 'text-white',
+    cardMeta: 'text-emerald-200',
   },
   {
     key: 'pastel-green',
     label: 'เขียวพาสเทล',
-    wrapper: 'bg-gradient-to-br from-green-100 to-emerald-200 border-emerald-200',
-    head: 'bg-emerald-200/80',
-    title: 'text-emerald-900',
-    subtext: 'text-emerald-800/90',
-    tableWrap: 'border-emerald-200 bg-white/65',
-    border: 'border-emerald-200',
-    rowHead: 'bg-emerald-100 text-emerald-900',
-    empty: 'border-emerald-300 bg-emerald-50/70',
+    wrapper: 'bg-gradient-to-br from-emerald-200 via-green-200 to-teal-200 border-emerald-300',
+    head: 'bg-emerald-300/90',
+    title: 'text-emerald-950',
+    subtext: 'text-emerald-900/90',
+    tableWrap: 'border-emerald-300 bg-emerald-100/95',
+    border: 'border-emerald-300',
+    rowHead: 'bg-emerald-200/95 text-emerald-950',
+    cell: 'bg-emerald-100/85',
+    empty: 'border-emerald-400/70 bg-emerald-200/65 text-emerald-800/60',
+    periodBadge: 'bg-emerald-400/35 text-emerald-950 border border-emerald-500/40',
+    card: 'bg-gradient-to-br from-emerald-300/95 to-green-300/95 border border-emerald-400/90 hover:from-emerald-300 hover:to-green-400',
+    cardCode: 'text-emerald-950',
+    cardName: 'text-emerald-900',
+    cardMeta: 'text-emerald-800',
   },
   {
     key: 'sky-soft',
     label: 'ฟ้านุ่ม',
-    wrapper: 'bg-gradient-to-br from-sky-900 to-indigo-900 border-sky-700/40',
-    head: 'bg-sky-900/60',
-    title: 'text-sky-50',
-    subtext: 'text-sky-100/90',
-    tableWrap: 'border-sky-700/50 bg-sky-950/20',
-    border: 'border-sky-700/50',
-    rowHead: 'bg-sky-900/50 text-sky-50',
-    empty: 'border-sky-500/50 bg-sky-900/20',
+    wrapper: 'bg-gradient-to-br from-sky-200 via-cyan-200 to-blue-200 border-cyan-300',
+    head: 'bg-cyan-300/90',
+    title: 'text-cyan-950',
+    subtext: 'text-cyan-900/90',
+    tableWrap: 'border-cyan-300 bg-sky-100/95',
+    border: 'border-cyan-300',
+    rowHead: 'bg-cyan-200/95 text-cyan-950',
+    cell: 'bg-sky-100/85',
+    empty: 'border-cyan-400/70 bg-cyan-200/65 text-cyan-800/60',
+    periodBadge: 'bg-cyan-400/35 text-cyan-950 border border-cyan-500/40',
+    card: 'bg-gradient-to-br from-sky-300/95 to-cyan-300/95 border border-cyan-400/90 hover:from-sky-300 hover:to-cyan-400',
+    cardCode: 'text-cyan-950',
+    cardName: 'text-cyan-900',
+    cardMeta: 'text-cyan-800',
   },
 ]
 const subjectCardPalettes = [
@@ -714,10 +732,13 @@ export default function Attendance() {
             </colgroup>
             <thead>
               <tr className={activeTheme.head}>
-                <th className={`px-2 sm:px-3 py-2.5 sm:py-3 text-left text-[11px] sm:text-xs font-semibold border ${activeTheme.title} ${activeTheme.border}`}>วัน / เวลา</th>
-                {timeSlots.map((slot) => (
+                <th className={`px-2 sm:px-3 py-2.5 sm:py-3 text-left text-[11px] sm:text-xs font-semibold border ${activeTheme.title} ${activeTheme.border}`}>วัน / เวลา (คาบ)</th>
+                {timeSlots.map((slot, slotIndex) => (
                   <th key={slot} className={`px-1.5 sm:px-2 py-2.5 sm:py-3 text-center text-[10px] sm:text-xs font-semibold border ${activeTheme.title} ${activeTheme.border}`}>
-                    {slot.split('-')[0].substring(0, 5)} - {slot.split('-')[1].substring(0, 5)}
+                    <div className="font-bold">{slot.split('-')[0].substring(0, 5)} - {slot.split('-')[1].substring(0, 5)}</div>
+                    <div className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold ${activeTheme.periodBadge}`}>
+                      คาบที่ {slotIndex + 1}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -726,12 +747,12 @@ export default function Attendance() {
               {DAYS.map((day) => (
                 <tr key={day.value} className="align-top">
                   <td className={`px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm font-bold border ${activeTheme.rowHead} ${activeTheme.border}`}>วัน{day.label}</td>
-                  {timeSlots.map((slot) => {
+                  {timeSlots.map((slot, slotIndex) => {
                     const schedule = findScheduleByDayAndSlot(day.value, slot)
                     const isActive = schedule && selectedSchedule === schedule.id
                     const palette = schedule ? getSubjectPalette(`${schedule.subject_id}-${schedule.subject?.subject_code || ''}`) : null
                     return (
-                      <td key={`${day.value}-${slot}`} className={`border p-1.5 sm:p-2 h-[88px] sm:h-[110px] ${activeTheme.border}`}>
+                      <td key={`${day.value}-${slot}`} className={`border p-1.5 sm:p-2 h-[88px] sm:h-[110px] transition-colors ${activeTheme.cell} ${activeTheme.border}`}>
                         {schedule ? (
                           <button
                             type="button"
@@ -740,13 +761,17 @@ export default function Attendance() {
                               setAttendanceState({})
                               setTimeout(() => studentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
                             }}
-                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition ${isActive ? 'bg-blue-100 border border-blue-300 ring-2 ring-blue-500' : palette?.card}`}
+                            className={`h-full w-full rounded-lg p-1.5 sm:p-2 text-left transition ${isActive ? 'bg-blue-100 border border-blue-400 ring-2 ring-blue-500' : palette?.card}`}
                           >
                             <p className={`text-[11px] sm:text-xs font-bold ${isActive ? 'text-blue-700' : palette?.code}`}>{schedule.subject?.subject_code || '-'}</p>
                             <p className={`text-[11px] sm:text-xs line-clamp-2 ${isActive ? 'text-gray-700' : palette?.name}`}>{schedule.subject?.subject_name || '-'}</p>
-                            <p className={`text-[10px] sm:text-[11px] ${isActive ? 'text-gray-500' : palette?.meta}`}>คาบ {schedule.period} • {schedule.classroom?.level}/{schedule.classroom?.room}</p>
+                            <p className={`text-[10px] sm:text-[11px] ${isActive ? 'text-gray-500' : palette?.meta}`}>คาบที่ {schedule.period || slotIndex + 1} • {schedule.classroom?.level}/{schedule.classroom?.room}</p>
                           </button>
-                        ) : <div className={`h-full rounded-lg border border-dashed ${activeTheme.empty}`} />}
+                        ) : (
+                          <div className={`h-full rounded-lg border border-dashed flex items-center justify-center ${activeTheme.empty}`}>
+                            <span className="text-[10px] font-semibold">คาบที่ {slotIndex + 1}</span>
+                          </div>
+                        )}
                       </td>
                     )
                   })}

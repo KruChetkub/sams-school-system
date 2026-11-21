@@ -198,6 +198,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, './src'),
       'lottie-web': path.resolve(__dirname, 'node_modules/lottie-web/build/player/lottie_light.js'),
     },
   },

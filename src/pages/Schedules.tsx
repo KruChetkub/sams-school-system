@@ -37,38 +37,68 @@ const CALENDAR_THEMES = [
   {
     key: 'green-board',
     label: 'กระดานเขียว',
-    wrapper: 'bg-gradient-to-br from-emerald-900 to-emerald-800 border-emerald-700/40',
-    head: 'bg-emerald-900/60',
+    wrapper: 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 border-emerald-700/60',
+    headerBox: 'bg-gradient-to-r from-emerald-900 to-teal-900 border-emerald-700/60 text-emerald-50',
+    headerSubtext: 'text-emerald-200',
+    headerBadge: 'text-emerald-300 font-semibold',
+    backBtn: 'border-emerald-700 bg-emerald-800/80 text-emerald-100 hover:bg-emerald-700',
+    head: 'bg-emerald-950/80',
     text: 'text-emerald-50',
     subtext: 'text-emerald-100/90',
-    tableWrap: 'border-emerald-700/50 bg-emerald-950/20',
-    border: 'border-emerald-700/50',
-    rowHead: 'bg-emerald-900/50 text-emerald-50',
-    empty: 'border-emerald-600/50 bg-emerald-900/20',
+    tableWrap: 'border-emerald-700/60 bg-emerald-950/60',
+    border: 'border-emerald-700/60',
+    rowHead: 'bg-emerald-900/80 text-emerald-50',
+    cell: 'bg-emerald-900/45',
+    empty: 'border-emerald-600/60 bg-emerald-800/35 hover:bg-emerald-800/55 text-emerald-300/60',
+    periodBadge: 'bg-emerald-800/90 text-emerald-100 border border-emerald-600/50',
+    card: 'bg-gradient-to-br from-emerald-700/95 to-teal-800/95 border border-emerald-500/70 hover:from-emerald-600 hover:to-teal-700',
+    cardCode: 'text-emerald-100',
+    cardName: 'text-white',
+    cardMeta: 'text-emerald-200',
   },
   {
     key: 'pastel-green',
     label: 'เขียวพาสเทล',
-    wrapper: 'bg-gradient-to-br from-green-100 to-emerald-200 border-emerald-200',
-    head: 'bg-emerald-200/80',
-    text: 'text-emerald-900',
-    subtext: 'text-emerald-800/90',
-    tableWrap: 'border-emerald-200 bg-white/65',
-    border: 'border-emerald-200',
-    rowHead: 'bg-emerald-100 text-emerald-900',
-    empty: 'border-emerald-300 bg-emerald-50/70',
+    wrapper: 'bg-gradient-to-br from-emerald-200 via-green-200 to-teal-200 border-emerald-300',
+    headerBox: 'bg-gradient-to-r from-emerald-100 to-green-200 border-emerald-300 text-emerald-950',
+    headerSubtext: 'text-emerald-800',
+    headerBadge: 'text-emerald-900 font-semibold',
+    backBtn: 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-200/70',
+    head: 'bg-emerald-300/90',
+    text: 'text-emerald-950',
+    subtext: 'text-emerald-900/90',
+    tableWrap: 'border-emerald-300 bg-emerald-100/95',
+    border: 'border-emerald-300',
+    rowHead: 'bg-emerald-200/95 text-emerald-950',
+    cell: 'bg-emerald-100/85',
+    empty: 'border-emerald-400/70 bg-emerald-200/65 hover:bg-emerald-200/90 text-emerald-800/60',
+    periodBadge: 'bg-emerald-400/35 text-emerald-950 border border-emerald-500/40',
+    card: 'bg-gradient-to-br from-emerald-300/95 to-green-300/95 border border-emerald-400/90 hover:from-emerald-300 hover:to-green-400',
+    cardCode: 'text-emerald-950',
+    cardName: 'text-emerald-900',
+    cardMeta: 'text-emerald-800',
   },
   {
     key: 'sky-soft',
     label: 'ฟ้านุ่ม',
-    wrapper: 'bg-gradient-to-br from-sky-100 to-cyan-200 border-cyan-200',
-    head: 'bg-cyan-200/80',
-    text: 'text-cyan-900',
-    subtext: 'text-cyan-800/90',
-    tableWrap: 'border-cyan-200 bg-white/65',
-    border: 'border-cyan-200',
-    rowHead: 'bg-cyan-100 text-cyan-900',
-    empty: 'border-cyan-300 bg-cyan-50/70',
+    wrapper: 'bg-gradient-to-br from-sky-200 via-cyan-200 to-blue-200 border-cyan-300',
+    headerBox: 'bg-gradient-to-r from-sky-100 to-cyan-200 border-cyan-300 text-cyan-950',
+    headerSubtext: 'text-cyan-800',
+    headerBadge: 'text-cyan-900 font-semibold',
+    backBtn: 'border-cyan-300 bg-sky-50 text-cyan-800 hover:bg-cyan-200/70',
+    head: 'bg-cyan-300/90',
+    text: 'text-cyan-950',
+    subtext: 'text-cyan-900/90',
+    tableWrap: 'border-cyan-300 bg-sky-100/95',
+    border: 'border-cyan-300',
+    rowHead: 'bg-cyan-200/95 text-cyan-950',
+    cell: 'bg-sky-100/85',
+    empty: 'border-cyan-400/70 bg-cyan-200/65 hover:bg-cyan-200/90 text-cyan-800/60',
+    periodBadge: 'bg-cyan-400/35 text-cyan-950 border border-cyan-500/40',
+    card: 'bg-gradient-to-br from-sky-300/95 to-cyan-300/95 border border-cyan-400/90 hover:from-sky-300 hover:to-cyan-400',
+    cardCode: 'text-cyan-950',
+    cardName: 'text-cyan-900',
+    cardMeta: 'text-cyan-800',
   },
 ]
 
@@ -571,8 +601,8 @@ export default function Schedules() {
               <p className="text-sm text-gray-600 mb-4">ต้องการย้ายวิชานี้ไปตำแหน่งใหม่ใช่หรือไม่?</p>
               <div className="space-y-2 text-sm bg-gray-50 border border-gray-200 rounded-xl p-4">
                 <p><span className="font-semibold text-gray-700">วิชา:</span> {moveSourceSchedule.subject?.subject_code} {moveSourceSchedule.subject?.subject_name}</p>
-                <p><span className="font-semibold text-gray-700">จาก:</span> วัน{DAYS.find(d => d.value === moveSourceSchedule.day_of_week)?.label} ({formatThai24Hour(moveSourceSchedule.start_time)} - {formatThai24Hour(moveSourceSchedule.end_time)})</p>
-                <p><span className="font-semibold text-gray-700">ไป:</span> วัน{DAYS.find(d => d.value === moveTarget.day)?.label} ({formatThai24Hour(moveTarget.slot.split('-')[0])} - {formatThai24Hour(moveTarget.slot.split('-')[1])})</p>
+                <p><span className="font-semibold text-gray-700">จาก:</span> วัน{DAYS.find(d => d.value === moveSourceSchedule.day_of_week)?.label} ({formatThai24Hour(moveSourceSchedule.start_time)} - {formatThai24Hour(moveSourceSchedule.end_time)} คาบที่ {moveSourceSchedule.period})</p>
+                <p><span className="font-semibold text-gray-700">ไป:</span> วัน{DAYS.find(d => d.value === moveTarget.day)?.label} ({formatThai24Hour(moveTarget.slot.split('-')[0])} - {formatThai24Hour(moveTarget.slot.split('-')[1])} คาบที่ {timeSlots.indexOf(moveTarget.slot) + 1})</p>
                 {moveTargetSchedule && <p className="text-blue-700">ระบบจะสลับคาบอัตโนมัติ: วิชาปลายทางจะย้ายกลับมายังตำแหน่งเดิมของวิชาต้นทาง</p>}
               </div>
               <div className="mt-5 flex gap-3">
@@ -745,7 +775,7 @@ export default function Schedules() {
       ) : (
         <>
           {/* Selected Teacher Header */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className={`p-6 rounded-2xl border shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${activeTheme.headerBox}`}>
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -753,21 +783,21 @@ export default function Schedules() {
                   setSelectedTeacherId(null)
                   setShowForm(false)
                 }}
-                className="p-2.5 rounded-xl border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center shrink-0"
+                className={`p-2.5 rounded-xl border transition-colors shadow-sm flex items-center justify-center shrink-0 ${activeTheme.backBtn}`}
                 title="ย้อนกลับ"
               >
                 <ArrowLeft size={20} />
               </button>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">
+                <h2 className={`text-xl font-bold ${activeTheme.text}`}>
                   ตารางสอนของ: {currentTeacher?.first_name} {currentTeacher?.last_name}
                 </h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1 font-medium">
+                <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mt-1 font-medium ${activeTheme.headerSubtext}`}>
                   <span>รหัส: {currentTeacher?.teacher_code || '-'}</span>
                   <span>•</span>
                   <span>กลุ่มสาระฯ: {currentTeacher?.department || '-'}</span>
                   <span>•</span>
-                  <span className="text-blue-600">จัดตารางแล้ว {teacherSchedules.length} คาบ</span>
+                  <span className={activeTheme.headerBadge}>จัดตารางแล้ว {teacherSchedules.length} คาบ</span>
                 </div>
               </div>
             </div>
@@ -863,8 +893,29 @@ export default function Schedules() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">คาบที่</label>
-                <input type="number" min="1" max="10" required className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors" value={formData.period} onChange={e => setFormData({ ...formData, period: e.target.value })} />
+                <label className="block text-sm font-medium text-gray-700">คาบที่ (เลือกคาบเพื่อตั้งเวลาอัตโนมัติ)</label>
+                <select
+                  required
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+                  value={formData.period}
+                  onChange={e => {
+                    const nextPeriod = e.target.value
+                    const slotIdx = Number(nextPeriod) - 1
+                    const matchedSlot = DEFAULT_TIME_SLOTS[slotIdx]
+                    setFormData({
+                      ...formData,
+                      period: nextPeriod,
+                      start_time: matchedSlot ? matchedSlot.start : formData.start_time,
+                      end_time: matchedSlot ? matchedSlot.end : formData.end_time,
+                    })
+                  }}
+                >
+                  {DEFAULT_TIME_SLOTS.map((slot, idx) => (
+                    <option key={idx + 1} value={String(idx + 1)}>
+                      {slot.start} - {slot.end} (คาบที่ {idx + 1})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">ห้องพัก/อาคาร (ไม่บังคับ)</label>
@@ -951,19 +1002,24 @@ export default function Schedules() {
               </div>
 
               <div className={`overflow-x-auto rounded-xl border ${activeTheme.tableWrap}`}>
-                <table className="min-w-[900px] w-full table-fixed border-collapse">
+                <table className="min-w-[960px] w-full table-fixed border-collapse">
                   <colgroup>
                     <col className="w-[92px]" />
                     {timeSlots.map((slot) => (
-                      <col key={`col-${slot}`} className={slot === LUNCH_SLOT_KEY ? 'w-[92px]' : 'w-[132px]'} />
+                      <col key={`col-${slot}`} className={slot === LUNCH_SLOT_KEY ? 'w-[116px]' : 'w-[136px]'} />
                     ))}
                   </colgroup>
                   <thead>
                     <tr className={activeTheme.head}>
-                      <th className={`px-4 py-3 text-left text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>วัน / เวลา</th>
-                      {timeSlots.map((slot) => (
-                        <th key={slot} className={`px-3 py-3 text-center text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>
-                          {formatThai24Hour(slot.split('-')[0])} - {formatThai24Hour(slot.split('-')[1])}
+                      <th className={`px-4 py-3 text-left text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>วัน / เวลา (คาบ)</th>
+                      {timeSlots.map((slot, slotIndex) => (
+                        <th key={slot} className={`px-2 py-3 text-center text-xs font-semibold border ${activeTheme.text} ${activeTheme.border}`}>
+                          <div className="font-bold">
+                            {formatThai24Hour(slot.split('-')[0])} - {formatThai24Hour(slot.split('-')[1])}
+                          </div>
+                          <div className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${activeTheme.periodBadge}`}>
+                            คาบที่ {slotIndex + 1}
+                          </div>
                         </th>
                       ))}
                     </tr>
@@ -974,13 +1030,14 @@ export default function Schedules() {
                         <td className={`px-4 py-4 text-sm font-bold border whitespace-nowrap ${activeTheme.rowHead} ${activeTheme.border}`}>
                           วัน{day.label}
                         </td>
-                        {timeSlots.map((slot) => {
+                        {timeSlots.map((slot, slotIndex) => {
                           const schedule = findScheduleByDayAndSlot(day.value, slot)
                           const palette = schedule
                             ? getSubjectPalette(`${schedule.subject_id || ''}-${schedule.subject?.subject_code || ''}`)
                             : null
+                          const periodNum = schedule?.period || slotIndex + 1
                           return (
-                            <td key={`${day.value}-${slot}`} className={`border p-2 md:p-3 h-[120px] ${activeTheme.border}`}>
+                            <td key={`${day.value}-${slot}`} className={`border p-2 md:p-2.5 h-[126px] transition-colors ${activeTheme.cell} ${activeTheme.border}`}>
                               {schedule ? (
                                 <div
                                   onClick={() => handleCellClickForMove(day.value, slot, schedule)}
@@ -988,7 +1045,9 @@ export default function Schedules() {
                                 >
                                   <p className={`text-xs font-bold ${palette?.code || 'text-blue-700'}`}>{schedule.subject?.subject_code || '-'}</p>
                                   <p className={`mt-0.5 text-xs line-clamp-2 ${palette?.name || 'text-gray-700'}`}>{schedule.subject?.subject_name || '-'}</p>
-                                  <p className={`mt-1 text-[11px] ${palette?.meta || 'text-gray-500'}`}>คาบ {schedule.period}</p>
+                                  <p className={`mt-1 text-[11px] font-semibold ${palette?.meta || 'text-gray-500'}`}>
+                                    {formatThai24Hour(schedule.start_time)} - {formatThai24Hour(schedule.end_time)} (คาบที่ {periodNum})
+                                  </p>
                                   <p className={`text-[11px] ${palette?.meta || 'text-gray-500'}`}>
                                     {schedule.classroom ? `${schedule.classroom.level}/${schedule.classroom.room}` : '-'}
                                   </p>
@@ -996,8 +1055,10 @@ export default function Schedules() {
                               ) : (
                                 <div
                                   onClick={() => handleCellClickForMove(day.value, slot, null)}
-                                  className={`h-full rounded-lg border border-dashed cursor-pointer transition ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
-                                />
+                                  className={`h-full rounded-lg border border-dashed cursor-pointer transition flex flex-col items-center justify-center text-center p-1 ${moveSourceId ? 'border-blue-300 bg-blue-50/30 hover:bg-blue-100/40' : activeTheme.empty}`}
+                                >
+                                  <span className="text-[10px] font-semibold">คาบที่ {slotIndex + 1}</span>
+                                </div>
                               )}
                             </td>
                           )
@@ -1009,62 +1070,83 @@ export default function Schedules() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วัน / เวลา (คาบ)</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วิชา</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ผู้สอน</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ห้องเรียน</th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {teacherSchedules?.map(schedule => (
-                    <tr key={schedule.id} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <div className="font-medium text-blue-600">{DAYS.find(d => d.value === schedule.day_of_week)?.label}</div>
-                        <div className="text-xs text-gray-500">คาบ {schedule.period} ({formatThai24Hour(schedule.start_time)} - {formatThai24Hour(schedule.end_time)})</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {schedule.subject?.subject_code} <br />
-                        <span className="text-gray-500 text-xs">{schedule.subject?.subject_name}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {schedule.teacher ? `${schedule.teacher.first_name} ${schedule.teacher.last_name}` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {schedule.classroom?.level}/{schedule.classroom?.room} <br />
-                        {schedule.room_name && (
-                          <span className="text-gray-500 text-xs">
-                            ห้อง: {String(schedule.room_name).split('|').map((x: string) => x.trim()).filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX)).join(' | ')}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => openEditForm(schedule)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex justify-center mr-2"
-                          title="แก้ไขข้อมูล"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTargetId(schedule.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex justify-center"
-                          title="ลบข้อมูล"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
+            <div className={`rounded-2xl shadow-lg border p-4 md:p-6 overflow-hidden ${activeTheme.wrapper}`}>
+              <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+                <h2 className={`text-xl md:text-2xl font-bold ${activeTheme.text}`}>รายการตารางสอน</h2>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xs md:text-sm ${activeTheme.subtext}`}>ธีมสี:</p>
+                  {CALENDAR_THEMES.map((theme) => (
+                    <button
+                      key={theme.key}
+                      type="button"
+                      onClick={() => setCalendarTheme(theme.key)}
+                      className={`h-6 w-6 rounded-full border-2 transition ${calendarTheme === theme.key ? 'border-slate-800 scale-110' : 'border-white/80'}`}
+                      title={theme.label}
+                    >
+                      <span className={`block h-full w-full rounded-full ${theme.key === 'green-board' ? 'bg-emerald-700' : theme.key === 'pastel-green' ? 'bg-emerald-200' : 'bg-cyan-200'}`} />
+                    </button>
                   ))}
-                  {teacherSchedules?.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">ยังไม่มีข้อมูลตารางเรียนในระบบ</td></tr>
-                  )}
-                </tbody>
-              </table>
+                </div>
+              </div>
+              <div className={`rounded-xl border overflow-hidden ${activeTheme.tableWrap}`}>
+                <table className="w-full">
+                  <thead className={`${activeTheme.head} border-b ${activeTheme.border}`}>
+                    <tr>
+                      <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${activeTheme.text}`}>วัน / เวลา (คาบ)</th>
+                      <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${activeTheme.text}`}>วิชา</th>
+                      <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${activeTheme.text}`}>ผู้สอน</th>
+                      <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${activeTheme.text}`}>ห้องเรียน</th>
+                      <th className={`px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider ${activeTheme.text}`}>จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${activeTheme.border}`}>
+                    {teacherSchedules?.map(schedule => (
+                      <tr key={schedule.id} className={`${activeTheme.cell} transition-colors`}>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${activeTheme.text}`}>
+                          <div className="font-bold">วัน{DAYS.find(d => d.value === schedule.day_of_week)?.label}</div>
+                          <div className={`text-xs ${activeTheme.subtext}`}>
+                            {formatThai24Hour(schedule.start_time)} - {formatThai24Hour(schedule.end_time)} (คาบที่ {schedule.period})
+                          </div>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${activeTheme.text}`}>
+                          {schedule.subject?.subject_code} <br />
+                          <span className={`text-xs font-normal ${activeTheme.subtext}`}>{schedule.subject?.subject_name}</span>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${activeTheme.text}`}>
+                          {schedule.teacher ? `${schedule.teacher.first_name} ${schedule.teacher.last_name}` : '-'}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${activeTheme.text}`}>
+                          {schedule.classroom?.level}/{schedule.classroom?.room} <br />
+                          {schedule.room_name && (
+                            <span className={`text-xs ${activeTheme.subtext}`}>
+                              ห้อง: {String(schedule.room_name).split('|').map((x: string) => x.trim()).filter((x: string) => !x.startsWith(MULTI_CLASSROOM_PREFIX)).join(' | ')}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => openEditForm(schedule)}
+                            className={`p-2 rounded-lg transition-colors inline-flex justify-center mr-2 ${activeTheme.periodBadge}`}
+                            title="แก้ไขข้อมูล"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTargetId(schedule.id)}
+                            className="p-2 text-rose-500 bg-rose-50/90 hover:bg-rose-100 rounded-lg transition-colors inline-flex justify-center"
+                            title="ลบข้อมูล"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {teacherSchedules?.length === 0 && (
+                      <tr><td colSpan={5} className={`px-6 py-12 text-center ${activeTheme.subtext} ${activeTheme.cell}`}>ยังไม่มีข้อมูลตารางเรียนในระบบ</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
