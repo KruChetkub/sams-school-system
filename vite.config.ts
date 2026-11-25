@@ -103,6 +103,12 @@ const createSupabaseProxy = () => ({
   ws: true,
   rewrite: (path: string) => path.replace(/^\/supabase-api/, ''),
   configure: (proxy: any) => {
+    proxy.on('error', (err: any, _req: any, res: any) => {
+      if (res && !res.headersSent && typeof res.writeHead === 'function') {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Supabase upstream network error', details: err?.message || 'Proxy error' }));
+      }
+    });
     proxy.on('proxyRes', (proxyRes: any) => {
       // 1. Remove CORS wildcard headers from upstream
       delete proxyRes.headers['access-control-allow-origin'];

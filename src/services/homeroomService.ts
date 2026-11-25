@@ -49,40 +49,87 @@ export const getStudentsByClassroom = async (classroomId: string) => {
 }
 
 export const getCheckedHomeroomClassroomsByDate = async (date: string, academicYearId?: string): Promise<CheckedHomeroomClassroom[]> => {
-  let selectStr = `
-    students!inner (
-      classroom_id,
-      classrooms!inner ( level, room, academic_year_id )
-    )
-  `
-  
-  let query = supabase
-    .from('homeroom_attendance')
-    .select(selectStr)
-    .eq('attendance_date', date)
+  try {
+    let classroomQuery = supabase
+      .from('classrooms')
+      .select('id, level, room')
 
-  if (academicYearId) {
-    query = query.eq('students.classrooms.academic_year_id', academicYearId)
-  }
-
-  const { data, error } = await query
-
-  if (error) throw error
-
-  const map = new Map<string, CheckedHomeroomClassroom>()
-  ;(data || []).forEach((row: any) => {
-    const classroomId = row.students?.classroom_id
-    const classroom = row.students?.classrooms
-    if (!classroomId || !classroom) return
-    if (!map.has(classroomId)) {
-      map.set(classroomId, {
-        classroom_id: classroomId,
-        classroom_label: `${classroom.level}/${classroom.room}`,
-      })
+    if (academicYearId) {
+      classroomQuery = classroomQuery.eq('academic_year_id', academicYearId)
     }
-  })
 
-  return Array.from(map.values()).sort((a, b) => a.classroom_label.localeCompare(b.classroom_label))
+    const { data: classroomRows, error: classroomError } = await classroomQuery
+    if (classroomError) {
+      console.warn('[getCheckedHomeroomClassroomsByDate] classroom query warning:', classroomError.message)
+      return []
+    }
+
+    const classroomLabelById = new Map<string, string>()
+    ;(classroomRows || []).forEach((c: any) => {
+      classroomLabelById.set(c.id, `${c.level}/${c.room}`)
+    })
+
+    if (classroomLabelById.size === 0) return []
+
+    let attendanceQuery = supabase
+      .from('homeroom_attendance')
+      .select('student_id, students(classroom_id)')
+      .eq('attendance_date', date)
+
+    if (academicYearId) {
+      attendanceQuery = attendanceQuery.eq('academic_year_id', academicYearId)
+    }
+
+    let { data, error } = await attendanceQuery
+
+    // Fallback if embedded join fails
+    if (error) {
+      const plainAtt = await supabase
+        .from('homeroom_attendance')
+        .select('student_id')
+        .eq('attendance_date', date)
+
+      if (plainAtt.error || !plainAtt.data || plainAtt.data.length === 0) {
+        return []
+      }
+
+      const studentIds = Array.from(new Set(plainAtt.data.map((r: any) => r.student_id).filter(Boolean)))
+      const { data: stuRows } = await supabase
+        .from('students')
+        .select('id, classroom_id')
+        .in('id', studentIds)
+
+      const map = new Map<string, CheckedHomeroomClassroom>()
+      ;(stuRows || []).forEach((s: any) => {
+        const label = classroomLabelById.get(s.classroom_id)
+        if (s.classroom_id && label && !map.has(s.classroom_id)) {
+          map.set(s.classroom_id, {
+            classroom_id: s.classroom_id,
+            classroom_label: label,
+          })
+        }
+      })
+      return Array.from(map.values()).sort((a, b) => a.classroom_label.localeCompare(b.classroom_label, 'th', { numeric: true }))
+    }
+
+    const map = new Map<string, CheckedHomeroomClassroom>()
+    ;(data || []).forEach((row: any) => {
+      const classroomId = row.students?.classroom_id
+      const label = classroomId ? classroomLabelById.get(classroomId) : undefined
+      if (!classroomId || !label) return
+      if (!map.has(classroomId)) {
+        map.set(classroomId, {
+          classroom_id: classroomId,
+          classroom_label: label,
+        })
+      }
+    })
+
+    return Array.from(map.values()).sort((a, b) => a.classroom_label.localeCompare(b.classroom_label, 'th', { numeric: true }))
+  } catch (err) {
+    console.warn('[getCheckedHomeroomClassroomsByDate] fallback empty:', err)
+    return []
+  }
 }
 
 export const getHomeroomClassroomSummaryByDate = async (date: string, academicYearId?: string): Promise<HomeroomClassroomSummary[]> => {
@@ -97,35 +144,45 @@ export const getHomeroomClassroomSummaryByDate = async (date: string, academicYe
   const { data: classroomRows, error: classroomError } = await classroomQuery
     .order('level')
     .order('room')
-  if (classroomError) throw classroomError
-
-  let studentQuery = supabase
-    .from('students')
-    .select('id, classroom_id')
-    .is('deleted_at', null)
-
-  if (academicYearId) {
-    studentQuery = supabase
-      .from('students')
-      .select('id, classroom_id, classroom:classroom_id!inner(academic_year_id)')
-      .is('deleted_at', null)
-      .eq('classroom.academic_year_id', academicYearId)
+  if (classroomError) {
+    console.warn('[getHomeroomClassroomSummaryByDate] classroom query warning:', classroomError.message)
+    return []
   }
 
-  const { data: studentRows, error: studentError } = await studentQuery
-  if (studentError) throw studentError
+  const classroomIds = (classroomRows || []).map((c: any) => c.id)
+  if (classroomIds.length === 0) return []
+
+  const { data: studentRows, error: studentError } = await supabase
+    .from('students')
+    .select('id, classroom_id')
+    .in('classroom_id', classroomIds)
+    .is('deleted_at', null)
+
+  if (studentError) {
+    console.warn('[getHomeroomClassroomSummaryByDate] student query warning:', studentError.message)
+    return []
+  }
+
+  const studentClassroomMap = new Map<string, string>()
+  ;(studentRows || []).forEach((s: any) => {
+    if (s.id && s.classroom_id) {
+      studentClassroomMap.set(s.id, s.classroom_id)
+    }
+  })
 
   let attendanceQuery = supabase
     .from('homeroom_attendance')
-    .select('student_id, status, students!inner(classroom_id, classrooms!inner(academic_year_id))')
+    .select('student_id, status')
     .eq('attendance_date', date)
 
   if (academicYearId) {
-    attendanceQuery = attendanceQuery.eq('students.classrooms.academic_year_id', academicYearId)
+    attendanceQuery = attendanceQuery.eq('academic_year_id', academicYearId)
   }
 
   const { data: attendanceRows, error: attendanceError } = await attendanceQuery
-  if (attendanceError) throw attendanceError
+  if (attendanceError) {
+    console.warn('[getHomeroomClassroomSummaryByDate] attendance query warning:', attendanceError.message)
+  }
 
   const baseMap = new Map<string, HomeroomClassroomSummary>()
   ;(classroomRows || []).forEach((c: any) => {
@@ -148,7 +205,7 @@ export const getHomeroomClassroomSummaryByDate = async (date: string, academicYe
   })
 
   ;(attendanceRows || []).forEach((row: any) => {
-    const classroomId = row.students?.classroom_id
+    const classroomId = studentClassroomMap.get(row.student_id)
     if (!classroomId) return
     const item = baseMap.get(classroomId)
     if (!item) return
