@@ -269,6 +269,56 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
       },
     }),
+    {
+      name: 'force-auto-refresh-sw',
+      enforce: 'post',
+      closeBundle: {
+        order: 'post',
+        sequential: true,
+        handler() {
+          try {
+            const swPath = path.resolve(__dirname, 'dist', 'sw.js');
+            const customSw = `// SAMS Auto-Clean & Auto-Reload Service Worker (Build: ${buildVersion})
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      let hadLegacyCache = false;
+      try {
+        const cacheNames = await caches.keys();
+        if (cacheNames.length > 0) {
+          hadLegacyCache = true;
+          await Promise.all(cacheNames.map((name) => caches.delete(name)));
+        }
+      } catch (_) {}
+
+      try {
+        await self.clients.claim();
+      } catch (_) {}
+
+      // หากเครื่องผู้ใช้มีแคชเก่าค้างอยู่ (เช่น workbox-precache เดิม) ให้สั่งรีเฟรชแท็บทั้งหมดเป็นหน้าใหม่ทันทีโดยที่ User ไม่ต้องกด Ctrl+Shift+R
+      if (hadLegacyCache) {
+        try {
+          const windowClients = await self.clients.matchAll({ type: 'window' });
+          for (const client of windowClients) {
+            await client.navigate(client.url);
+          }
+        } catch (_) {}
+      }
+    })()
+  );
+});
+`;
+            fs.writeFileSync(swPath, customSw, 'utf8');
+          } catch (e) {
+            console.error('Failed to write custom sw.js:', e);
+          }
+        },
+      },
+    },
   ],
 })
 
