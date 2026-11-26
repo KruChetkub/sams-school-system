@@ -16,6 +16,26 @@ import App from './App.tsx'
 
 initClientSecurity()
 
+// ล้างแคช Workbox Precache เก่าที่อาจค้างอยู่ในเบราว์เซอร์และทำให้หน้าเว็บไม่อัปเดต
+if (typeof window !== 'undefined') {
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      for (const name of names) {
+        if (name.includes('workbox-precache') || name.includes('vite-plugin-pwa')) {
+          caches.delete(name).catch(() => {})
+        }
+      }
+    }).catch(() => {})
+  }
+
+  // หากมีพารามิเตอร์ _v จากการบังคับล้างแคช ให้ลบออกจาก URL เพื่อความสะอาด
+  if (window.location.search.includes('_v=')) {
+    const cleanUrl = new URL(window.location.href)
+    cleanUrl.searchParams.delete('_v')
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash)
+  }
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

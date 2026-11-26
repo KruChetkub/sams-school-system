@@ -262,8 +262,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
-        maximumFileSizeToCacheInBytes: 10485760, // Increase limit to 10MB
+        globPatterns: [],
+        navigateFallback: null,
         clientsClaim: true,
         skipWaiting: true,
         cleanupOutdatedCaches: true,
