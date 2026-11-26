@@ -169,6 +169,7 @@ const buildVersion = Date.now().toString();
 
 const generateVersionPlugin = () => ({
   name: 'generate-version-plugin',
+  apply: 'build' as const,
   buildStart() {
     try {
       const publicDir = path.resolve(__dirname, 'public');
@@ -278,7 +279,7 @@ export default defineConfig({
         handler() {
           try {
             const swPath = path.resolve(__dirname, 'dist', 'sw.js');
-            const customSw = `// SAMS Auto-Clean & Auto-Reload Service Worker (Build: ${buildVersion})
+            const customSw = `// SAMS Auto-Clean Service Worker (Build: ${buildVersion})
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
@@ -286,11 +287,9 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      let hadLegacyCache = false;
       try {
         const cacheNames = await caches.keys();
         if (cacheNames.length > 0) {
-          hadLegacyCache = true;
           await Promise.all(cacheNames.map((name) => caches.delete(name)));
         }
       } catch (_) {}
@@ -298,16 +297,6 @@ self.addEventListener('activate', (event) => {
       try {
         await self.clients.claim();
       } catch (_) {}
-
-      // หากเครื่องผู้ใช้มีแคชเก่าค้างอยู่ (เช่น workbox-precache เดิม) ให้สั่งรีเฟรชแท็บทั้งหมดเป็นหน้าใหม่ทันทีโดยที่ User ไม่ต้องกด Ctrl+Shift+R
-      if (hadLegacyCache) {
-        try {
-          const windowClients = await self.clients.matchAll({ type: 'window' });
-          for (const client of windowClients) {
-            await client.navigate(client.url);
-          }
-        } catch (_) {}
-      }
     })()
   );
 });

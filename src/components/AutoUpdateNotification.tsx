@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { RefreshCw, ArrowRight, Sparkles } from 'lucide-react'
+import { RefreshCw, ArrowRight, X, Sparkles } from 'lucide-react'
 
 // Injected by Vite define at build time
 declare const __APP_BUILD_ID__: string
@@ -15,7 +15,8 @@ const RELOADED_VERSION_KEY = 'sams_auto_reloaded_version'
 
 export default function AutoUpdateNotification() {
   const [hasUpdate, setHasUpdate] = useState(false)
-  const [countdown, setCountdown] = useState(1)
+  const [countdown, setCountdown] = useState(5)
+  const [isDismissed, setIsDismissed] = useState(false)
   const checkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isReloadingRef = useRef(false)
@@ -36,23 +37,23 @@ export default function AutoUpdateNotification() {
     }
 
     try {
-      // 1. ล้าง Cache Storage ของ Service Worker / PWA ทั้งหมดทันที
+      // 1. ล้าง Cache Storage ของ Service Worker / PWA (ห้าม unregister service worker เพื่อไม่ให้เกิด controllerchange loop)
       if ('caches' in window) {
         const cacheNames = await caches.keys()
         await Promise.all(cacheNames.map(name => caches.delete(name)))
       }
-      // 2. สั่งปลด Service Worker ตัวเก่าที่จำไฟล์ index.html เดิมไว้
+      // 2. สั่งให้อัปเดต Service Worker ตัวใหม่ (ถ้ามี) โดยไม่ปลดการลงทะเบียน
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()
         await Promise.all(
           registrations.map(async reg => {
             try {
-              await reg.unregister()
+              await reg.update()
             } catch (_) {}
           })
         )
       }
-      // 3. บังคับดึง HTML หน้าปัจจุบันใหม่จากเซิร์ฟเวอร์โดยตรงเพื่อทับ HTTP Disk Cache ของเบราว์เซอร์
+      // 3. บังคับดึง HTML หน้าปัจจุบันใหม่จากเซิร์ฟเวอร์โดยตรง
       await fetch(window.location.pathname, {
         cache: 'reload',
         headers: {
@@ -62,14 +63,14 @@ export default function AutoUpdateNotification() {
       }).catch(() => {})
     } catch (_) {}
 
-    // 4. บังคับรีโหลดหน้าเว็บใหม่พร้อม Cache-Busting
-    const url = new URL(window.location.href)
-    url.searchParams.set('_v', Date.now().toString())
-    window.location.replace(url.toString())
+    // 4. รีโหลดหน้าเว็บ 1 ครั้ง
+    window.location.reload()
   }
 
   const checkForUpdate = async () => {
-    if (isReloadingRef.current) return
+    // ไม่ทำงานในโหมด Dev (localhost) เพื่อไม่ให้ตีกับตอนรัน npm run build
+    if (import.meta.env.DEV) return
+    if (isDismissed || isReloadingRef.current) return
 
     try {
       const response = await fetch(`/version.json?_t=${Date.now()}`, {
@@ -84,25 +85,18 @@ export default function AutoUpdateNotification() {
 
       const data = await response.json()
       if (data && data.version && currentBuildId) {
-        if (data.version !== currentBuildId) {
-          detectedVersionRef.current = String(data.version)
-          const alreadyTriedVersion = sessionStorage.getItem(RELOADED_VERSION_KEY)
-          // ป้องกันการรีโหลดซ้ำไม่รู้จบหาก CDN ยังส่งไฟล์เก่าในเสี้ยววินาทีแรก
-          if (alreadyTriedVersion === String(data.version)) {
-            // ลองล้างแคชและรีโหลดอีกครั้งหลังจากผ่านไป 5 วินาที
-            setTimeout(() => {
-              try {
-                sessionStorage.removeItem(RELOADED_VERSION_KEY)
-              } catch (_) {}
-            }, 5000)
-            return
-          }
-          setHasUpdate(true)
-        } else {
-          // เวอร์ชันตรงกับล่าสุดแล้ว ล้างค่าป้องกันลูปได้
+        const remoteVersion = String(data.version)
+        if (remoteVersion !== currentBuildId) {
+          // หากเคยสั่งรีโหลดสำหรับเวอร์ชันนี้ไปแล้วในเซสชันนี้ ห้ามรีโหลดซ้ำเด็ดขาด (ป้องกันการรีเฟรชวนลูป 100%)
           try {
-            sessionStorage.removeItem(RELOADED_VERSION_KEY)
+            const alreadyReloadedForVersion = sessionStorage.getItem(RELOADED_VERSION_KEY)
+            if (alreadyReloadedForVersion === remoteVersion) {
+              return
+            }
           } catch (_) {}
+
+          detectedVersionRef.current = remoteVersion
+          setHasUpdate(true)
         }
       }
     } catch (_) {
@@ -110,38 +104,21 @@ export default function AutoUpdateNotification() {
     }
   }
 
-  // Periodic check & event-based check (focus, visibility, SW controllerchange)
+  // Periodic check & event-based check (focus, visibility)
   useEffect(() => {
-    if (!currentBuildId) return
+    if (!currentBuildId || import.meta.env.DEV) return
 
-    // 1. ตรวจสอบทันทีที่เปิดหน้าเว็บ (300 มิลลิวินาที)
-    const initialTimer = setTimeout(checkForUpdate, 300)
+    // 1. ตรวจสอบหลังเปิดหน้าเว็บ 3 วินาที
+    const initialTimer = setTimeout(checkForUpdate, 3000)
 
-    // 2. ตรวจสอบทุกๆ 10 วินาที
-    checkTimerRef.current = setInterval(checkForUpdate, 10000)
+    // 2. ตรวจสอบทุกๆ 30 วินาที
+    checkTimerRef.current = setInterval(checkForUpdate, 30000)
 
-    // 3. ตรวจสอบทันทีเมื่อสลับแท็บกลับมาหรือคลิกหน้าจอ
+    // 3. ตรวจสอบเมื่อสลับแท็บกลับมา
     const handleFocus = () => {
       if (document.visibilityState === 'visible') {
         void checkForUpdate()
       }
-    }
-
-    // 4. ดักจับเมื่อ Service Worker ตัวใหม่เข้าควบคุมหน้าเว็บ ให้รีโหลดเป็นหน้าใหม่ทันที
-    let refreshing = false
-    const handleControllerChange = () => {
-      if (refreshing || isReloadingRef.current) return
-      refreshing = true
-      void purgeBrowserAndSwCacheAndReload()
-    }
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const reg of registrations) {
-          reg.update().catch(() => {})
-        }
-      }).catch(() => {})
     }
 
     window.addEventListener('visibilitychange', handleFocus)
@@ -152,15 +129,12 @@ export default function AutoUpdateNotification() {
       if (checkTimerRef.current) clearInterval(checkTimerRef.current)
       window.removeEventListener('visibilitychange', handleFocus)
       window.removeEventListener('focus', handleFocus)
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
-      }
     }
-  }, [currentBuildId])
+  }, [currentBuildId, isDismissed])
 
-  // เมื่อตรวจพบเวอร์ชันใหม่ ให้ล้างแคชและเปลี่ยนเป็นหน้าใหม่แบบ AUTO ทันที (ภายใน 1 วินาที)
+  // เมื่อตรวจพบเวอร์ชันใหม่ นับถอยหลัง 5 วินาทีแล้วรีโหลด 1 ครั้ง
   useEffect(() => {
-    if (!hasUpdate) return
+    if (!hasUpdate || isDismissed) return
 
     countdownTimerRef.current = setInterval(() => {
       setCountdown(prev => {
@@ -171,40 +145,23 @@ export default function AutoUpdateNotification() {
         }
         return prev - 1
       })
-    }, 800)
+    }, 1000)
 
     return () => {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
     }
-  }, [hasUpdate])
+  }, [hasUpdate, isDismissed])
 
-  // Global Vite Chunk/Preload Error Handler (prevents blank screen on new deploy)
-  useEffect(() => {
-    const handlePreloadError = () => {
-      void purgeBrowserAndSwCacheAndReload()
-    }
+  if (!hasUpdate || isDismissed) return null
 
-    const handleError = (e: ErrorEvent) => {
-      const msg = e.message || ''
-      if (
-        msg.includes('Failed to fetch dynamically imported module') ||
-        msg.includes('Loading chunk') ||
-        msg.includes('error loading dynamically imported module')
-      ) {
-        void purgeBrowserAndSwCacheAndReload()
+  const handleDismiss = () => {
+    setIsDismissed(true)
+    try {
+      if (detectedVersionRef.current) {
+        sessionStorage.setItem(RELOADED_VERSION_KEY, detectedVersionRef.current)
       }
-    }
-
-    window.addEventListener('vite:preloadError', handlePreloadError)
-    window.addEventListener('error', handleError)
-
-    return () => {
-      window.removeEventListener('vite:preloadError', handlePreloadError)
-      window.removeEventListener('error', handleError)
-    }
-  }, [])
-
-  if (!hasUpdate) return null
+    } catch (_) {}
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-[9999] max-w-md w-[calc(100vw-2.5rem)] animate-in fade-in slide-in-from-bottom-5 duration-200">
@@ -216,22 +173,29 @@ export default function AutoUpdateNotification() {
             </div>
             <div>
               <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                กำลังอัปเดตหน้าเว็บเป็นเวอร์ชันใหม่...
+                มีอัปเดตระบบเวอร์ชันใหม่!
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   AUTO
                 </span>
               </h4>
               <p className="text-xs text-slate-300 mt-0.5">
-                ระบบกำลังล้างแคชเดิมและโหลดหน้าเว็บเวอร์ชันล่าสุดอัตโนมัติ ({countdown} วิ)
+                ระบบจะอัปเดตหน้าเว็บเป็นเวอร์ชันล่าสุดใน {countdown} วินาที
               </p>
             </div>
           </div>
+          <button
+            onClick={handleDismiss}
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-colors cursor-pointer"
+            title="ปิดการแจ้งเตือน"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-800">
           <div className="text-xs text-indigo-300 font-medium flex items-center gap-1.5">
             <RefreshCw size={13} className="animate-spin text-indigo-400" />
-            <span>กำลังสลับไปหน้าเว็บใหม่...</span>
+            <span>จะรีโหลดอัตโนมัติใน {countdown} วิ</span>
           </div>
 
           <button
