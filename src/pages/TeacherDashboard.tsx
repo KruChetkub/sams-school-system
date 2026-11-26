@@ -27,7 +27,7 @@ export default function TeacherDashboard() {
     enabled: !!user?.id
   })
 
-  const { selectedYear } = useAcademicYearStore()
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
   const teacherId = teacher?.id
   const hasTeacherId = !!teacherId
 
@@ -51,24 +51,24 @@ export default function TeacherDashboard() {
     enabled: hasClassrooms
   })
 
-  // 4. ดึงข้อมูลคาบเรียนและสถิติเช็คชื่อวิชาวันนี้
+  // 4. ดึงข้อมูลคาบเรียนและสถิติเช็คชื่อวิชาวันนี้ (แยกตามภาคเรียน)
   const { data: subjectStats, isLoading: isSubjectLoading } = useQuery({
-    queryKey: ['teacherSubjectToday', teacherId, todayDayOfWeek, todayDateStr, selectedYear?.id],
-    queryFn: () => getTeacherSubjectAttendanceToday(teacherId!, todayDayOfWeek, todayDateStr, selectedYear?.id),
+    queryKey: ['teacherSubjectToday', teacherId, todayDayOfWeek, todayDateStr, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getTeacherSubjectAttendanceToday(teacherId!, todayDayOfWeek, todayDateStr, selectedYear?.id, selectedSemester?.id),
     enabled: hasTeacherId
   })
 
-  // 5. ดึงข้อมูลนักเรียนเสี่ยง
+  // 5. ดึงข้อมูลนักเรียนเสี่ยง (แยกตามภาคเรียน)
   const { data: riskStudents, isLoading: isRiskLoading } = useQuery({
-    queryKey: ['teacherRiskStudents', classroomIds, selectedYear?.id],
-    queryFn: () => getTeacherStudentRiskSummary(classroomIds, selectedYear?.id),
+    queryKey: ['teacherRiskStudents', classroomIds, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getTeacherStudentRiskSummary(classroomIds, selectedYear?.id, selectedSemester?.id),
     enabled: hasClassrooms
   })
 
-  // 6. ดึงข้อมูลความคืบหน้าเยี่ยมบ้าน
+  // 6. ดึงข้อมูลความคืบหน้าเยี่ยมบ้าน (แยกตามภาคเรียน)
   const { data: homeVisitProgress, isLoading: isHomeVisitLoading } = useQuery({
-    queryKey: ['teacherHomeVisitProgress', classroomIds, selectedYear?.id],
-    queryFn: () => getTeacherHomeVisitProgress(classroomIds, selectedYear?.id),
+    queryKey: ['teacherHomeVisitProgress', classroomIds, selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getTeacherHomeVisitProgress(classroomIds, selectedYear?.id, selectedSemester?.id),
     enabled: hasClassrooms
   })
 

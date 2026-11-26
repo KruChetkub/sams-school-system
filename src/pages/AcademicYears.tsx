@@ -236,15 +236,21 @@ export default function AcademicYears() {
 
   const activateYearMutation = useMutation({
     mutationFn: setActiveYear,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['academicYears'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['academicYears'] })
+      await useAcademicYearStore.getState().initializeStore()
+      queryClient.invalidateQueries()
     }
   })
 
   const activateSemesterMutation = useMutation({
     mutationFn: setActiveSemester,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['academicYears'] })
+    onSuccess: async (_data, semesterId) => {
+      localStorage.setItem('sams_selected_semester_id', semesterId)
+      localStorage.setItem('sams_last_db_active_semester_id', semesterId)
+      await queryClient.invalidateQueries({ queryKey: ['academicYears'] })
+      await useAcademicYearStore.getState().initializeStore()
+      queryClient.invalidateQueries()
     }
   })
 

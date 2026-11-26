@@ -121,7 +121,8 @@ export const getTeacherSubjectAttendanceToday = async (
   teacherId: string, 
   dayOfWeek: number, 
   dateStr: string,
-  academicYearId?: string
+  academicYearId?: string,
+  semesterId?: string
 ) => {
   // 1. ดึงตารางเรียนของครูในวันนี้
   let selectStr = '*, subject:subject_id(subject_name, subject_code), classroom:classroom_id(level, room, academic_year_id)'
@@ -137,6 +138,9 @@ export const getTeacherSubjectAttendanceToday = async (
 
   if (academicYearId) {
     query = query.eq('classroom.academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
   }
 
   const { data: schedules, error: scheduleError } = await query.order('period')
@@ -196,7 +200,7 @@ export const getTeacherSubjectAttendanceToday = async (
 /**
  * ดึงรายการนักเรียนในกลุ่มเสี่ยง (RISK หรือ URGENT) ของห้องเรียนที่ครูคนนี้ดูแล
  */
-export const getTeacherStudentRiskSummary = async (classroomIds: string[], academicYearId?: string) => {
+export const getTeacherStudentRiskSummary = async (classroomIds: string[], academicYearId?: string, semesterId?: string) => {
   if (!classroomIds || classroomIds.length === 0) return []
 
   // 1. ดึงนักเรียนในห้องเรียนเหล่านี้
@@ -221,6 +225,9 @@ export const getTeacherStudentRiskSummary = async (classroomIds: string[], acade
   if (academicYearId) {
     query = query.eq('academic_year_id', academicYearId)
   }
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
+  }
   
   const { data: riskData, error: riskError } = await query
   
@@ -238,7 +245,7 @@ export const getTeacherStudentRiskSummary = async (classroomIds: string[], acade
 /**
  * ดึงความคืบหน้าการเยี่ยมบ้านของนักเรียนในห้องเรียนที่ครูคนนี้ดูแล
  */
-export const getTeacherHomeVisitProgress = async (classroomIds: string[], academicYearId?: string) => {
+export const getTeacherHomeVisitProgress = async (classroomIds: string[], academicYearId?: string, semesterId?: string) => {
   if (!classroomIds || classroomIds.length === 0) return { visited: 0, total: 0 }
 
   // 1. ดึงนักเรียนทั้งหมดในห้องเรียน
@@ -262,6 +269,9 @@ export const getTeacherHomeVisitProgress = async (classroomIds: string[], academ
   if (academicYearId) {
     visitQuery = visitQuery.eq('academic_year_id', academicYearId)
   }
+  if (semesterId) {
+    visitQuery = visitQuery.eq('semester_id', semesterId)
+  }
   
   const { data: visits, error: visitError } = await visitQuery
   
@@ -278,7 +288,7 @@ export const getTeacherHomeVisitProgress = async (classroomIds: string[], academ
 /**
  * ดึงตารางสอนทั้งหมดของครูในวันนี้
  */
-export const getTeacherScheduleToday = async (teacherId: string, dayOfWeek: number, academicYearId?: string) => {
+export const getTeacherScheduleToday = async (teacherId: string, dayOfWeek: number, academicYearId?: string, semesterId?: string) => {
   let selectStr = `
     *,
     subject:subject_id (subject_code, subject_name),
@@ -300,6 +310,9 @@ export const getTeacherScheduleToday = async (teacherId: string, dayOfWeek: numb
 
   if (academicYearId) {
     query = query.eq('classroom.academic_year_id', academicYearId)
+  }
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
   }
 
   const { data, error } = await query.order('period')

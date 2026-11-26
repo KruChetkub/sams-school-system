@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { getSchedules } from '../services/scheduleService'
-import { getStudentsForSchedule, saveClassroomAttendance } from '../services/attendanceService'
+import { getStudentsForSchedule, getExistingClassroomAttendance, saveClassroomAttendance } from '../services/attendanceService'
 import { CheckCircle, XCircle, AlertCircle, Clock, Calendar, ArrowLeft, Users, User, RefreshCw, Search } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useAcademicYearStore } from '../store/academicYearStore'
@@ -262,13 +262,13 @@ export default function Attendance() {
     ? teacherProfile?.id
     : (selectedTeacherId && selectedTeacherId !== 'school' ? selectedTeacherId : undefined)
 
-  const { selectedYear } = useAcademicYearStore()
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
 
-  // ครูเห็นเฉพาะคาบของตัวเอง, แอดมินเห็นทั้งหมด
+  // ครูเห็นเฉพาะคาบของตัวเอง, แอดมินเห็นทั้งหมด (กรองตามปีการศึกษาและภาคเรียนปัจจุบันที่เลือก)
   const { data: schedules } = useQuery({
-    queryKey: ['schedules', role, activeTeacherId || 'all', selectedYear?.id],
+    queryKey: ['schedules', role, activeTeacherId || 'all', selectedYear?.id, selectedSemester?.id],
     queryFn: () => {
-      return getSchedules(undefined, activeTeacherId, selectedYear?.id)
+      return getSchedules(undefined, activeTeacherId, selectedYear?.id, selectedSemester?.id)
     },
     enabled: !isTeacherRole || teacherProfile !== undefined
   })
@@ -316,6 +316,27 @@ export default function Attendance() {
     enabled: !!selectedSchedule
   })
 
+  const { data: existingAttendance } = useQuery({
+    queryKey: ['existing_classroom_attendance', selectedSchedule, attendanceDate, selectedSemester?.id],
+    queryFn: () => getExistingClassroomAttendance(selectedSchedule, attendanceDate),
+    enabled: !!selectedSchedule && !!attendanceDate
+  })
+
+  useEffect(() => {
+    if (!existingAttendance) return
+    if (existingAttendance.length > 0) {
+      const loadedState: Record<string, string> = {}
+      existingAttendance.forEach((row: any) => {
+        if (row.student_id && row.status) {
+          loadedState[row.student_id] = row.status
+        }
+      })
+      setAttendanceState(loadedState)
+    } else {
+      setAttendanceState({})
+    }
+  }, [existingAttendance])
+
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!students || !selectedSchedule) return Promise.resolve()
@@ -324,7 +345,9 @@ export default function Attendance() {
         student_id: s.id,
         attendance_date: attendanceDate,
         status: (attendanceState[s.id] || 'PRESENT') as any,
-        checkin_time: new Date().toISOString()
+        checkin_time: new Date().toISOString(),
+        academic_year_id: selectedYear?.id,
+        semester_id: selectedSemester?.id
       }))
       return saveClassroomAttendance(records)
     },
@@ -369,6 +392,13 @@ export default function Attendance() {
         {/* Header Block */}
         <div className="bg-gradient-to-r from-cyan-600 to-sky-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden min-h-[160px] flex items-center">
           <div className="relative z-10">
+            {selectedYear && (
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold mb-2">
+                <span>ปีการศึกษา {selectedYear.year}</span>
+                <span>•</span>
+                <span>{selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}</span>
+              </div>
+            )}
             <h1 className="text-3xl font-black mb-2 tracking-tight">เช็คชื่อรายวิชา (Classroom Attendance)</h1>
             <p className="text-white/80 font-medium">
               เลือกภาพรวมทั้งโรงเรียน หรือเลือกครูผู้สอนเพื่อจัดการการเช็คชื่อเข้าเรียนรายวิชา
@@ -582,8 +612,15 @@ export default function Attendance() {
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">เช็คชื่อรายวิชา (Classroom Attendance)</h1>
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-800">เช็คชื่อรายวิชา (Classroom Attendance)</h1>
+          {selectedYear && (
+            <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-bold">
+              ปีการศึกษา {selectedYear.year} • {selectedSemester?.label || `ภาคเรียนที่ ${selectedSemester?.semester_number || '-'}`}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">

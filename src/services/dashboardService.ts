@@ -1164,7 +1164,7 @@ export const getCheckedHomeroomClassroomsToday = async (academicYearId?: string)
   }
 }
 
-export const getPendingClassroomChecksToday = async (academicYearId?: string): Promise<PendingClassroomCheckResult> => {
+export const getPendingClassroomChecksToday = async (academicYearId?: string, semesterId?: string): Promise<PendingClassroomCheckResult> => {
   const now = new Date()
   const jsDay = now.getDay() // 0=Sun..6=Sat
   const dayOfWeek = jsDay === 0 ? 7 : jsDay // 1=Mon..7=Sun
@@ -1181,6 +1181,9 @@ export const getPendingClassroomChecksToday = async (academicYearId?: string): P
   if (academicYearId) {
     // schedules joins classrooms, so filter classrooms by academic_year_id
     scheduleQuery = scheduleQuery.filter('classrooms.academic_year_id', 'eq', academicYearId)
+  }
+  if (semesterId) {
+    scheduleQuery = scheduleQuery.eq('semester_id', semesterId)
   }
 
   const { data: todaySchedules } = await scheduleQuery

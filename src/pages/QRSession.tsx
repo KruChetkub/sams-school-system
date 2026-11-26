@@ -6,14 +6,19 @@ import { QRCodeSVG } from 'qrcode.react'
 import { MonitorPlay, XCircle, RefreshCw, Users, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { samsConfirm } from '../components/common/SamsDialog'
+import { useAcademicYearStore } from '../store/academicYearStore'
 
 export default function QRSession() {
   const queryClient = useQueryClient()
+  const { selectedYear, selectedSemester } = useAcademicYearStore()
   const [selectedSchedule, setSelectedSchedule] = useState('')
   const [activeSession, setActiveSession] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState(10)
 
-  const { data: schedules } = useQuery({ queryKey: ['schedules'], queryFn: () => getSchedules() })
+  const { data: schedules } = useQuery({
+    queryKey: ['schedules', selectedYear?.id, selectedSemester?.id],
+    queryFn: () => getSchedules(undefined, undefined, selectedYear?.id, selectedSemester?.id)
+  })
   
   const { data: attendanceList } = useQuery({
     queryKey: ['session_attendance', activeSession?.id],

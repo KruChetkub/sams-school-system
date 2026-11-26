@@ -25,9 +25,16 @@ export const useAcademicYearStore = create<AcademicYearState>((set, get) => ({
       const allYears = await getAcademicYears()
       const { activeYear, activeSemester } = await getActiveAcademicYear()
       
-      const savedYearId = localStorage.getItem('sams_selected_year_id')
-      const savedSemId = localStorage.getItem('sams_selected_semester_id')
+      const savedYearId = sessionStorage.getItem('sams_selected_year_id')
+      const savedSemId = sessionStorage.getItem('sams_selected_semester_id')
+      const lastActiveSemId = sessionStorage.getItem('sams_last_db_active_semester_id')
       
+      // ล้างค่าเก่าที่เคยค้างใน localStorage ไม่ให้ล็อกภาคเรียนเก่าข้ามเครื่อง/ข้ามเซสชัน
+      try {
+        localStorage.removeItem('sams_selected_year_id')
+        localStorage.removeItem('sams_selected_semester_id')
+      } catch {}
+
       let finalYear = activeYear
       let finalSem = activeSemester
       
@@ -42,12 +49,19 @@ export const useAcademicYearStore = create<AcademicYearState>((set, get) => ({
         const found = allYears.find(y => y.id === savedYearId)
         if (found) finalYear = found
       }
-      
-      if (savedSemId && finalYear) {
+
+      const dbActiveSem = finalYear?.semesters?.find(s => s.is_active) || activeSemester || null
+
+      // ยึดภาคเรียนที่ตั้งเป็น is_active = true ในฐานข้อมูล Supabase เป็นหลักเสมอเมื่อเปิดใหม่
+      if (dbActiveSem && lastActiveSemId !== dbActiveSem.id) {
+        finalSem = dbActiveSem
+        sessionStorage.setItem('sams_selected_semester_id', dbActiveSem.id)
+        sessionStorage.setItem('sams_last_db_active_semester_id', dbActiveSem.id)
+      } else if (savedSemId && finalYear) {
         const foundSem = finalYear.semesters?.find(s => s.id === savedSemId)
         if (foundSem) finalSem = foundSem
       } else if (finalYear) {
-        finalSem = finalYear.semesters?.find(s => s.is_active) || finalYear.semesters?.[0] || null
+        finalSem = dbActiveSem || finalYear.semesters?.[0] || null
       }
       
       // If we don't have an active year in database and no saved year, default to the first year in the list
@@ -72,13 +86,13 @@ export const useAcademicYearStore = create<AcademicYearState>((set, get) => ({
     const { years } = get()
     const found = years.find(y => y.id === yearId)
     if (found) {
-      localStorage.setItem('sams_selected_year_id', yearId)
+      sessionStorage.setItem('sams_selected_year_id', yearId)
       // Find default semester for this year
       const defaultSem = found.semesters?.find(s => s.is_active) || found.semesters?.[0] || null
       if (defaultSem) {
-        localStorage.setItem('sams_selected_semester_id', defaultSem.id)
+        sessionStorage.setItem('sams_selected_semester_id', defaultSem.id)
       } else {
-        localStorage.removeItem('sams_selected_semester_id')
+        sessionStorage.removeItem('sams_selected_semester_id')
       }
       set({ selectedYear: found, selectedSemester: defaultSem })
     }
@@ -89,7 +103,7 @@ export const useAcademicYearStore = create<AcademicYearState>((set, get) => ({
     if (selectedYear && selectedYear.semesters) {
       const found = selectedYear.semesters.find(s => s.id === semesterId)
       if (found) {
-        localStorage.setItem('sams_selected_semester_id', semesterId)
+        sessionStorage.setItem('sams_selected_semester_id', semesterId)
         set({ selectedSemester: found })
       }
     }

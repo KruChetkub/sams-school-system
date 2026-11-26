@@ -174,8 +174,8 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: loadingStats } = useQuery({ queryKey: ['dashboard_stats', academicYearId, semesterId], queryFn: () => getDashboardStats(academicYearId, semesterId) })
   const { data: pendingChecks, isLoading: loadingPendingChecks } = useQuery({
-    queryKey: ['dashboard_pending_checks_today', academicYearId],
-    queryFn: () => getPendingClassroomChecksToday(academicYearId),
+    queryKey: ['dashboard_pending_checks_today', academicYearId, semesterId],
+    queryFn: () => getPendingClassroomChecksToday(academicYearId, semesterId),
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
     staleTime: 30000,

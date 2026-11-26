@@ -13,13 +13,32 @@ declare const __APP_BUILD_ID__: string
 
 export default function AutoUpdateNotification() {
   const [hasUpdate, setHasUpdate] = useState(false)
-  const [countdown, setCountdown] = useState(10)
+  const [countdown, setCountdown] = useState(3)
   const [isDismissed, setIsDismissed] = useState(false)
   const checkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Current build ID injected by Vite
   const currentBuildId = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : ''
+
+  const purgeBrowserAndSwCacheAndReload = async () => {
+    try {
+      // 1. ล้าง Cache Storage ของ Service Worker / PWA ทั้งหมดทันที
+      if ('caches' in window) {
+        const cacheNames = await caches.keys()
+        await Promise.all(cacheNames.map(name => caches.delete(name)))
+      }
+      // 2. สั่งอัปเดตและปลด Service Worker ตัวเก่าที่จำไฟล์เดิมไว้
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(registrations.map(reg => reg.unregister()))
+      }
+    } catch (_) {}
+    // 3. บังคับรีโหลดหน้าเว็บใหม่พร้อม Cache-Busting
+    const url = new URL(window.location.href)
+    url.searchParams.set('_v', Date.now().toString())
+    window.location.replace(url.toString())
+  }
 
   const checkForUpdate = async () => {
     if (isDismissed) return
@@ -50,11 +69,11 @@ export default function AutoUpdateNotification() {
   useEffect(() => {
     if (!currentBuildId) return
 
-    // 1. Initial check after 10s
-    const initialTimer = setTimeout(checkForUpdate, 10000)
+    // 1. ตรวจสอบทันทีที่เปิดหน้าเว็บ (1 วินาที)
+    const initialTimer = setTimeout(checkForUpdate, 1000)
 
-    // 2. Periodic check every 60 seconds
-    checkTimerRef.current = setInterval(checkForUpdate, 60000)
+    // 2. ตรวจสอบทุกๆ 15 วินาที (ไวขึ้น 4 เท่า จากเดิม 60 วินาที)
+    checkTimerRef.current = setInterval(checkForUpdate, 15000)
 
     // 3. Check on tab visibility/focus
     const handleFocus = () => {
@@ -83,7 +102,7 @@ export default function AutoUpdateNotification() {
     }
   }, [currentBuildId, isDismissed])
 
-  // Countdown timer when update is detected
+  // Countdown timer when update is detected (3 วินาทีแล้วล้างแคชรีโหลดทันที)
   useEffect(() => {
     if (!hasUpdate || isDismissed) return
 
@@ -91,7 +110,7 @@ export default function AutoUpdateNotification() {
       setCountdown(prev => {
         if (prev <= 1) {
           if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
-          window.location.reload()
+          void purgeBrowserAndSwCacheAndReload()
           return 0
         }
         return prev - 1
@@ -107,7 +126,7 @@ export default function AutoUpdateNotification() {
   useEffect(() => {
     const handlePreloadError = () => {
       console.warn('Vite preload error detected, auto-reloading to fetch new assets...')
-      window.location.reload()
+      void purgeBrowserAndSwCacheAndReload()
     }
 
     const handleError = (e: ErrorEvent) => {
@@ -118,7 +137,7 @@ export default function AutoUpdateNotification() {
         msg.includes('error loading dynamically imported module')
       ) {
         console.warn('Dynamic chunk error detected, reloading page...')
-        window.location.reload()
+        void purgeBrowserAndSwCacheAndReload()
       }
     }
 
@@ -134,16 +153,16 @@ export default function AutoUpdateNotification() {
   if (!hasUpdate || isDismissed) return null
 
   const handleUpdateNow = () => {
-    window.location.reload()
+    void purgeBrowserAndSwCacheAndReload()
   }
 
   const handleDismiss = () => {
     setIsDismissed(true)
-    // Snooze for 10 minutes
+    // Snooze for 2 minutes
     setTimeout(() => {
       setIsDismissed(false)
-      setCountdown(10)
-    }, 10 * 60 * 1000)
+      setCountdown(3)
+    }, 2 * 60 * 1000)
   }
 
   return (

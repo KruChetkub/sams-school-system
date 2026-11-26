@@ -16,7 +16,14 @@ import App from './App.tsx'
 
 initClientSecurity()
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5000,
+      refetchOnWindowFocus: true,
+    },
+  },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

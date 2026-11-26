@@ -7,6 +7,28 @@ export interface AttendanceRecord {
   attendance_date: string
   status: 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE'
   checkin_time?: string
+  academic_year_id?: string
+  semester_id?: string
+}
+
+export const getExistingClassroomAttendance = async (scheduleId: string, date: string) => {
+  if (!scheduleId || !date) return []
+  const { data: session, error: sessionErr } = await supabase
+    .from('attendance_sessions')
+    .select('id')
+    .eq('schedule_id', scheduleId)
+    .eq('session_date', date)
+    .maybeSingle()
+
+  if (sessionErr || !session?.id) return []
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('student_id, status')
+    .eq('session_id', session.id)
+
+  if (error) return []
+  return data || []
 }
 
 export const getStudentsForSchedule = async (scheduleId: string) => {
